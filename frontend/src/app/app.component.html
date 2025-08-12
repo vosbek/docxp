@@ -1,0 +1,124 @@
+<div class="app-container">
+  <!-- Premium Header -->
+  <header class="app-header glass-effect">
+    <div class="header-content">
+      <div class="header-left">
+        <button pButton 
+                pRipple 
+                type="button" 
+                icon="pi pi-bars" 
+                class="p-button-text p-button-rounded"
+                (click)="toggleSidebar()">
+        </button>
+        
+        <div class="app-logo">
+          <i class="pi pi-book logo-icon"></i>
+          <span class="logo-text">DocXP</span>
+          <p-badge value="PRO" severity="success" class="ml-2"></p-badge>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="search-container">
+          <i class="pi pi-search search-icon"></i>
+          <input type="text" 
+                 class="search-input" 
+                 placeholder="Search repositories, documentation, or commands...">
+          <span class="search-shortcut">⌘K</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button pButton 
+                pRipple 
+                type="button" 
+                icon="pi pi-bell" 
+                class="p-button-text p-button-rounded notification-btn"
+                pBadge 
+                value="3" 
+                severity="danger">
+        </button>
+        
+        <button pButton 
+                pRipple 
+                type="button" 
+                icon="pi pi-moon" 
+                class="p-button-text p-button-rounded">
+        </button>
+        
+        <p-avatar label="U" 
+                  shape="circle" 
+                  class="user-avatar"
+                  [style]="{'background-color':'#9C27B0', 'color': '#ffffff'}">
+        </p-avatar>
+      </div>
+    </div>
+  </header>
+
+  <!-- Premium Sidebar -->
+  <p-sidebar [(visible)]="sidebarVisible" 
+             [modal]="false"
+             [showCloseIcon]="false"
+             styleClass="premium-sidebar"
+             [style]="{'width': '280px'}">
+    
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <i class="pi pi-book"></i>
+        <span>DocXP Platform</span>
+      </div>
+    </div>
+    
+    <div class="sidebar-menu">
+      <div class="menu-section">
+        <span class="menu-section-title">MAIN</span>
+        <div *ngFor="let item of menuItems" class="menu-item" [class.active]="false">
+          <i [class]="item.icon"></i>
+          <span>{{item.label}}</span>
+          <span class="menu-badge" *ngIf="item.label === 'History'">12</span>
+        </div>
+      </div>
+      
+      <div class="menu-section">
+        <span class="menu-section-title">QUICK ACTIONS</span>
+        <button pButton 
+                label="New Generation" 
+                icon="pi pi-plus" 
+                class="p-button-success w-full quick-action-btn">
+        </button>
+        <button pButton 
+                label="Import Repository" 
+                icon="pi pi-download" 
+                class="p-button-outlined w-full mt-2 quick-action-btn">
+        </button>
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <div class="storage-info">
+        <div class="storage-header">
+          <span>Storage Used</span>
+          <span>45%</span>
+        </div>
+        <div class="storage-bar">
+          <div class="storage-progress" style="width: 45%"></div>
+        </div>
+        <span class="storage-text">4.5 GB of 10 GB</span>
+      </div>
+    </div>
+  </p-sidebar>
+
+  <!-- Main Content Area -->
+  <main class="app-main" [class.sidebar-open]="sidebarVisible">
+    <div class="main-content">
+      <app-dashboard></app-dashboard>
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+  <!-- Toast Messages -->
+  <p-toast position="top-right" 
+           [style]="{marginTop: '80px'}"
+           [baseZIndex]="10000">
+  </p-toast>
+</div>

@@ -1,0 +1,146 @@
+<div class="dashboard-container">
+  <!-- Welcome Section -->
+  <div class="welcome-section" @cardAnimation>
+    <div class="welcome-content">
+      <h1 class="welcome-title">Welcome back to DocXP</h1>
+      <p class="welcome-subtitle">Your AI-powered documentation platform is ready to transform your legacy code</p>
+    </div>
+    <div class="welcome-actions">
+      <button pButton label="Generate Documentation" icon="pi pi-bolt" class="p-button-primary action-btn"></button>
+      <button pButton label="View Guide" icon="pi pi-book" class="p-button-outlined action-btn"></button>
+    </div>
+  </div>
+
+  <!-- Metrics Cards -->
+  <div class="metrics-grid">
+    <div *ngFor="let metric of metrics; let i = index" 
+         class="metric-card premium-card" 
+         @cardAnimation
+         [style.animation-delay]="i * 100 + 'ms'">
+      <div class="metric-header">
+        <div class="metric-icon" [class]="'icon-' + metric.color">
+          <i [class]="metric.icon"></i>
+        </div>
+        <div class="metric-trend" [class.trend-up]="metric.trend === 'up'" [class.trend-down]="metric.trend === 'down'">
+          <i [class]="metric.trend === 'up' ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
+          <span>{{metric.change}}%</span>
+        </div>
+      </div>
+      <div class="metric-body">
+        <h2 class="metric-value">{{metric.value}}</h2>
+        <p class="metric-title">{{metric.title}}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid">
+    <!-- Chart Section -->
+    <div class="chart-section premium-card" @cardAnimation>
+      <div class="section-header">
+        <h3 class="section-title">Documentation Trends</h3>
+        <div class="section-controls">
+          <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm"></button>
+          <button pButton icon="pi pi-download" class="p-button-text p-button-sm"></button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <p-chart type="line" [data]="chartData" [options]="chartOptions" [style]="{'height': '300px'}"></p-chart>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section premium-card" @cardAnimation>
+      <div class="section-header">
+        <h3 class="section-title">Recent Jobs</h3>
+        <button pButton label="View All" class="p-button-text p-button-sm"></button>
+      </div>
+      
+      <div class="jobs-table">
+        <p-table [value]="recentJobs" [responsive]="true" styleClass="premium-table">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Job ID</th>
+              <th>Repository</th>
+              <th>Status</th>
+              <th>Entities</th>
+              <th>Rules</th>
+              <th>Duration</th>
+              <th>Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-job>
+            <tr>
+              <td class="job-id">{{job.id}}</td>
+              <td class="repository-name">
+                <i class="pi pi-folder mr-2"></i>
+                {{job.repository}}
+              </td>
+              <td>
+                <p-tag [value]="job.status" [severity]="getStatusSeverity(job.status)"></p-tag>
+              </td>
+              <td class="text-center">{{job.entities}}</td>
+              <td class="text-center">{{job.rules}}</td>
+              <td class="duration">{{job.duration}}</td>
+              <td class="actions">
+                <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" pTooltip="View Details"></button>
+                <button pButton icon="pi pi-download" class="p-button-text p-button-sm" pTooltip="Download"></button>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions Section -->
+  <div class="quick-actions premium-card" @cardAnimation>
+    <div class="section-header">
+      <h3 class="section-title">Quick Actions</h3>
+    </div>
+    <div class="actions-grid">
+      <div class="action-card">
+        <i class="pi pi-plus-circle action-icon"></i>
+        <span class="action-label">New Documentation</span>
+      </div>
+      <div class="action-card">
+        <i class="pi pi-sync action-icon"></i>
+        <span class="action-label">Sync Repository</span>
+      </div>
+      <div class="action-card">
+        <i class="pi pi-cog action-icon"></i>
+        <span class="action-label">Configuration</span>
+      </div>
+      <div class="action-card">
+        <i class="pi pi-chart-bar action-icon"></i>
+        <span class="action-label">Analytics</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Overview -->
+  <div class="status-overview premium-card" @cardAnimation>
+    <div class="section-header">
+      <h3 class="section-title">System Status</h3>
+      <p-tag value="Operational" severity="success"></p-tag>
+    </div>
+    <div class="status-items">
+      <div class="status-item">
+        <span class="status-label">API Server</span>
+        <div class="status-indicator online"></div>
+      </div>
+      <div class="status-item">
+        <span class="status-label">AI Engine</span>
+        <div class="status-indicator online"></div>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Processing Queue</span>
+        <div class="status-indicator online"></div>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Database</span>
+        <div class="status-indicator online"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,88 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterOutlet } from '@angular/router';
+import { PrimeNGConfig } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { SidebarModule } from 'primeng/sidebar';
+import { MenubarModule } from 'primeng/menubar';
+import { MenuItem } from 'primeng/api';
+import { AvatarModule } from 'primeng/avatar';
+import { BadgeModule } from 'primeng/badge';
+import { RippleModule } from 'primeng/ripple';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    ButtonModule,
+    SidebarModule,
+    MenubarModule,
+    AvatarModule,
+    BadgeModule,
+    RippleModule,
+    ToastModule,
+    DashboardComponent
+  ],
+  providers: [MessageService],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.scss'
+})
+export class AppComponent implements OnInit {
+  title = 'DocXP';
+  sidebarVisible = false;
+  menuItems: MenuItem[] = [];
+
+  constructor(
+    private primengConfig: PrimeNGConfig,
+    private messageService: MessageService
+  ) {}
+
+  ngOnInit() {
+    this.primengConfig.ripple = true;
+    this.initializeMenu();
+  }
+
+  initializeMenu() {
+    this.menuItems = [
+      {
+        label: 'Dashboard',
+        icon: 'pi pi-home',
+        routerLink: '/dashboard'
+      },
+      {
+        label: 'Generate',
+        icon: 'pi pi-bolt',
+        routerLink: '/generate'
+      },
+      {
+        label: 'Repositories',
+        icon: 'pi pi-folder',
+        routerLink: '/repositories'
+      },
+      {
+        label: 'History',
+        icon: 'pi pi-history',
+        routerLink: '/history'
+      },
+      {
+        label: 'Analytics',
+        icon: 'pi pi-chart-line',
+        routerLink: '/analytics'
+      },
+      {
+        label: 'Settings',
+        icon: 'pi pi-cog',
+        routerLink: '/settings'
+      }
+    ];
+  }
+
+  toggleSidebar() {
+    this.sidebarVisible = !this.sidebarVisible;
+  }
+}
