@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: docxp-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-v2}
+      - DATABASE_URL=sqlite+aiosqlite:///./docxp.db
+    volumes:
+      - ./backend/output:/app/output
+      - ./backend/temp:/app/temp
+      - ./backend/configs:/app/configs
+      - backend-db:/app
+    networks:
+      - docxp-network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: docxp-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - docxp-network
+    restart: unless-stopped
+
+networks:
+  docxp-network:
+    driver: bridge
+
+volumes:
+  backend-db:

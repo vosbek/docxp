@@ -1,0 +1,386 @@
+<div class="generation-wizard-container">
+  <!-- Header -->
+  <div class="wizard-header premium-card">
+    <h1 class="wizard-title">
+      <i class="pi pi-sparkles"></i>
+      Documentation Generation Wizard
+    </h1>
+    <p class="wizard-subtitle">Generate comprehensive AI-powered documentation for your codebase</p>
+  </div>
+
+  <!-- Steps Indicator -->
+  <div class="steps-container premium-card">
+    <p-steps [model]="steps" [(activeIndex)]="activeIndex" [readonly]="generating"></p-steps>
+  </div>
+
+  <!-- Step Content -->
+  <div class="step-content premium-card">
+    
+    <!-- Step 1: Repository Selection -->
+    <div *ngIf="activeIndex === 0" class="step-panel fade-in-up">
+      <h2 class="step-title">Select Repository</h2>
+      <p class="step-description">Choose the repository you want to generate documentation for</p>
+      
+      <div class="repository-input-group">
+        <span class="p-input-icon-left">
+          <i class="pi pi-folder"></i>
+          <input type="text" 
+                 pInputText 
+                 [(ngModel)]="repositoryPath"
+                 placeholder="Enter repository path (e.g., C:\projects\my-repo)"
+                 class="repository-input"
+                 (keyup.enter)="validateRepository()">
+        </span>
+        <button pButton 
+                type="button" 
+                label="Browse" 
+                icon="pi pi-folder-open"
+                class="p-button-outlined"
+                (click)="browseRepository()">
+        </button>
+        <button pButton 
+                type="button" 
+                label="Validate" 
+                icon="pi pi-check"
+                class="p-button-primary"
+                [loading]="validatingRepo"
+                (click)="validateRepository()">
+        </button>
+      </div>
+      
+      <!-- Repository Info Display -->
+      <div *ngIf="repositoryInfo" class="repository-info fade-in-up">
+        <p-message severity="success" text="Repository validated successfully"></p-message>
+        
+        <div class="info-grid">
+          <div class="info-card">
+            <i class="pi pi-file info-icon"></i>
+            <div class="info-content">
+              <span class="info-value">{{repositoryInfo.total_files}}</span>
+              <span class="info-label">Files</span>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <i class="pi pi-code info-icon"></i>
+            <div class="info-content">
+              <span class="info-value">{{repositoryInfo.total_lines}}</span>
+              <span class="info-label">Lines of Code</span>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <i class="pi pi-server info-icon"></i>
+            <div class="info-content">
+              <span class="info-value">{{repositoryInfo.size_mb}} MB</span>
+              <span class="info-label">Size</span>
+            </div>
+          </div>
+          
+          <div class="info-card">
+            <i class="pi pi-github info-icon"></i>
+            <div class="info-content">
+              <span class="info-value">{{repositoryInfo.is_git ? 'Yes' : 'No'}}</span>
+              <span class="info-label">Git Repository</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Language Distribution -->
+        <div class="language-distribution">
+          <h3>Languages Detected</h3>
+          <div class="language-tags">
+            <span *ngFor="let lang of repositoryInfo.languages | keyvalue" 
+                  class="language-tag">
+              {{lang.key}}: {{lang.value}} files
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- Step 2: Configuration -->
+    <div *ngIf="activeIndex === 1" class="step-panel fade-in-up">
+      <h2 class="step-title">Configuration Options</h2>
+      <p class="step-description">Customize how documentation is generated</p>
+      
+      <div class="config-section">
+        <h3>Documentation Depth</h3>
+        <p-dropdown [options]="depths" 
+                    [(ngModel)]="selectedDepth"
+                    optionLabel="label"
+                    optionValue="value"
+                    [style]="{'width':'100%'}"
+                    (onChange)="onDepthChange()">
+        </p-dropdown>
+      </div>
+      
+      <div class="config-section">
+        <h3>Generation Options</h3>
+        <div class="options-grid">
+          <div class="option-item">
+            <p-checkbox [(ngModel)]="includeDiagrams" 
+                        [binary]="true" 
+                        inputId="diagrams">
+            </p-checkbox>
+            <label for="diagrams">Include Architecture Diagrams</label>
+          </div>
+          
+          <div class="option-item">
+            <p-checkbox [(ngModel)]="includeBusinessRules" 
+                        [binary]="true" 
+                        inputId="rules">
+            </p-checkbox>
+            <label for="rules">Extract Business Rules (AI)</label>
+          </div>
+          
+          <div class="option-item">
+            <p-checkbox [(ngModel)]="includeApiDocs" 
+                        [binary]="true" 
+                        inputId="api">
+            </p-checkbox>
+            <label for="api">Generate API Documentation</label>
+          </div>
+          
+          <div class="option-item">
+            <p-checkbox [(ngModel)]="incrementalUpdate" 
+                        [binary]="true" 
+                        inputId="incremental">
+            </p-checkbox>
+            <label for="incremental">Incremental Update</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="config-section">
+        <h3>Focus Areas</h3>
+        <div class="focus-grid">
+          <div class="focus-item" *ngFor="let area of ['classes', 'functions', 'apis', 'database', 'security', 'config']">
+            <p-checkbox [(ngModel)]="focusAreas[area]" 
+                        [binary]="true" 
+                        [inputId]="'focus-' + area">
+            </p-checkbox>
+            <label [for]="'focus-' + area">{{area | titlecase}}</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="config-section">
+        <h3>Keywords (Optional)</h3>
+        <p-chips [(ngModel)]="keywords" 
+                 placeholder="Add keywords to focus on..."
+                 [style]="{'width':'100%'}">
+        </p-chips>
+      </div>
+    </div>
+    
+    <!-- Step 3: Review -->
+    <div *ngIf="activeIndex === 2" class="step-panel fade-in-up">
+      <h2 class="step-title">Review Configuration</h2>
+      <p class="step-description">Confirm your settings before starting generation</p>
+      
+      <div class="review-container">
+        <p-table [value]="getConfigurationSummary()" styleClass="review-table">
+          <ng-template pTemplate="body" let-item>
+            <tr>
+              <td class="setting-name">{{item.setting}}</td>
+              <td class="setting-value">{{item.value}}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        
+        <div class="estimate-cards">
+          <div class="estimate-card">
+            <i class="pi pi-clock"></i>
+            <div>
+              <span class="estimate-label">Estimated Time</span>
+              <span class="estimate-value">{{estimatedTime}}</span>
+            </div>
+          </div>
+          
+          <div class="estimate-card">
+            <i class="pi pi-database"></i>
+            <div>
+              <span class="estimate-label">Output Size</span>
+              <span class="estimate-value">{{estimatedSize}}</span>
+            </div>
+          </div>
+        </div>
+        
+        <p-message severity="info" 
+                   text="Documentation will be generated using AI. Processing time depends on repository size and selected options.">
+        </p-message>
+      </div>
+    </div>
+
+    
+    <!-- Step 4: Generation -->
+    <div *ngIf="activeIndex === 3" class="step-panel fade-in-up">
+      <h2 class="step-title">Generating Documentation</h2>
+      <p class="step-description">AI is analyzing your codebase and creating documentation</p>
+      
+      <div class="generation-container">
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-label">{{currentStatus}}</span>
+            <span class="progress-percentage">{{generationProgress}}%</span>
+          </div>
+          
+          <p-progressBar [value]="generationProgress" 
+                         [showValue]="false"
+                         styleClass="generation-progress">
+          </p-progressBar>
+        </div>
+        
+        <div class="generation-stats" *ngIf="generating">
+          <div class="stat-item">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Processing repository files...</span>
+          </div>
+          
+          <div class="phases">
+            <div class="phase" [class.active]="generationProgress < 30">
+              <i class="pi pi-search"></i>
+              <span>Repository Analysis</span>
+            </div>
+            
+            <div class="phase" [class.active]="generationProgress >= 30 && generationProgress < 50">
+              <i class="pi pi-code"></i>
+              <span>Code Parsing</span>
+            </div>
+            
+            <div class="phase" [class.active]="generationProgress >= 50 && generationProgress < 70">
+              <i class="pi pi-brain"></i>
+              <span>AI Processing</span>
+            </div>
+            
+            <div class="phase" [class.active]="generationProgress >= 70">
+              <i class="pi pi-file-edit"></i>
+              <span>Documentation Generation</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="generation-tip">
+          <i class="pi pi-info-circle"></i>
+          <span>This process may take several minutes depending on repository size. You can safely navigate away and check status later.</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Step 5: Results -->
+    <div *ngIf="activeIndex === 4" class="step-panel fade-in-up">
+      <h2 class="step-title">Generation Complete!</h2>
+      <p class="step-description">Your documentation has been successfully generated</p>
+      
+      <div class="results-container" *ngIf="generationResult">
+        <div class="success-banner" *ngIf="generationResult.status === 'completed'">
+          <i class="pi pi-check-circle"></i>
+          <div>
+            <h3>Documentation Generated Successfully</h3>
+            <p>All files have been processed and documentation is ready</p>
+          </div>
+        </div>
+        
+        <div class="results-stats">
+          <div class="stat-card">
+            <i class="pi pi-file"></i>
+            <span class="stat-value">{{generationResult.entities_count}}</span>
+            <span class="stat-label">Code Entities</span>
+          </div>
+          
+          <div class="stat-card">
+            <i class="pi pi-shield"></i>
+            <span class="stat-value">{{generationResult.business_rules_count}}</span>
+            <span class="stat-label">Business Rules</span>
+          </div>
+          
+          <div class="stat-card">
+            <i class="pi pi-folder-open"></i>
+            <span class="stat-value">{{generationResult.files_processed}}</span>
+            <span class="stat-label">Files Processed</span>
+          </div>
+          
+          <div class="stat-card">
+            <i class="pi pi-clock"></i>
+            <span class="stat-value">{{generationResult.processing_time_seconds ? (generationResult.processing_time_seconds / 60).toFixed(1) : '0'}}m</span>
+            <span class="stat-label">Processing Time</span>
+          </div>
+        </div>
+        
+        <div class="output-info">
+          <h3>Output Location</h3>
+          <div class="output-path">
+            <i class="pi pi-folder"></i>
+            <code>{{outputPath || 'output/' + jobId}}</code>
+          </div>
+        </div>
+        
+        <div class="action-buttons">
+          <button pButton 
+                  type="button" 
+                  label="View Documentation" 
+                  icon="pi pi-eye"
+                  class="p-button-primary"
+                  (click)="viewDocumentation()">
+          </button>
+          
+          <button pButton 
+                  type="button" 
+                  label="Download" 
+                  icon="pi pi-download"
+                  class="p-button-outlined"
+                  (click)="downloadDocumentation()">
+          </button>
+          
+          <button pButton 
+                  type="button" 
+                  label="Generate Another" 
+                  icon="pi pi-refresh"
+                  class="p-button-outlined"
+                  (click)="restart()">
+          </button>
+        </div>
+      </div>
+      
+      <div class="error-container" *ngIf="generationResult?.status === 'failed'">
+        <p-message severity="error" 
+                   [text]="generationResult.error_message || 'Generation failed. Please check logs for details.'">
+        </p-message>
+        
+        <button pButton 
+                type="button" 
+                label="Try Again" 
+                icon="pi pi-refresh"
+                class="p-button-outlined mt-3"
+                (click)="restart()">
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Navigation Footer -->
+  <div class="wizard-footer premium-card" *ngIf="!generating">
+    <button pButton 
+            type="button" 
+            label="Previous" 
+            icon="pi pi-chevron-left"
+            class="p-button-outlined"
+            [disabled]="activeIndex === 0 || activeIndex === 4"
+            (click)="previousStep()">
+    </button>
+    
+    <button pButton 
+            type="button" 
+            [label]="activeIndex === 2 ? 'Start Generation' : (activeIndex === 4 ? 'Finish' : 'Next')" 
+            [icon]="activeIndex === 2 ? 'pi pi-play' : 'pi pi-chevron-right'"
+            class="p-button-primary"
+            [disabled]="(activeIndex === 0 && !repositoryValid) || activeIndex === 3"
+            (click)="activeIndex === 4 ? restart() : nextStep()">
+    </button>
+  </div>
+</div>
+
+<!-- Toast Messages -->
+<p-toast position="top-right" [style]="{marginTop: '80px'}"></p-toast>
