@@ -69,14 +69,6 @@ class AIService:
         if not self.client:
             raise RuntimeError("AWS Bedrock client not initialized")
     
-    def _invoke_model_sync(self, model_id: str, body_dict: Dict) -> Any:
-        """Synchronous model invocation for use in thread pool"""
-        self._ensure_client_ready()
-        return self.client.invoke_model(
-            modelId=model_id,
-            body=json.dumps(body_dict)
-        )
-    
     def _create_session(self):
         """Create AWS session with current credentials"""
         session_kwargs = {
@@ -96,7 +88,7 @@ class AIService:
             if settings.AWS_SESSION_TOKEN:
                 session_kwargs['aws_session_token'] = settings.AWS_SESSION_TOKEN
         
-        return boto3.Session(**session_kwargs)
+        return boto3.Session(**session_kwargs)\n    \n    def _invoke_model_sync(self, model_id: str, body_dict: Dict) -> Any:\n        \"\"\"Synchronous model invocation for use in thread pool\"\"\"\n        self._ensure_client_ready()\n        return self.client.invoke_model(\n            modelId=model_id,\n            body=json.dumps(body_dict)\n        )
     
     def _initialize_client(self):
         """Initialize AWS Bedrock client with multiple auth methods"""
@@ -493,7 +485,7 @@ Format with clear sections and subsections using Markdown.
         import re
         
         # Strategy 1: Look for JSON within code fences
-        json_fence_match = re.search(r'```(?:json)?\s*\n?([\\s\\S]*?)\n?```', text, re.IGNORECASE)
+        json_fence_match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text, re.IGNORECASE)
         if json_fence_match:
             try:
                 return json.loads(json_fence_match.group(1).strip())

@@ -38,8 +38,9 @@ class Struts2Parser(BaseParser):
         
         try:
             if file_path.suffix == '.java':
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                content = self.read_file_safe(file_path)
+                if not content:
+                    return dependencies
                 
                 # Extract Struts2 annotations
                 annotations = re.findall(r'@(Action|Result|Results|Namespace|ParentPackage)\s*\(', content)
@@ -58,6 +59,12 @@ class Struts2Parser(BaseParser):
     def _parse_struts2_xml(self, file_path: Path) -> List[Dict]:
         """Parse struts.xml for Struts2 specific features"""
         entities = []
+        
+        # Validate XML content first
+        xml_content = self.validate_xml_content(file_path)
+        if not xml_content:
+            logger.debug(f"Skipping invalid or empty XML file: {file_path}")
+            return entities
         
         try:
             tree = ET.parse(file_path)
@@ -147,9 +154,13 @@ class Struts2Parser(BaseParser):
         """Parse Struts2 Action classes with annotations"""
         entities = []
         
+        # Safely read file content
+        content = self.read_file_safe(file_path)
+        if not content:
+            logger.debug(f"Skipping invalid or empty Java file: {file_path}")
+            return entities
+        
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
             
             # Check for Struts2 ActionSupport
             if 'extends ActionSupport' in content or '@Action' in content:
@@ -217,9 +228,13 @@ class Struts2Parser(BaseParser):
         """Parse JSP files with Struts2 tags"""
         entities = []
         
+        # Safely read file content
+        content = self.read_file_safe(file_path)
+        if not content:
+            logger.debug(f"Skipping invalid or empty JSP file: {file_path}")
+            return entities
+        
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
             
             # Extract Struts2 tags (s: prefix)
             s_tags = re.findall(r'<s:(\w+)[^>]*>', content)

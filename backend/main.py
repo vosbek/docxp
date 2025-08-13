@@ -15,7 +15,7 @@ import uuid
 from app.api import documentation, repositories, analytics, configuration, health, aws_configuration
 from app.core.config import settings
 from app.core.database import init_db
-from app.core.logging_config import setup_logging, get_logger
+from app.core.logging_config import setup_logging, get_logger, force_sqlalchemy_silence
 from app.core.error_handlers import register_exception_handlers
 
 # Setup enhanced logging
@@ -32,6 +32,9 @@ async def lifespan(app: FastAPI):
     logger.info("Starting DocXP Backend...")
     await init_db()
     logger.info("Database initialized")
+    
+    # Force SQLAlchemy to be quiet after database initialization
+    force_sqlalchemy_silence()
     
     # Create necessary directories
     Path(settings.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)

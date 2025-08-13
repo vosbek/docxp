@@ -18,7 +18,7 @@ from sqlalchemy import select, update
 from app.core.database import DocumentationJob, Repository
 from app.models.schemas import DocumentationRequest, BusinessRule
 from app.parsers.parser_factory import ParserFactory
-from app.services.ai_service import AIService
+from app.services.ai_service import ai_service_instance
 from app.services.diagram_service import DiagramService
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class DocumentationService:
     def __init__(self, db_session: AsyncSession):
         self.db = db_session
         self.parser_factory = ParserFactory()
-        self.ai_service = AIService()
+        self.ai_service = ai_service_instance
         self.diagram_service = DiagramService()
         self.executor = ThreadPoolExecutor(max_workers=4)
     

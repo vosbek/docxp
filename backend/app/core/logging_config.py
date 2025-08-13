@@ -61,7 +61,8 @@ def setup_logging(
     max_bytes: int = 10485760,  # 10MB
     backup_count: int = 5,
     enable_json: bool = True,
-    enable_console: bool = True
+    enable_console: bool = True,
+    force_sql_silence: bool = True
 ) -> logging.Logger:
     """
     Configure application-wide logging
@@ -123,12 +124,8 @@ def setup_logging(
     error_file_handler.setFormatter(JSONFormatter())
     root_logger.addHandler(error_file_handler)
     
-    # Configure specific loggers
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-    logging.getLogger("boto3").setLevel(logging.WARNING)
-    logging.getLogger("botocore").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    # Configure specific loggers with more aggressive suppression
+    _configure_third_party_loggers()
     
     # Log initial setup
     root_logger.info(
@@ -156,6 +153,75 @@ def get_logger(name: str) -> logging.Logger:
         Logger instance
     """
     return logging.getLogger(name)
+
+def _configure_third_party_loggers():
+    """Configure third-party loggers to reduce noise"""
+    # SQLAlchemy loggers - be very aggressive about suppressing
+    sqlalchemy_loggers = [
+        'sqlalchemy.engine',
+        'sqlalchemy.engine.Engine',
+        'sqlalchemy.pool',
+        'sqlalchemy.pool.Pool',
+        'sqlalchemy.dialects',
+        'sqlalchemy.orm'
+    ]
+    
+    for logger_name in sqlalchemy_loggers:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.WARNING)
+        logger.propagate = False  # Prevent propagation to root logger
+        
+        # Remove any existing handlers that might be causing issues
+        logger.handlers = []
+        
+        # Add a null handler to prevent "No handlers" warnings
+        logger.addHandler(logging.NullHandler())
+    
+    # Other noisy loggers
+    noisy_loggers = [
+        'uvicorn.access',
+        'boto3',
+        'botocore',
+        'urllib3',
+        'urllib3.connectionpool',
+        'requests.packages.urllib3',
+        'asyncio'
+    ]
+    
+    for logger_name in noisy_loggers:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.WARNING)
+        
+    # Force disable SQLAlchemy echo if it's enabled
+    try:
+        import sqlalchemy
+        # This will prevent any future SQLAlchemy engines from echoing
+        sqlalchemy.engine.Engine.echo = False
+    except ImportError:
+        pass
+
+def force_sqlalchemy_silence():
+    """Force SQLAlchemy to be quiet - call this after database initialization"""
+    _configure_third_party_loggers()
+    
+    # Additional enforcement after DB initialization
+    try:
+        import sqlalchemy.engine
+        import sqlalchemy.pool
+        
+        # Force all existing engines to stop echoing
+        for engine in sqlalchemy.engine._engines:
+            if hasattr(engine, 'echo'):
+                engine.echo = False
+                
+        # Suppress pool logging
+        sqlalchemy.pool.logger.setLevel(logging.WARNING)
+        sqlalchemy.pool.logger.propagate = False
+        
+    except (ImportError, AttributeError):
+        pass
+        
+    logging.getLogger('sqlalchemy').info("SQLAlchemy logging suppressed")
 
 class LogContext:
     """Context manager for adding extra fields to logs"""

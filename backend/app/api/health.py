@@ -11,7 +11,7 @@ import psutil
 import os
 
 from app.core.database import get_session
-from app.services.ai_service import AIService
+from app.services.ai_service import ai_service_instance
 from app.core.logging_config import get_logger
 
 router = APIRouter()
@@ -53,7 +53,7 @@ async def detailed_health_check(db: AsyncSession = Depends(get_session)):
     
     # AI Service Check
     try:
-        ai_service = AIService()
+        ai_service = ai_service_instance
         # Just check if service initializes properly
         health_status["checks"]["ai_service"] = "healthy" if ai_service else "degraded"
     except Exception as e:

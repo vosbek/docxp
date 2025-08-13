@@ -11,7 +11,7 @@ import os
 import tempfile
 
 from app.core.database import get_session
-from app.services.ai_service import AIService
+from app.services.ai_service import ai_service_instance
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class AWSStatusResponse(BaseModel):
 async def get_aws_status():
     """Get current AWS connection status"""
     try:
-        ai_service = AIService()
+        ai_service = ai_service_instance
         
         # Check if we have a working client
         if not ai_service.client:
@@ -147,7 +147,7 @@ async def test_aws_credentials(request: AWSCredentialsRequest):
         os.environ['AWS_REGION'] = request.aws_region
         
         # Create a temporary AI service instance for testing
-        test_ai_service = AIService()
+        test_ai_service = ai_service_instance
         
         # Test the connection
         models = test_ai_service.get_available_models()
@@ -283,7 +283,7 @@ async def configure_aws_credentials(request: AWSCredentialsRequest):
 async def get_available_models():
     """Get list of available Bedrock models"""
     try:
-        ai_service = AIService()
+        ai_service = ai_service_instance
         models = ai_service.get_available_models()
         
         return {
@@ -300,7 +300,7 @@ async def get_available_models():
 async def set_bedrock_model(request: ModelSelectionRequest):
     """Set the Bedrock model to use"""
     try:
-        ai_service = AIService()
+        ai_service = ai_service_instance
         ai_service.set_model_id(request.model_id)
         
         # Update the .env file
