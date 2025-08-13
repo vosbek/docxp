@@ -12,7 +12,7 @@
           icon="pi pi-aws">
         </p-tag>
         <span class="status-details" *ngIf="awsStatus && awsStatus.connected">
-          {{awsStatus.model_count}} models available in {{awsStatus.region}}
+          {{awsStatus.available_models_count}} models available in {{awsStatus.region}}
         </span>
       </div>
     </div>

@@ -34,7 +34,7 @@ interface AWSStatus {
   account_id?: string;
   region: string;
   auth_method: string;
-  model_count: number;
+  available_models_count: number;
 }
 
 @Component({
@@ -124,7 +124,7 @@ export class AwsConfigurationComponent implements OnInit {
           this.messageService.add({
             severity: 'success',
             summary: 'AWS Connected',
-            detail: `Connected to account ${status.account_id} with ${status.model_count} models`
+            detail: `Connected to account ${status.account_id} with ${status.available_models_count} models`
           });
         }
       },
@@ -183,7 +183,7 @@ export class AwsConfigurationComponent implements OnInit {
           this.messageService.add({
             severity: 'success',
             summary: 'Credentials Valid',
-            detail: `Connected to AWS account ${response.account_id} with ${response.model_count} models`
+            detail: `Connected to AWS account ${response.account_id} with ${response.available_models_count} models`
           });
         } else {
           this.messageService.add({
@@ -223,7 +223,7 @@ export class AwsConfigurationComponent implements OnInit {
           this.messageService.add({
             severity: 'success',
             summary: 'Profile Valid',
-            detail: `Connected to AWS account ${response.account_id} with ${response.model_count} models`
+            detail: `Connected to AWS account ${response.account_id} with ${response.available_models_count} models`
           });
         } else {
           this.messageService.add({

@@ -225,7 +225,7 @@ export class ApiService {
   }
 
   setBedrockModel(modelId: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/configuration/aws/set-model`, { model_id: modelId });
+    return this.http.post<any>(`${this.apiUrl}/configuration/aws/set-model`, { bedrock_model_id: modelId });
   }
 
   getAWSProfiles(): Observable<any> {
