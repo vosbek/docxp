@@ -28,7 +28,7 @@ class AWSCredentialsRequest(BaseModel):
 
 class ModelSelectionRequest(BaseModel):
     """Model selection request"""
-    model_id: str
+    bedrock_model_id: str
 
 class AWSStatusResponse(BaseModel):
     """AWS connection status response"""
@@ -37,7 +37,11 @@ class AWSStatusResponse(BaseModel):
     account_id: Optional[str] = None
     region: str
     auth_method: str
-    model_count: int = 0
+    available_models_count: int = 0
+    
+    class Config:
+        # Disable the protected namespace warning for any remaining model_ fields
+        protected_namespaces = ()
 
 @router.get("/status")
 async def get_aws_status():
@@ -52,7 +56,7 @@ async def get_aws_status():
                 error="No AWS credentials configured",
                 region=settings.AWS_REGION,
                 auth_method="none",
-                model_count=0
+                available_models_count=0
             )
         
         # Test the connection
@@ -82,7 +86,7 @@ async def get_aws_status():
                 account_id=identity.get('Account'),
                 region=settings.AWS_REGION,
                 auth_method=auth_method,
-                model_count=len(models)
+                available_models_count=len(models)
             )
             
         except Exception as e:
@@ -91,7 +95,7 @@ async def get_aws_status():
                 error=str(e),
                 region=settings.AWS_REGION,
                 auth_method="unknown",
-                model_count=0
+                available_models_count=0
             )
             
     except Exception as e:
@@ -101,7 +105,7 @@ async def get_aws_status():
             error=f"Internal error: {e}",
             region=settings.AWS_REGION,
             auth_method="unknown",
-            model_count=0
+            available_models_count=0
         )
 
 @router.post("/test-credentials")
@@ -172,7 +176,7 @@ async def test_aws_credentials(request: AWSCredentialsRequest):
             "message": f"Successfully connected to AWS account {identity.get('Account')}",
             "account_id": identity.get('Account'),
             "region": request.aws_region,
-            "model_count": len(models),
+            "available_models_count": len(models),
             "models": models[:5]  # Return first 5 models as preview
         }
         
@@ -301,7 +305,7 @@ async def set_bedrock_model(request: ModelSelectionRequest):
     """Set the Bedrock model to use"""
     try:
         ai_service = ai_service_instance
-        ai_service.set_model_id(request.model_id)
+        ai_service.set_model_id(request.bedrock_model_id)
         
         # Update the .env file
         env_path = ".env"
@@ -315,7 +319,7 @@ async def set_bedrock_model(request: ModelSelectionRequest):
         env_lines = [line for line in env_lines if not line.startswith('BEDROCK_MODEL_ID=')]
         
         # Add new model ID
-        env_lines.append(f"BEDROCK_MODEL_ID={request.model_id}")
+        env_lines.append(f"BEDROCK_MODEL_ID={request.bedrock_model_id}")
         
         # Write updated .env file
         with open(env_path, 'w') as f:
@@ -323,8 +327,8 @@ async def set_bedrock_model(request: ModelSelectionRequest):
         
         return {
             "success": True,
-            "message": f"Model set to {request.model_id}",
-            "model_id": request.model_id
+            "message": f"Model set to {request.bedrock_model_id}",
+            "model_id": request.bedrock_model_id
         }
         
     except Exception as e:

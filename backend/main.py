@@ -180,6 +180,8 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8001,
-        reload=True,
+        reload=False,  # Disable reload to prevent watchfiles spam
+        reload_dirs=[],  # Explicitly disable directory watching
+        use_colors=False,  # Reduce log noise
         log_level="info"
     )
