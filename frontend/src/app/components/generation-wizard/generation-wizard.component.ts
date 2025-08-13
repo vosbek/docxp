@@ -17,6 +17,7 @@ import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
+import { AccordionModule } from 'primeng/accordion';
 import { MenuItem, MessageService } from 'primeng/api';
 
 import { ApiService, DocumentationRequest, RepositoryInfo, JobStatus } from '../../services/api.service';
@@ -59,6 +60,7 @@ interface StepData {
     DialogModule,
     TableModule,
     TooltipModule,
+    AccordionModule,
     AwsConfigurationComponent
   ],
   providers: [MessageService],
@@ -68,6 +70,9 @@ interface StepData {
 export class GenerationWizardComponent implements OnInit, OnDestroy {
   steps: MenuItem[] = [];
   activeIndex: number = 0;
+  
+  // Make Object available in template
+  Object = Object;
   
   // Step 1: Repository Selection
   repositoryPath: string = '';
@@ -154,10 +159,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
             summary: 'AWS Connected',
             detail: `Connected to account ${status.account_id}`
           });
-          // If AWS is configured, auto-advance to repository step
-          if (this.activeIndex === 0) {
-            setTimeout(() => this.nextStep(), 1500);
-          }
+          // AWS is configured - user can manually proceed when ready
         }
       },
       error: (error) => {
@@ -193,8 +195,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
         detail: event.message
       });
       
-      // Auto-advance to next step after successful configuration
-      setTimeout(() => this.nextStep(), 1000);
+      // AWS configuration complete - user can manually proceed when ready
     }
   }
 
@@ -264,8 +265,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
           detail: `Found ${info.total_files} files in ${Object.keys(info.languages).length} languages`
         });
         
-        // Auto-advance to next step
-        setTimeout(() => this.nextStep(), 1500);
+        // Repository validation complete - user can manually proceed when ready
       },
       error: (error) => {
         this.validatingRepo = false;
@@ -286,6 +286,11 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
       summary: 'Browse',
       detail: 'File browser integration coming soon. Please enter path manually.'
     });
+  }
+  
+  isConfigurationValid(): boolean {
+    const selectedFocusAreas = Object.values(this.focusAreas).filter(Boolean);
+    return selectedFocusAreas.length > 0;
   }
   
   // Step 2: Configuration Methods
@@ -404,8 +409,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
                   detail: `Generated documentation for ${status.entities_count} entities and ${status.business_rules_count} business rules`
                 });
                 
-                // Auto-advance to results
-                setTimeout(() => this.nextStep(), 1000);
+                // Generation complete - user can manually proceed to view results
               } else {
                 this.messageService.add({
                   severity: 'error',
@@ -480,6 +484,16 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
       }
       
       if (this.activeIndex === 2) {
+        // Validate configuration before proceeding to review
+        const selectedFocusAreas = Object.values(this.focusAreas).filter(Boolean);
+        if (selectedFocusAreas.length === 0) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Focus Areas Required',
+            detail: 'Please select at least one focus area for documentation generation'
+          });
+          return;
+        }
         this.updateEstimates();
       }
       

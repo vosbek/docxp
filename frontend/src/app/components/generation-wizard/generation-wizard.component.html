@@ -154,6 +154,59 @@
       <h2 class="step-title">Configuration Options</h2>
       <p class="step-description">Customize how documentation is generated</p>
       
+      <!-- Repository Analysis Summary (Expandable) -->
+      <div class="config-section" *ngIf="repositoryInfo">
+        <p-accordion>
+          <p-accordionTab header="Repository Analysis Summary" [selected]="false">
+            <div class="repository-summary">
+              <div class="info-grid">
+                <div class="info-card">
+                  <i class="pi pi-file info-icon"></i>
+                  <div class="info-content">
+                    <span class="info-value">{{repositoryInfo.total_files}}</span>
+                    <span class="info-label">Total Files</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <i class="pi pi-code info-icon"></i>
+                  <div class="info-content">
+                    <span class="info-value">{{repositoryInfo.total_lines | number}}</span>
+                    <span class="info-label">Lines of Code</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <i class="pi pi-database info-icon"></i>
+                  <div class="info-content">
+                    <span class="info-value">{{repositoryInfo.size_mb | number:'1.1-1'}} MB</span>
+                    <span class="info-label">Repository Size</span>
+                  </div>
+                </div>
+                
+                <div class="info-card">
+                  <i class="pi pi-tags info-icon"></i>
+                  <div class="info-content">
+                    <span class="info-value">{{Object.keys(repositoryInfo.languages).length}}</span>
+                    <span class="info-label">Languages</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="language-distribution" *ngIf="Object.keys(repositoryInfo.languages).length > 0">
+                <h4>Language Distribution</h4>
+                <div class="language-tags">
+                  <span *ngFor="let lang of Object.keys(repositoryInfo.languages)" 
+                        class="language-tag">
+                    {{lang}} ({{repositoryInfo.languages[lang]}})
+                  </span>
+                </div>
+              </div>
+            </div>
+          </p-accordionTab>
+        </p-accordion>
+      </div>
+      
       <div class="config-section">
         <h3>Documentation Depth</h3>
         <p-dropdown [options]="depths" 
@@ -422,11 +475,11 @@
     
     <button pButton 
             type="button" 
-            [label]="activeIndex === 2 ? 'Start Generation' : (activeIndex === 4 ? 'Finish' : 'Next')" 
-            [icon]="activeIndex === 2 ? 'pi pi-play' : 'pi pi-chevron-right'"
+            [label]="activeIndex === 3 ? 'Start Generation' : (activeIndex === 5 ? 'Finish' : 'Next')" 
+            [icon]="activeIndex === 3 ? 'pi pi-play' : (activeIndex === 5 ? 'pi pi-refresh' : 'pi pi-chevron-right')"
             class="p-button-primary"
-            [disabled]="(activeIndex === 0 && !repositoryValid) || activeIndex === 3"
-            (click)="activeIndex === 4 ? restart() : nextStep()">
+            [disabled]="(activeIndex === 0 && !awsConfigured) || (activeIndex === 1 && !repositoryValid) || (activeIndex === 2 && !isConfigurationValid()) || activeIndex === 4"
+            (click)="activeIndex === 5 ? restart() : nextStep()">
     </button>
   </div>
 </div>
