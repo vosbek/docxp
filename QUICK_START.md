@@ -1,129 +1,232 @@
-# DocXP Quick Setup Guide
+# DocXP Quick Start Guide
 
-## 🚀 Quick Start (Windows)
+## 🚀 Get Started in 60 Seconds
 
-1. **Configure AWS Credentials**
-   ```
-   cd backend
-   copy .env.template .env
-   ```
-   Edit `.env` with your AWS credentials
+### Step 1: System Check (10 seconds)
+```batch
+test-system.bat
+```
+This verifies all prerequisites are met.
 
-2. **Run the Application**
-   ```
-   start.bat
-   ```
+### Step 2: Start DocXP (30 seconds)
+```batch
+enhanced-start.bat
+```
+This will:
+- ✅ Validate environment
+- ✅ Install dependencies
+- ✅ Start all services
+- ✅ Open browser automatically
 
-3. **Access DocXP**
-   - Open browser to http://localhost:4200
-   - Backend API at http://localhost:8000
+### Step 3: Generate Your First Documentation (20 seconds)
+1. Click **"Generate Documentation"** button
+2. Enter your repository path (e.g., `C:\projects\my-app`)
+3. Click **Generate**
+4. Watch the real-time progress
 
-## 🐧 Quick Start (Linux/Mac)
+That's it! Your documentation will be ready in minutes.
 
-1. **Configure AWS Credentials**
-   ```bash
-   cd backend
-   cp .env.template .env
-   nano .env  # Edit with your AWS credentials
-   ```
+## 🎯 Quick Actions
 
-2. **Make script executable and run**
-   ```bash
-   chmod +x start.sh
-   ./start.sh
-   ```
-
-3. **Access DocXP**
-   - Open browser to http://localhost:4200
-   - Backend API at http://localhost:8000
-
-## ⚙️ Manual Setup
-
-### Backend
+### Generate Documentation
 ```bash
+# Via UI
+1. Navigate to http://localhost:4200
+2. Click "Generate Documentation"
+3. Follow the wizard
+
+# Via API
+curl -X POST http://localhost:8001/api/documentation/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repository_path": "C:/path/to/repo",
+    "depth": "standard",
+    "include_diagrams": true,
+    "include_business_rules": true
+  }'
+```
+
+### Check Job Status
+```bash
+# Via UI
+Look at the dashboard's "Recent Jobs" table
+
+# Via API
+curl http://localhost:8001/api/documentation/status/{job_id}
+```
+
+### Download Documentation
+```bash
+# Via UI
+Click the download icon in the Recent Jobs table
+
+# Via API
+curl http://localhost:8001/api/documentation/download/{job_id} -o docs.zip
+```
+
+### Sync Repository (Incremental Updates)
+```bash
+# Via UI
+Click "Sync Repository" in Quick Actions
+
+# Via API
+curl -X POST "http://localhost:8001/api/documentation/sync?repo_path=C:/path/to/repo"
+```
+
+## 🔍 Health Monitoring
+
+### Quick Health Check
+```bash
+curl http://localhost:8001/health
+```
+
+### Detailed System Status
+```bash
+curl http://localhost:8001/health/detailed | python -m json.tool
+```
+
+### Dashboard Indicators
+- 🟢 Green = Service healthy
+- 🟡 Yellow = Service degraded
+- 🔴 Red = Service down
+
+## 🛠️ Configuration Options
+
+### Documentation Depth Levels
+- **Minimal**: Basic structure only (fastest)
+- **Standard**: Recommended for most projects
+- **Comprehensive**: Detailed analysis
+- **Exhaustive**: Complete documentation (slowest)
+
+### Focus Areas
+- ✅ Classes and Objects
+- ✅ Functions and Methods
+- ✅ APIs and Endpoints
+- ✅ Database Schemas
+- ✅ Security Patterns
+- ✅ Configuration Files
+
+### Output Options
+- 📊 Mermaid Diagrams
+- 📋 Business Rules
+- 📚 API Documentation
+- 🔄 Incremental Updates
+
+## 📁 Output Location
+
+Generated documentation is saved to:
+```
+backend/output/{job_id}/
+├── README.md           # Main documentation
+├── architecture.md     # System architecture
+├── business_rules.md   # Extracted rules
+├── api_docs.md        # API documentation
+└── diagrams/          # Mermaid diagrams
+```
+
+## ⚡ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl + G` | Generate new documentation |
+| `Ctrl + R` | Refresh dashboard |
+| `Ctrl + H` | Show help |
+| `F5` | Reload metrics |
+
+## 🔧 Troubleshooting Quick Fixes
+
+### Application Won't Start
+```batch
+# Run diagnostics
 cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate
-# Linux/Mac: source venv/bin/activate
-pip install -r requirements.txt
-python main.py
+python diagnose.py
+
+# Follow the suggested fixes
 ```
 
-### Frontend
-```bash
-cd frontend
-npm install
-ng serve
+### Port Already in Use
+```batch
+# Kill processes on ports
+taskkill /F /IM node.exe
+taskkill /F /IM python.exe
+
+# Restart
+enhanced-start.bat
 ```
 
-## 🔧 Configuration
+### AWS Not Working
+No problem! The app automatically uses mock mode for AI features.
 
-1. **AWS Bedrock Access**
-   - Ensure your AWS account has Bedrock access enabled
-   - Configure region in `.env` file
-   - Set appropriate IAM permissions
+### Database Locked
+```batch
+cd backend
+del docxp.db
+python -c "from app.core.database import init_db; import asyncio; asyncio.run(init_db())"
+```
 
-2. **First Repository Analysis**
-   - Click "Generate Documentation" on dashboard
-   - Enter repository path (e.g., `C:\projects\my-repo`)
-   - Select documentation options
-   - Click "Generate"
+## 📊 Performance Tips
 
-## 📝 Testing Without AWS
+1. **Start Small**: Test with a small repository first
+2. **Use Standard Depth**: Comprehensive is rarely needed
+3. **Exclude Patterns**: Add `node_modules`, `.git`, etc.
+4. **Incremental Sync**: Use sync for updates instead of regenerating
 
-The application includes mock data for development. If AWS Bedrock is not configured:
-- Business rules extraction will return sample data
-- Documentation generation will use placeholder content
-- All other features work normally
+## 🎨 UI Features
 
-## 🆘 Troubleshooting
+### Dashboard
+- **Real-time metrics** - Live updates every 30 seconds
+- **Job tracking** - See all documentation jobs
+- **Quick actions** - One-click common tasks
+- **System status** - Health indicators
 
-### Backend won't start
-- Check Python version: `python --version` (needs 3.10+)
-- Verify virtual environment is activated
-- Check `.env` file exists
+### Generation Wizard
+1. **Repository Selection** - Browse or paste path
+2. **Configuration** - Choose depth and options
+3. **Review** - Confirm settings
+4. **Progress** - Real-time updates
+5. **Results** - Download or view
 
-### Frontend won't start
-- Check Node version: `node --version` (needs 18+)
-- Clear npm cache: `npm cache clean --force`
-- Reinstall: `rm -rf node_modules && npm install`
+## 📝 Sample Repository Paths
 
-### AWS Bedrock errors
-- Verify AWS credentials in `.env`
-- Check Bedrock is available in your region
-- Ensure IAM user has `bedrock:InvokeModel` permission
+```batch
+# Python project
+C:\projects\my-python-app
 
-## 📚 Next Steps
+# Angular project
+C:\workspaces\angular-frontend
 
-1. **Generate Your First Documentation**
-   - Select a repository
-   - Choose "comprehensive" depth for best results
-   - Enable business rules extraction
-   - Review generated markdown files
+# Mixed technology
+C:\repos\enterprise-system
 
-2. **Configure Templates**
-   - Go to Settings
-   - Create custom templates for different project types
-   - Save frequently used configurations
+# Current directory
+.
+```
 
-3. **View Analytics**
-   - Monitor documentation generation metrics
-   - Track processing times
-   - Analyze language distributions
+## 🚦 Status Indicators
 
-## 🔗 Useful Links
+| Status | Meaning | Action |
+|--------|---------|--------|
+| 🟢 Completed | Documentation ready | Download available |
+| 🟡 Processing | Generation in progress | Wait or check status |
+| 🔵 Pending | Queued for processing | Will start soon |
+| 🔴 Failed | Error occurred | Check logs |
 
-- API Documentation: http://localhost:8000/docs
-- Frontend: http://localhost:4200
-- Output Directory: `backend/output/`
+## 💡 Pro Tips
 
-## 💡 Tips
+1. **Use the diagnostic tool** before reporting issues
+2. **Check logs** for detailed error messages
+3. **Monitor health endpoint** for system status
+4. **Use Request-ID** from headers to trace issues
+5. **Enable AWS** for better AI analysis (optional)
 
-- Start with smaller repositories for testing
-- Use "incremental update" for existing documentation
-- Higher depth levels = more processing time
-- Review AI-extracted business rules for accuracy
+## 📞 Getting Help
+
+1. **Built-in diagnostics**: `python backend/diagnose.py`
+2. **System test**: `test-system.bat`
+3. **API docs**: http://localhost:8001/docs
+4. **Logs**: `backend/logs/docxp.log`
+5. **Health check**: http://localhost:8001/health/detailed
 
 ---
 
-For detailed documentation, see README.md
+**Ready to document your codebase? Start with `enhanced-start.bat`!** 🚀

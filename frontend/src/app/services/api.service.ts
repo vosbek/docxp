@@ -66,7 +66,7 @@ export interface AnalyticsData {
   providedIn: 'root'
 })
 export class ApiService {
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = 'http://localhost:8001/api';
   private activeJobs = new BehaviorSubject<JobStatus[]>([]);
   
   constructor(private http: HttpClient) {}
@@ -159,6 +159,28 @@ export class ApiService {
   
   getDefaultConfig(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/configuration/defaults`);
+  }
+  
+  // Repository Sync
+  syncRepository(repoPath: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/documentation/sync`,
+      null,
+      { params: { repo_path: repoPath } }
+    );
+  }
+  
+  // Download Documentation
+  downloadJobOutput(jobId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/documentation/download/${jobId}`,
+      { responseType: 'blob' }
+    );
+  }
+  
+  // Health Check
+  getHealthStatus(): Observable<any> {
+    return this.http.get<any>('http://localhost:8001/health/detailed');
   }
   
   // Active Jobs Management

@@ -6,8 +6,18 @@
       <p class="welcome-subtitle">Your AI-powered documentation platform is ready to transform your legacy code</p>
     </div>
     <div class="welcome-actions">
-      <button pButton label="Generate Documentation" icon="pi pi-bolt" class="p-button-primary action-btn"></button>
-      <button pButton label="View Guide" icon="pi pi-book" class="p-button-outlined action-btn"></button>
+      <button pButton 
+              label="Generate Documentation" 
+              icon="pi pi-bolt" 
+              class="p-button-primary action-btn"
+              (click)="navigateToGeneration()">
+      </button>
+      <button pButton 
+              label="View Guide" 
+              icon="pi pi-book" 
+              class="p-button-outlined action-btn"
+              (click)="onViewGuide()">
+      </button>
     </div>
   </div>
 
@@ -40,7 +50,7 @@
       <div class="section-header">
         <h3 class="section-title">Documentation Trends</h3>
         <div class="section-controls">
-          <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm"></button>
+          <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="loadChartData()"></button>
           <button pButton icon="pi pi-download" class="p-button-text p-button-sm"></button>
         </div>
       </div>
@@ -53,7 +63,7 @@
     <div class="activity-section premium-card" @cardAnimation>
       <div class="section-header">
         <h3 class="section-title">Recent Jobs</h3>
-        <button pButton label="View All" class="p-button-text p-button-sm"></button>
+        <button pButton label="View All" class="p-button-text p-button-sm" (click)="navigateToRepository()"></button>
       </div>
       
       <div class="jobs-table">
@@ -83,8 +93,33 @@
               <td class="text-center">{{job.rules}}</td>
               <td class="duration">{{job.duration}}</td>
               <td class="actions">
-                <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" pTooltip="View Details"></button>
-                <button pButton icon="pi pi-download" class="p-button-text p-button-sm" pTooltip="Download"></button>
+                <button pButton 
+                        icon="pi pi-eye" 
+                        class="p-button-text p-button-sm" 
+                        pTooltip="View Details"
+                        (click)="viewJobDetails(job)">
+                </button>
+                <button pButton 
+                        icon="pi pi-download" 
+                        class="p-button-text p-button-sm" 
+                        pTooltip="Download"
+                        (click)="downloadDocumentation(job)">
+                </button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7" class="text-center">
+                <div class="empty-message">
+                  <i class="pi pi-inbox" style="font-size: 2rem; color: #94A3B8;"></i>
+                  <p>No documentation jobs yet</p>
+                  <button pButton 
+                          label="Generate First Documentation" 
+                          class="p-button-sm"
+                          (click)="navigateToGeneration()">
+                  </button>
+                </div>
               </td>
             </tr>
           </ng-template>
@@ -99,19 +134,19 @@
       <h3 class="section-title">Quick Actions</h3>
     </div>
     <div class="actions-grid">
-      <div class="action-card">
+      <div class="action-card" (click)="onNewDocumentation()">
         <i class="pi pi-plus-circle action-icon"></i>
         <span class="action-label">New Documentation</span>
       </div>
-      <div class="action-card">
+      <div class="action-card" (click)="onSyncRepository()">
         <i class="pi pi-sync action-icon"></i>
         <span class="action-label">Sync Repository</span>
       </div>
-      <div class="action-card">
+      <div class="action-card" (click)="onConfiguration()">
         <i class="pi pi-cog action-icon"></i>
         <span class="action-label">Configuration</span>
       </div>
-      <div class="action-card">
+      <div class="action-card" (click)="onAnalytics()">
         <i class="pi pi-chart-bar action-icon"></i>
         <span class="action-label">Analytics</span>
       </div>
@@ -144,3 +179,6 @@
     </div>
   </div>
 </div>
+
+<!-- Toast Messages -->
+<p-toast position="top-right" [style]="{marginTop: '80px'}"></p-toast>

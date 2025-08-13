@@ -22,11 +22,16 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./docxp.db"
     
-    # AWS Bedrock
+    # AWS Bedrock - Support multiple authentication methods
     AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
     AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None, env="AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
+    AWS_SESSION_TOKEN: Optional[str] = Field(default=None, env="AWS_SESSION_TOKEN")
+    AWS_PROFILE: Optional[str] = Field(default=None, env="AWS_PROFILE")
     BEDROCK_MODEL_ID: str = Field(default="anthropic.claude-v2", env="BEDROCK_MODEL_ID")
+    
+    # Feature flags
+    REQUIRE_AWS_CREDENTIALS: bool = Field(default=True, env="REQUIRE_AWS_CREDENTIALS")
     
     # File System
     OUTPUT_DIR: str = "./output"
@@ -46,7 +51,7 @@ class Settings(BaseSettings):
     INCLUDE_API_DOCS: bool = True
     
     # Parsing
-    SUPPORTED_LANGUAGES: list = ["python", "java", "javascript", "typescript", "perl"]
+    SUPPORTED_LANGUAGES: list = ["python", "java", "javascript", "typescript", "perl", "struts", "struts2", "corba", "angular"]
     IGNORE_PATTERNS: list = [
         "*.pyc", "__pycache__", "*.class", 
         "node_modules", ".git", ".venv", 

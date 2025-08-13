@@ -1,13 +1,44 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Routes } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app/app.component';
 
-const routes = [
+const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: 'dashboard', loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-  // Add more routes as components are created
+  { 
+    path: 'dashboard', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { 
+    path: 'generate', 
+    loadComponent: () => import('./app/components/generation-wizard/generation-wizard.component').then(m => m.GenerationWizardComponent) 
+  },
+  { 
+    path: 'repositories', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { 
+    path: 'history', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { 
+    path: 'analytics', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { 
+    path: 'settings', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { 
+    path: 'jobs/:id', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { 
+    path: 'documentation/:id', 
+    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+  },
+  { path: '**', redirectTo: '/dashboard' }
 ];
 
 bootstrapApplication(AppComponent, {

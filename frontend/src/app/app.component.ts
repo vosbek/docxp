@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router } from '@angular/router';
 import { PrimeNGConfig } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SidebarModule } from 'primeng/sidebar';
@@ -11,7 +11,6 @@ import { BadgeModule } from 'primeng/badge';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
 
 @Component({
   selector: 'app-root',
@@ -25,8 +24,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
     AvatarModule,
     BadgeModule,
     RippleModule,
-    ToastModule,
-    DashboardComponent
+    ToastModule
   ],
   providers: [MessageService],
   templateUrl: './app.component.html',
@@ -39,7 +37,8 @@ export class AppComponent implements OnInit {
 
   constructor(
     private primengConfig: PrimeNGConfig,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -84,5 +83,21 @@ export class AppComponent implements OnInit {
 
   toggleSidebar() {
     this.sidebarVisible = !this.sidebarVisible;
+  }
+  
+  navigateToRoute(route?: string) {
+    if (route) {
+      this.router.navigate([route]);
+      this.sidebarVisible = false;
+    }
+  }
+  
+  showImportMessage() {
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Import Repository',
+      detail: 'Repository import feature coming soon'
+    });
+    this.sidebarVisible = false;
   }
 }

@@ -346,7 +346,7 @@
       
       <div class="error-container" *ngIf="generationResult?.status === 'failed'">
         <p-message severity="error" 
-                   [text]="generationResult.error_message || 'Generation failed. Please check logs for details.'">
+                   [text]="generationResult?.error_message || 'Generation failed. Please check logs for details.'">
         </p-message>
         
         <button pButton 

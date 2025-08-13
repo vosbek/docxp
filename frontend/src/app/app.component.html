@@ -72,7 +72,7 @@
     <div class="sidebar-menu">
       <div class="menu-section">
         <span class="menu-section-title">MAIN</span>
-        <div *ngFor="let item of menuItems" class="menu-item" [class.active]="false">
+        <div *ngFor="let item of menuItems" class="menu-item" [class.active]="false" (click)="navigateToRoute(item.routerLink)">
           <i [class]="item.icon"></i>
           <span>{{item.label}}</span>
           <span class="menu-badge" *ngIf="item.label === 'History'">12</span>
@@ -84,12 +84,14 @@
         <button pButton 
                 label="New Generation" 
                 icon="pi pi-plus" 
-                class="p-button-success w-full quick-action-btn">
+                class="p-button-success w-full quick-action-btn"
+                (click)="navigateToRoute('/generate')">
         </button>
         <button pButton 
                 label="Import Repository" 
                 icon="pi pi-download" 
-                class="p-button-outlined w-full mt-2 quick-action-btn">
+                class="p-button-outlined w-full mt-2 quick-action-btn"
+                (click)="showImportMessage()">
         </button>
       </div>
     </div>
@@ -111,7 +113,6 @@
   <!-- Main Content Area -->
   <main class="app-main" [class.sidebar-open]="sidebarVisible">
     <div class="main-content">
-      <app-dashboard></app-dashboard>
       <router-outlet></router-outlet>
     </div>
   </main>

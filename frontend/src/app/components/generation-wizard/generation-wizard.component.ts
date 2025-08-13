@@ -1,7 +1,7 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 // PrimeNG Imports
 import { CardModule } from 'primeng/card';
@@ -16,11 +16,22 @@ import { MessageModule } from 'primeng/message';
 import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
+import { TooltipModule } from 'primeng/tooltip';
 import { MenuItem, MessageService } from 'primeng/api';
 
 import { ApiService, DocumentationRequest, RepositoryInfo, JobStatus } from '../../services/api.service';
 import { interval, Subscription } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
+
+interface FocusAreas {
+  [key: string]: boolean;
+  classes: boolean;
+  functions: boolean;
+  apis: boolean;
+  database: boolean;
+  security: boolean;
+  config: boolean;
+}
 
 interface StepData {
   repository?: RepositoryInfo;
@@ -45,13 +56,14 @@ interface StepData {
     MessageModule,
     ToastModule,
     DialogModule,
-    TableModule
+    TableModule,
+    TooltipModule
   ],
   providers: [MessageService],
   templateUrl: './generation-wizard.component.html',
   styleUrl: './generation-wizard.component.scss'
 })
-export class GenerationWizardComponent implements OnInit {
+export class GenerationWizardComponent implements OnInit, OnDestroy {
   steps: MenuItem[] = [];
   activeIndex: number = 0;
   
@@ -75,7 +87,7 @@ export class GenerationWizardComponent implements OnInit {
   includeApiDocs: boolean = true;
   incrementalUpdate: boolean = false;
   
-  focusAreas = {
+  focusAreas: FocusAreas = {
     classes: true,
     functions: true,
     apis: true,
@@ -106,12 +118,20 @@ export class GenerationWizardComponent implements OnInit {
   constructor(
     private apiService: ApiService,
     private messageService: MessageService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
-
   
   ngOnInit() {
     this.initializeSteps();
+    
+    // Check if repository path was passed as query param
+    this.route.queryParams.subscribe(params => {
+      if (params['repo']) {
+        this.repositoryPath = params['repo'];
+        this.validateRepository();
+      }
+    });
   }
   
   initializeSteps() {
@@ -183,19 +203,21 @@ export class GenerationWizardComponent implements OnInit {
     if (!this.repositoryInfo) return;
     
     const baseTime = this.repositoryInfo.total_files * 0.1; // 0.1 minutes per file
-    const depthMultiplier = {
+    const depthMultiplier: { [key: string]: number } = {
       'minimal': 0.5,
       'standard': 1,
       'comprehensive': 1.5,
       'exhaustive': 2
-    }[this.selectedDepth] || 1;
+    };
     
-    const estimatedMinutes = Math.ceil(baseTime * depthMultiplier);
+    const multiplier = depthMultiplier[this.selectedDepth] || 1;
+    const estimatedMinutes = Math.ceil(baseTime * multiplier);
+    
     this.estimatedTime = estimatedMinutes < 60 
       ? `${estimatedMinutes} minutes`
       : `${Math.ceil(estimatedMinutes / 60)} hours`;
     
-    const estimatedMB = Math.ceil(this.repositoryInfo.total_files * 0.05 * depthMultiplier);
+    const estimatedMB = Math.ceil(this.repositoryInfo.total_files * 0.05 * multiplier);
     this.estimatedSize = `~${estimatedMB} MB`;
   }
   
@@ -213,7 +235,6 @@ export class GenerationWizardComponent implements OnInit {
       { setting: 'Estimated Size', value: this.estimatedSize }
     ];
   }
-
   
   // Step 4: Generation Methods
   startGeneration() {
@@ -244,6 +265,12 @@ export class GenerationWizardComponent implements OnInit {
         this.jobId = response.job_id;
         this.currentStatus = 'Job created, processing...';
         this.startPollingJobStatus();
+        
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Generation Started',
+          detail: 'Documentation generation is in progress'
+        });
       },
       error: (error) => {
         this.generating = false;
@@ -392,7 +419,7 @@ export class GenerationWizardComponent implements OnInit {
   downloadDocumentation() {
     if (this.outputPath) {
       // In a real app, this would trigger a download
-      window.open(`http://localhost:8000/output/${this.jobId}/README.md`, '_blank');
+      window.open(`http://localhost:8001/output/${this.jobId}/README.md`, '_blank');
     }
   }
   

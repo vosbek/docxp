@@ -4,9 +4,10 @@ AI Service for AWS Bedrock integration
 
 import json
 import logging
+import sys
 from typing import List, Dict, Any, Optional
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError
 
 from app.core.config import settings
 from app.models.schemas import BusinessRule, DocumentationDepth
@@ -21,18 +22,77 @@ class AIService:
         self._initialize_client()
     
     def _initialize_client(self):
-        """Initialize AWS Bedrock client"""
+        """Initialize AWS Bedrock client with multiple auth methods"""
         try:
-            self.client = boto3.client(
-                'bedrock-runtime',
-                region_name=settings.AWS_REGION,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-            )
+            # Build session with appropriate auth method
+            session_kwargs = {
+                'region_name': settings.AWS_REGION
+            }
+            
+            # Method 1: Use AWS Profile if specified
+            if settings.AWS_PROFILE:
+                session_kwargs['profile_name'] = settings.AWS_PROFILE
+                logger.info(f"Using AWS Profile: {settings.AWS_PROFILE}")
+            
+            # Method 2: Use explicit credentials if provided
+            elif settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+                session_kwargs['aws_access_key_id'] = settings.AWS_ACCESS_KEY_ID
+                session_kwargs['aws_secret_access_key'] = settings.AWS_SECRET_ACCESS_KEY
+                
+                # Include session token if provided
+                if settings.AWS_SESSION_TOKEN:
+                    session_kwargs['aws_session_token'] = settings.AWS_SESSION_TOKEN
+                    logger.info("Using AWS credentials with session token")
+                else:
+                    logger.info("Using AWS credentials without session token")
+            
+            # Method 3: Use default credential chain (IAM role, etc.)
+            else:
+                logger.info("Using default AWS credential chain")
+            
+            # Create session and client
+            session = boto3.Session(**session_kwargs)
+            self.client = session.client('bedrock-runtime')
+            
+            # Test the connection
+            self._test_connection()
+            logger.info("Successfully initialized AWS Bedrock client")
+            
+        except NoCredentialsError:
+            error_msg = "No AWS credentials found. Please configure AWS_PROFILE or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY"
+            logger.error(error_msg)
+            
+            if settings.REQUIRE_AWS_CREDENTIALS:
+                logger.error("Exiting: AWS credentials are required")
+                sys.exit(1)
+            else:
+                logger.warning("Continuing without AWS Bedrock (mock mode)")
+                self.client = None
+                
         except Exception as e:
-            logger.error(f"Failed to initialize Bedrock client: {e}")
-            # For MVP, we'll use mock responses if Bedrock is not available
-            self.client = None
+            error_msg = f"Failed to initialize Bedrock client: {e}"
+            logger.error(error_msg)
+            
+            if settings.REQUIRE_AWS_CREDENTIALS:
+                logger.error("Exiting: AWS Bedrock initialization failed")
+                sys.exit(1)
+            else:
+                logger.warning("Continuing without AWS Bedrock (mock mode)")
+                self.client = None
+    
+    def _test_connection(self):
+        """Test AWS Bedrock connection"""
+        try:
+            # Try a simple API call to verify credentials
+            # This is a lightweight call to check connectivity
+            response = self.client.list_foundation_models()
+            logger.info(f"AWS Bedrock connection successful, found {len(response.get('modelSummaries', []))} models")
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'AccessDeniedException':
+                raise Exception("AWS credentials do not have access to Bedrock. Please check IAM permissions.")
+            else:
+                raise Exception(f"AWS Bedrock connection test failed: {e}")
     
     async def extract_business_rules(
         self,
@@ -68,7 +128,6 @@ class AIService:
         except Exception as e:
             logger.error(f"Error extracting business rules: {e}")
             return []
-
     
     async def generate_overview(
         self,
@@ -173,7 +232,6 @@ For each rule provide:
 
 Format as JSON array.
 """
-
     
     def _create_overview_prompt(
         self,
@@ -273,7 +331,6 @@ Format with clear sections and subsections using Markdown.
             logger.warning(f"Failed to parse business rules: {e}")
         
         return rules
-
     
     def _mock_business_rules(self) -> List[BusinessRule]:
         """Return mock business rules for development"""

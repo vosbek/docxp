@@ -3,23 +3,27 @@ DocXP - AI-Powered Documentation Generation System
 Main FastAPI Application
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-import logging
 from pathlib import Path
+import time
+import uuid
 
-from app.api import documentation, repositories, analytics, configuration
+from app.api import documentation, repositories, analytics, configuration, health
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.logging_config import setup_logging, get_logger
+from app.core.error_handlers import register_exception_handlers
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# Setup enhanced logging
+setup_logging(
+    log_level=settings.LOG_LEVEL if hasattr(settings, 'LOG_LEVEL') else "INFO",
+    log_file="logs/docxp.log"
 )
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -46,16 +50,79 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Register exception handlers
+register_exception_handlers(app)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],  # Angular dev server
+    allow_origins=["http://localhost:4200", "http://localhost:80", "http://localhost"],  # Angular dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Add request tracking middleware
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    """Add request ID to all requests for tracking"""
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    
+    # Log request
+    logger.info(
+        f"Request started: {request.method} {request.url.path}",
+        extra={"request_id": request_id}
+    )
+    
+    # Time the request
+    start_time = time.time()
+    
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        
+        # Add headers
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Process-Time"] = str(process_time)
+        
+        # Log response
+        logger.info(
+            f"Request completed: {response.status_code}",
+            extra={
+                "request_id": request_id,
+                "status_code": response.status_code,
+                "duration": process_time
+            }
+        )
+        
+        return response
+    except Exception as e:
+        process_time = time.time() - start_time
+        logger.error(
+            f"Request failed: {str(e)}",
+            extra={
+                "request_id": request_id,
+                "duration": process_time
+            },
+            exc_info=True
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal server error",
+                "request_id": request_id,
+                "message": "An unexpected error occurred"
+            }
+        )
+
 # Include API routers
+app.include_router(
+    health.router,
+    prefix="/health",
+    tags=["Health"]
+)
+
 app.include_router(
     documentation.router,
     prefix="/api/documentation",
@@ -103,7 +170,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=True,
         log_level="info"
     )
