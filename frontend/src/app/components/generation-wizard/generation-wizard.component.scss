@@ -6,61 +6,40 @@
 }
 
 .wizard-header {
-  padding: 32px;
+  padding: 2.5rem;
   text-align: center;
-  margin-bottom: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  margin-bottom: 2rem;
+  background: var(--brand-navy);
+  color: var(--text-inverse);
+  border-radius: var(--border-radius-lg);
   
   .wizard-title {
-    font-size: 32px;
+    font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 0.75rem;
     
     i {
-      font-size: 36px;
-      animation: sparkle 2s infinite;
+      font-size: 2.25rem;
+      color: var(--text-inverse);
     }
   }
   
   .wizard-subtitle {
-    font-size: 16px;
-    opacity: 0.95;
+    font-size: 1rem;
+    opacity: 0.9;
+    color: var(--text-inverse);
   }
-}
-
-@keyframes sparkle {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.1) rotate(5deg); }
 }
 
 .steps-container {
   padding: 24px;
   margin-bottom: 32px;
   
-  ::ng-deep .p-steps {
-    .p-steps-item {
-      .p-steps-number {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        font-weight: 600;
-      }
-      
-      &.p-highlight .p-steps-number {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-      }
-      
-      .p-steps-title {
-        color: #1E293B;
-        font-weight: 600;
-      }
-    }
-  }
+  /* Steps styling now handled by global PrimeNG overrides */
 }
 
 .step-content {
@@ -73,15 +52,17 @@
 }
 
 .step-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1E293B;
-  margin-bottom: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
 }
 
 .step-description {
   color: var(--text-secondary);
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 // AWS Configuration Step
@@ -125,32 +106,18 @@
 // Step 1: Repository Selection
 .repository-input-group {
   display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 1rem;
+  margin-bottom: 2rem;
   
   .p-input-icon-left {
     flex: 1;
-    
-    input {
-      width: 100%;
-      padding-left: 40px;
-      height: 48px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 2px solid #E5E7EB;
-      
-      &:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      }
-    }
+    /* Input styling now handled by global PrimeNG overrides */
   }
   
   button {
-    height: 48px;
-    padding: 0 24px;
+    padding: 0 1.5rem;
     font-weight: 500;
-    border-radius: 8px;
+    /* Button styling handled by global overrides */
   }
 }
 
@@ -167,15 +134,21 @@
   .info-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 20px;
-    background: #F8FAFC;
-    border-radius: 12px;
-    border: 1px solid #E5E7EB;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--gray-200);
+    transition: all var(--transition-duration) ease;
+    
+    &:hover {
+      background: var(--gray-100);
+      border-color: var(--brand-blue);
+    }
     
     .info-icon {
-      font-size: 32px;
-      color: #667eea;
+      font-size: 2rem;
+      color: var(--brand-blue);
     }
     
     .info-content {
@@ -183,83 +156,93 @@
       flex-direction: column;
       
       .info-value {
-        font-size: 24px;
+        font-size: 1.5rem;
         font-weight: 700;
-        color: #1E293B;
+        color: var(--text-primary);
       }
       
       .info-label {
-        font-size: 12px;
-        color: #64748B;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        margin-top: 0.25rem;
       }
     }
   }
   
   .language-distribution {
-    margin-top: 24px;
+    margin-top: 1.5rem;
     
     h3 {
-      font-size: 16px;
+      font-size: 1rem;
       font-weight: 600;
-      margin-bottom: 12px;
-      color: #1E293B;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
     }
     
     .language-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 0.5rem;
     }
     
     .language-tag {
-      padding: 6px 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 20px;
-      font-size: 14px;
+      padding: 0.5rem 0.75rem;
+      background: var(--brand-blue);
+      color: var(--text-inverse);
+      border-radius: var(--border-radius-xl);
+      font-size: 0.875rem;
       font-weight: 500;
+      transition: all var(--transition-duration) ease;
+      
+      &:hover {
+        background: var(--brand-blue-dark);
+        transform: translateY(-1px);
+      }
     }
   }
 }
 
 // Step 2: Configuration
 .config-section {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
   
   h3 {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #1E293B;
-    margin-bottom: 16px;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
   }
   
-  ::ng-deep .p-dropdown {
-    .p-dropdown-label {
-      padding: 12px;
-      font-size: 15px;
-    }
-  }
+  /* Dropdown styling handled by global PrimeNG overrides */
 }
 
 .options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
+  gap: 1rem;
   
   .option-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: #F8FAFC;
-    border-radius: 8px;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    transition: all var(--transition-duration) ease;
+    
+    &:hover {
+      background: var(--gray-100);
+      border-color: var(--brand-blue);
+    }
     
     label {
       cursor: pointer;
-      font-size: 15px;
-      color: #1E293B;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-primary);
     }
   }
 }
@@ -267,16 +250,27 @@
 .focus-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 1rem;
   
   .focus-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    transition: all var(--transition-duration) ease;
+    
+    &:hover {
+      background: var(--gray-100);
+      border-color: var(--brand-blue);
+    }
     
     label {
       cursor: pointer;
-      font-size: 14px;
+      font-size: 0.875rem;
+      font-weight: 500;
       color: var(--text-primary);
     }
   }

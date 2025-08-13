@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
     AWS_SESSION_TOKEN: Optional[str] = Field(default=None, env="AWS_SESSION_TOKEN")
     AWS_PROFILE: Optional[str] = Field(default=None, env="AWS_PROFILE")
-    BEDROCK_MODEL_ID: str = Field(default="anthropic.claude-v2", env="BEDROCK_MODEL_ID")
+    BEDROCK_MODEL_ID: str = Field(default="us.anthropic.claude-3-5-sonnet-20241022-v2:0", env="BEDROCK_MODEL_ID")
     
     # Feature flags
     
