@@ -80,8 +80,46 @@
 }
 
 .step-description {
-  color: #64748B;
+  color: var(--text-secondary);
   margin-bottom: 32px;
+}
+
+// AWS Configuration Step
+.config-success {
+  margin-bottom: 24px;
+  
+  .model-selection {
+    margin-top: 20px;
+    
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    
+    .model-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      
+      .model-name {
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+      
+      .model-provider {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+    }
+  }
+}
+
+.config-required {
+  margin-bottom: 24px;
 }
 
 // Step 1: Repository Selection

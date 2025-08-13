@@ -31,7 +31,6 @@ class Settings(BaseSettings):
     BEDROCK_MODEL_ID: str = Field(default="anthropic.claude-v2", env="BEDROCK_MODEL_ID")
     
     # Feature flags
-    REQUIRE_AWS_CREDENTIALS: bool = Field(default=True, env="REQUIRE_AWS_CREDENTIALS")
     
     # File System
     OUTPUT_DIR: str = "./output"

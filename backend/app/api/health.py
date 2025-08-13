@@ -58,7 +58,7 @@ async def detailed_health_check(db: AsyncSession = Depends(get_session)):
         health_status["checks"]["ai_service"] = "healthy" if ai_service else "degraded"
     except Exception as e:
         logger.warning(f"AI service check failed: {e}")
-        health_status["checks"]["ai_service"] = "degraded: mock mode"
+        health_status["checks"]["ai_service"] = f"failed: {str(e)}"
     
     # System Resources
     try:

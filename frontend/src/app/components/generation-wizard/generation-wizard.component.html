@@ -16,8 +16,57 @@
   <!-- Step Content -->
   <div class="step-content premium-card">
     
-    <!-- Step 1: Repository Selection -->
+    <!-- Step 0: AWS Configuration -->
     <div *ngIf="activeIndex === 0" class="step-panel fade-in-up">
+      <h2 class="step-title">AWS Configuration</h2>
+      <p class="step-description">Configure AWS credentials and select your AI model</p>
+      
+      <div *ngIf="awsConfigured" class="config-success">
+        <p-message severity="success">
+          <p>AWS is already configured! You can proceed to repository selection or update your configuration below.</p>
+        </p-message>
+        
+        <div class="model-selection" *ngIf="availableModels.length > 0">
+          <h3>Current AI Model</h3>
+          <p-dropdown 
+            [(ngModel)]="selectedModel"
+            [options]="availableModels"
+            optionLabel="description"
+            optionValue="id"
+            placeholder="Select a model"
+            (onChange)="setModel()"
+            [style]="{'width':'100%'}">
+            
+            <ng-template pTemplate="selectedItem">
+              <div class="model-item" *ngIf="selectedModel">
+                <span class="model-name">{{getSelectedModelName()}}</span>
+                <small class="model-provider">{{getSelectedModelProvider()}}</small>
+              </div>
+            </ng-template>
+            
+            <ng-template pTemplate="item" let-model>
+              <div class="model-item">
+                <span class="model-name">{{model.name}}</span>
+                <small class="model-provider">{{model.provider}}</small>
+              </div>
+            </ng-template>
+          </p-dropdown>
+        </div>
+      </div>
+      
+      <div *ngIf="!awsConfigured" class="config-required">
+        <p-message severity="warn">
+          <p>AWS configuration is required for AI-powered documentation generation. Please configure your AWS credentials below.</p>
+        </p-message>
+      </div>
+      
+      <app-aws-configuration 
+        (configurationComplete)="onAWSConfigurationComplete($event)">
+      </app-aws-configuration>
+    </div>
+    
+    <!-- Step 1: Repository Selection -->
+    <div *ngIf="activeIndex === 1" class="step-panel fade-in-up">
       <h2 class="step-title">Select Repository</h2>
       <p class="step-description">Choose the repository you want to generate documentation for</p>
       
@@ -101,7 +150,7 @@
 
     
     <!-- Step 2: Configuration -->
-    <div *ngIf="activeIndex === 1" class="step-panel fade-in-up">
+    <div *ngIf="activeIndex === 2" class="step-panel fade-in-up">
       <h2 class="step-title">Configuration Options</h2>
       <p class="step-description">Customize how documentation is generated</p>
       
@@ -176,7 +225,7 @@
     </div>
     
     <!-- Step 3: Review -->
-    <div *ngIf="activeIndex === 2" class="step-panel fade-in-up">
+    <div *ngIf="activeIndex === 3" class="step-panel fade-in-up">
       <h2 class="step-title">Review Configuration</h2>
       <p class="step-description">Confirm your settings before starting generation</p>
       
@@ -216,7 +265,7 @@
 
     
     <!-- Step 4: Generation -->
-    <div *ngIf="activeIndex === 3" class="step-panel fade-in-up">
+    <div *ngIf="activeIndex === 4" class="step-panel fade-in-up">
       <h2 class="step-title">Generating Documentation</h2>
       <p class="step-description">AI is analyzing your codebase and creating documentation</p>
       
@@ -270,7 +319,7 @@
     </div>
     
     <!-- Step 5: Results -->
-    <div *ngIf="activeIndex === 4" class="step-panel fade-in-up">
+    <div *ngIf="activeIndex === 5" class="step-panel fade-in-up">
       <h2 class="step-title">Generation Complete!</h2>
       <p class="step-description">Your documentation has been successfully generated</p>
       

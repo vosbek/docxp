@@ -89,8 +89,8 @@ class EnvironmentValidator:
             credentials = session.get_credentials()
             
             if not credentials:
-                self.warnings.append(
-                    "No AWS credentials found - AI features will use mock mode"
+                self.errors.append(
+                    "No AWS credentials found - AI features require valid AWS credentials"
                 )
                 return
             
@@ -115,8 +115,8 @@ class EnvironmentValidator:
         except ImportError:
             self.errors.append("boto3 not installed - run: pip install boto3")
         except NoCredentialsError:
-            self.warnings.append(
-                "AWS credentials not configured - AI features will use mock mode"
+            self.errors.append(
+                "AWS credentials not configured - AI features require valid AWS credentials"
             )
         except Exception as e:
             self.warnings.append(f"AWS validation warning: {e}")

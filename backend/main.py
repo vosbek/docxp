@@ -12,7 +12,7 @@ from pathlib import Path
 import time
 import uuid
 
-from app.api import documentation, repositories, analytics, configuration, health
+from app.api import documentation, repositories, analytics, configuration, health, aws_configuration
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.logging_config import setup_logging, get_logger
@@ -145,6 +145,12 @@ app.include_router(
     configuration.router,
     prefix="/api/configuration",
     tags=["Configuration"]
+)
+
+app.include_router(
+    aws_configuration.router,
+    prefix="/api/configuration/aws",
+    tags=["AWS Configuration"]
 )
 
 # Serve static files (generated documentation)

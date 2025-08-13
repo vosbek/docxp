@@ -22,6 +22,7 @@ import { MenuItem, MessageService } from 'primeng/api';
 import { ApiService, DocumentationRequest, RepositoryInfo, JobStatus } from '../../services/api.service';
 import { interval, Subscription } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
+import { AwsConfigurationComponent } from '../aws-configuration/aws-configuration.component';
 
 interface FocusAreas {
   [key: string]: boolean;
@@ -57,7 +58,8 @@ interface StepData {
     ToastModule,
     DialogModule,
     TableModule,
-    TooltipModule
+    TooltipModule,
+    AwsConfigurationComponent
   ],
   providers: [MessageService],
   templateUrl: './generation-wizard.component.html',
@@ -73,7 +75,12 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   repositoryInfo?: RepositoryInfo;
   repositoryValid: boolean = false;
   
-  // Step 2: Configuration
+  // Step 1: AWS Configuration
+  awsConfigured: boolean = false;
+  availableModels: any[] = [];
+  selectedModel: string = 'anthropic.claude-v2';
+  
+  // Step 3: Configuration
   depths = [
     { label: 'Minimal - Basic structure only', value: 'minimal' },
     { label: 'Standard - Recommended for most projects', value: 'standard' },
@@ -124,6 +131,8 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   
   ngOnInit() {
     this.initializeSteps();
+    this.checkAWSStatus();
+    this.loadAvailableModels();
     
     // Check if repository path was passed as query param
     this.route.queryParams.subscribe(params => {
@@ -134,8 +143,93 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
     });
   }
   
+  // Step 0: AWS Configuration Methods
+  checkAWSStatus() {
+    this.apiService.getAWSStatus().subscribe({
+      next: (status: any) => {
+        this.awsConfigured = status.connected;
+        if (this.awsConfigured) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'AWS Connected',
+            detail: `Connected to account ${status.account_id}`
+          });
+          // If AWS is configured, auto-advance to repository step
+          if (this.activeIndex === 0) {
+            setTimeout(() => this.nextStep(), 1500);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Failed to check AWS status:', error);
+        this.awsConfigured = false;
+      }
+    });
+  }
+
+  loadAvailableModels() {
+    this.apiService.getAvailableModels().subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          this.availableModels = response.models;
+          this.selectedModel = response.current_model || 'anthropic.claude-v2';
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load models:', error);
+      }
+    });
+  }
+
+  onAWSConfigurationComplete(event: {success: boolean, message: string}) {
+    if (event.success) {
+      this.awsConfigured = true;
+      this.checkAWSStatus();
+      this.loadAvailableModels();
+      
+      this.messageService.add({
+        severity: 'success',
+        summary: 'AWS Configured',
+        detail: event.message
+      });
+      
+      // Auto-advance to next step after successful configuration
+      setTimeout(() => this.nextStep(), 1000);
+    }
+  }
+
+  setModel() {
+    if (this.selectedModel) {
+      this.apiService.setBedrockModel(this.selectedModel).subscribe({
+        next: (response: any) => {
+          if (response.success) {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Model Updated',
+              detail: `Model set to ${this.selectedModel}`
+            });
+          }
+        },
+        error: (error) => {
+          console.error('Failed to set model:', error);
+        }
+      });
+    }
+  }
+
+  getSelectedModelName(): string {
+    const model = this.availableModels.find(m => m.id === this.selectedModel);
+    return model ? model.name : '';
+  }
+
+  getSelectedModelProvider(): string {
+    const model = this.availableModels.find(m => m.id === this.selectedModel);
+    return model ? model.provider : '';
+  }
+  
   initializeSteps() {
     this.steps = [
+      { label: 'AWS Setup', icon: 'pi pi-cloud' },
       { label: 'Repository', icon: 'pi pi-folder' },
       { label: 'Configuration', icon: 'pi pi-cog' },
       { label: 'Review', icon: 'pi pi-check-square' },
@@ -367,7 +461,16 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   nextStep() {
     if (this.activeIndex < this.steps.length - 1) {
       // Validation before advancing
-      if (this.activeIndex === 0 && !this.repositoryValid) {
+      if (this.activeIndex === 0 && !this.awsConfigured) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'AWS Configuration Required',
+          detail: 'Please configure AWS credentials before proceeding'
+        });
+        return;
+      }
+      
+      if (this.activeIndex === 1 && !this.repositoryValid) {
         this.messageService.add({
           severity: 'warn',
           summary: 'Validation Required',
@@ -376,11 +479,11 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
         return;
       }
       
-      if (this.activeIndex === 1) {
+      if (this.activeIndex === 2) {
         this.updateEstimates();
       }
       
-      if (this.activeIndex === 2) {
+      if (this.activeIndex === 3) {
         // Auto-start generation when moving from review to generation
         this.activeIndex++;
         setTimeout(() => this.startGeneration(), 500);

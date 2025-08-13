@@ -127,52 +127,14 @@ export class DashboardComponent implements OnInit {
         console.error('Error loading metrics:', error);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load metrics'
+          summary: 'Metrics Error',
+          detail: 'Failed to load metrics. Please check your connection and try again.'
         });
-        this.loadMockMetrics();
+        this.loading = false;
       }
     });
   }
   
-  loadMockMetrics() {
-    // Fallback to mock data if API fails
-    this.metrics = [
-      {
-        title: 'Total Documentations',
-        value: '0',
-        change: 0,
-        icon: 'pi pi-file',
-        color: 'primary',
-        trend: 'up'
-      },
-      {
-        title: 'Active Repositories',
-        value: '0',
-        change: 0,
-        icon: 'pi pi-folder',
-        color: 'success',
-        trend: 'up'
-      },
-      {
-        title: 'Business Rules',
-        value: '0',
-        change: 0,
-        icon: 'pi pi-shield',
-        color: 'warning',
-        trend: 'down'
-      },
-      {
-        title: 'Success Rate',
-        value: '0%',
-        change: 0,
-        icon: 'pi pi-chart-line',
-        color: 'info',
-        trend: 'up'
-      }
-    ];
-    this.loading = false;
-  }
 
   loadRecentJobs() {
     this.apiService.listJobs(0, 10).subscribe({
@@ -344,25 +306,9 @@ export class DashboardComponent implements OnInit {
     }
   }
   
-  viewJobDetails(job: RecentJob) {
-    this.router.navigate(['/jobs', job.id]);
-  }
-  
-  downloadDocumentation(job: RecentJob) {
-    window.open(`http://localhost:8001/output/${job.id}/README.md`, '_blank');
-  }
-  
   // Quick action methods
   onNewDocumentation() {
     this.navigateToGeneration();
-  }
-  
-  onSyncRepository() {
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Sync',
-      detail: 'Repository sync feature coming soon'
-    });
   }
   
   onConfiguration() {
@@ -374,10 +320,43 @@ export class DashboardComponent implements OnInit {
   }
   
   onViewGuide() {
-    window.open('/assets/guide.pdf', '_blank');
+    // Create a simple guide or open documentation
+    const guideUrl = '/assets/guide.pdf';
+    const helpText = `
+DocXP Quick Guide:
+
+1. Generate Documentation:
+   - Click "Generate Documentation" or "New Documentation"
+   - Enter repository path
+   - Select configuration options
+   - Click Generate
+
+2. View Results:
+   - Check Recent Jobs table
+   - Click eye icon to view details
+   - Click download icon to get documentation
+
+3. System Status:
+   - Green indicators = healthy
+   - Check health endpoint for details
+
+For more help, visit the API docs at:
+http://localhost:8001/docs
+    `;
+    
+    // Try to open guide PDF if it exists
+    fetch(guideUrl).then(response => {
+      if (response.ok) {
+        window.open(guideUrl, '_blank');
+      } else {
+        // Show help text in alert if no PDF
+        alert(helpText);
+      }
+    }).catch(() => {
+      alert(helpText);
+    });
   }
-}
-  // Button click handlers with proper implementations
+  
   onSyncRepository() {
     // Create a simple prompt for repository path
     const repoPath = prompt('Enter repository path to sync:');
@@ -389,7 +368,7 @@ export class DashboardComponent implements OnInit {
       });
       
       this.apiService.syncRepository(repoPath).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           this.messageService.add({
             severity: 'success',
             summary: 'Sync Started',
@@ -398,7 +377,7 @@ export class DashboardComponent implements OnInit {
           // Refresh jobs list
           this.loadRecentJobs();
         },
-        error: (error) => {
+        error: (error: any) => {
           this.messageService.add({
             severity: 'error',
             summary: 'Sync Failed',
@@ -441,7 +420,7 @@ export class DashboardComponent implements OnInit {
     });
     
     this.apiService.downloadJobOutput(job.id).subscribe({
-      next: (blob) => {
+      next: (blob: any) => {
         // Create download link
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -456,7 +435,7 @@ export class DashboardComponent implements OnInit {
           detail: 'Documentation has been downloaded'
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Download Failed',
@@ -466,50 +445,12 @@ export class DashboardComponent implements OnInit {
     });
   }
   
-  onViewGuide() {
-    // Create a simple guide or open documentation
-    const guideUrl = '/assets/guide.pdf';
-    const helpText = `
-DocXP Quick Guide:
-
-1. Generate Documentation:
-   - Click "Generate Documentation" or "New Documentation"
-   - Enter repository path
-   - Select configuration options
-   - Click Generate
-
-2. View Results:
-   - Check Recent Jobs table
-   - Click eye icon to view details
-   - Click download icon to get documentation
-
-3. System Status:
-   - Green indicators = healthy
-   - Check health endpoint for details
-
-For more help, visit the API docs at:
-http://localhost:8001/docs
-    `;
-    
-    // Try to open guide PDF if it exists
-    fetch(guideUrl).then(response => {
-      if (response.ok) {
-        window.open(guideUrl, '_blank');
-      } else {
-        // Show help text in alert if no PDF
-        alert(helpText);
-      }
-    }).catch(() => {
-      alert(helpText);
-    });
-  }
-  
   // Monitor system health periodically
   private startHealthMonitoring() {
     // Check health every 30 seconds
     setInterval(() => {
       this.apiService.getHealthStatus().subscribe({
-        next: (health) => {
+        next: (health: any) => {
           // Update status indicators based on health
           if (health.status === 'unhealthy') {
             this.messageService.add({
@@ -519,10 +460,11 @@ http://localhost:8001/docs
             });
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           // Silently log, don't spam user with errors
           console.error('Health check failed:', error);
         }
       });
     }, 30000);
   }
+}

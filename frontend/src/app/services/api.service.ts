@@ -206,4 +206,29 @@ export class ApiService {
     const filtered = current.filter(job => job.job_id !== jobId);
     this.activeJobs.next(filtered);
   }
+
+  // AWS Configuration Methods
+  getAWSStatus(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/configuration/aws/status`);
+  }
+
+  testAWSCredentials(credentials: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/configuration/aws/test-credentials`, credentials);
+  }
+
+  configureAWS(config: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/configuration/aws/configure`, config);
+  }
+
+  getAvailableModels(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/configuration/aws/models`);
+  }
+
+  setBedrockModel(modelId: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/configuration/aws/set-model`, { model_id: modelId });
+  }
+
+  getAWSProfiles(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/configuration/aws/profiles`);
+  }
 }

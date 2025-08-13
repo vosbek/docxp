@@ -61,38 +61,112 @@ class AIService:
         except NoCredentialsError:
             error_msg = "No AWS credentials found. Please configure AWS_PROFILE or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY"
             logger.error(error_msg)
-            
-            if settings.REQUIRE_AWS_CREDENTIALS:
-                logger.error("Exiting: AWS credentials are required")
-                sys.exit(1)
-            else:
-                logger.warning("Continuing without AWS Bedrock (mock mode)")
-                self.client = None
+            raise RuntimeError(error_msg)
                 
         except Exception as e:
             error_msg = f"Failed to initialize Bedrock client: {e}"
             logger.error(error_msg)
-            
-            if settings.REQUIRE_AWS_CREDENTIALS:
-                logger.error("Exiting: AWS Bedrock initialization failed")
-                sys.exit(1)
-            else:
-                logger.warning("Continuing without AWS Bedrock (mock mode)")
-                self.client = None
+            raise RuntimeError(error_msg)
     
     def _test_connection(self):
         """Test AWS Bedrock connection"""
         try:
+            # Create a separate bedrock client for listing models (not bedrock-runtime)
+            # Use the same session configuration as the bedrock-runtime client
+            session_kwargs = {}
+            
+            if settings.AWS_PROFILE:
+                session_kwargs['profile_name'] = settings.AWS_PROFILE
+            elif settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+                session_kwargs['aws_access_key_id'] = settings.AWS_ACCESS_KEY_ID
+                session_kwargs['aws_secret_access_key'] = settings.AWS_SECRET_ACCESS_KEY
+                if settings.AWS_SESSION_TOKEN:
+                    session_kwargs['aws_session_token'] = settings.AWS_SESSION_TOKEN
+            
+            session_kwargs['region_name'] = settings.AWS_REGION
+            session = boto3.Session(**session_kwargs)
+            bedrock_client = session.client('bedrock')
+            
             # Try a simple API call to verify credentials
-            # This is a lightweight call to check connectivity
-            response = self.client.list_foundation_models()
-            logger.info(f"AWS Bedrock connection successful, found {len(response.get('modelSummaries', []))} models")
+            response = bedrock_client.list_foundation_models()
+            model_count = len(response.get('modelSummaries', []))
+            logger.info(f"AWS Bedrock connection successful, found {model_count} models")
+            
+            return response.get('modelSummaries', [])
+            
         except ClientError as e:
             error_code = e.response['Error']['Code']
             if error_code == 'AccessDeniedException':
                 raise Exception("AWS credentials do not have access to Bedrock. Please check IAM permissions.")
+            elif error_code == 'UnauthorizedOperation':
+                raise Exception("AWS credentials do not have permission to list Bedrock models. Please check IAM permissions.")
             else:
                 raise Exception(f"AWS Bedrock connection test failed: {e}")
+        except Exception as e:
+            # If we can't create the bedrock client, try a simpler credential verification
+            try:
+                # Use simple STS call to verify credentials work at all
+                session = boto3.Session(**session_kwargs) if 'session_kwargs' in locals() else boto3.Session()
+                sts = session.client('sts')
+                identity = sts.get_caller_identity()
+                logger.info(f"AWS credentials verified for account {identity.get('Account')}, Bedrock client ready")
+                return []
+            except Exception as sts_error:
+                raise Exception(f"AWS credential verification failed: {sts_error}")
+    
+    def get_available_models(self):
+        """Get list of available Bedrock models"""
+        try:
+            models = self._test_connection()
+            # Filter for text generation models that we can use
+            text_models = []
+            for model in models:
+                model_id = model.get('modelId', '')
+                if any(provider in model_id.lower() for provider in ['anthropic', 'amazon', 'ai21', 'cohere']):
+                    text_models.append({
+                        'id': model_id,
+                        'name': model.get('modelName', model_id),
+                        'provider': model.get('providerName', 'Unknown'),
+                        'description': f"{model.get('providerName', 'Unknown')} - {model.get('modelName', model_id)}"
+                    })
+            
+            logger.info(f"Found {len(text_models)} compatible text generation models")
+            return text_models
+            
+        except Exception as e:
+            logger.warning(f"Could not fetch Bedrock models: {e}")
+            # Return default models if we can't fetch the list
+            return [
+                {
+                    'id': 'anthropic.claude-v2',
+                    'name': 'Claude v2',
+                    'provider': 'Anthropic',
+                    'description': 'Anthropic - Claude v2 (Default)'
+                },
+                {
+                    'id': 'anthropic.claude-instant-v1',
+                    'name': 'Claude Instant',
+                    'provider': 'Anthropic',
+                    'description': 'Anthropic - Claude Instant v1'
+                }
+            ]
+    
+    def set_model_id(self, model_id: str):
+        """Set the model ID to use for AI operations"""
+        # Validate the model ID exists in available models
+        available_models = self.get_available_models()
+        model_ids = [model['id'] for model in available_models]
+        
+        if model_id in model_ids:
+            # Update the settings temporarily for this instance
+            settings.BEDROCK_MODEL_ID = model_id
+            logger.info(f"Model ID set to: {model_id}")
+        else:
+            logger.warning(f"Model ID {model_id} not found in available models. Using default: {settings.BEDROCK_MODEL_ID}")
+    
+    def get_current_model_id(self):
+        """Get the current model ID being used"""
+        return settings.BEDROCK_MODEL_ID
     
     async def extract_business_rules(
         self,
@@ -103,8 +177,7 @@ class AIService:
         """Extract business rules from code using AI"""
         
         if not self.client:
-            # Return mock data for development
-            return self._mock_business_rules()
+            raise RuntimeError("AWS Bedrock client not available. Please check your AWS credentials and configuration.")
         
         prompt = self._create_business_rule_prompt(code, entities, keywords)
         
@@ -124,10 +197,10 @@ class AIService:
             
         except ClientError as e:
             logger.error(f"AWS Bedrock error: {e}")
-            return self._mock_business_rules()
+            raise RuntimeError(f"Failed to extract business rules: {e}")
         except Exception as e:
             logger.error(f"Error extracting business rules: {e}")
-            return []
+            raise RuntimeError(f"AI service error: {e}")
     
     async def generate_overview(
         self,
@@ -138,7 +211,7 @@ class AIService:
         """Generate documentation overview using AI"""
         
         if not self.client:
-            return self._mock_overview()
+            raise RuntimeError("AWS Bedrock client not available. Please check your AWS credentials and configuration.")
         
         prompt = self._create_overview_prompt(entities, business_rules, depth)
         
@@ -153,11 +226,14 @@ class AIService:
             )
             
             result = json.loads(response['body'].read())
-            return result.get('completion', self._mock_overview())
+            completion = result.get('completion', '')
+            if not completion:
+                raise RuntimeError("No completion received from AI model")
+            return completion
             
         except Exception as e:
             logger.error(f"Error generating overview: {e}")
-            return self._mock_overview()
+            raise RuntimeError(f"Failed to generate overview: {e}")
     
     async def generate_architecture_doc(
         self,
@@ -167,7 +243,7 @@ class AIService:
         """Generate architecture documentation using AI"""
         
         if not self.client:
-            return self._mock_architecture_doc()
+            raise RuntimeError("AWS Bedrock client not available. Please check your AWS credentials and configuration.")
         
         prompt = self._create_architecture_prompt(entities, depth)
         
@@ -182,11 +258,14 @@ class AIService:
             )
             
             result = json.loads(response['body'].read())
-            return result.get('completion', self._mock_architecture_doc())
+            completion = result.get('completion', '')
+            if not completion:
+                raise RuntimeError("No completion received from AI model")
+            return completion
             
         except Exception as e:
             logger.error(f"Error generating architecture doc: {e}")
-            return self._mock_architecture_doc()
+            raise RuntimeError(f"Failed to generate architecture documentation: {e}")
     
     def _create_business_rule_prompt(
         self,
@@ -331,73 +410,3 @@ Format with clear sections and subsections using Markdown.
             logger.warning(f"Failed to parse business rules: {e}")
         
         return rules
-    
-    def _mock_business_rules(self) -> List[BusinessRule]:
-        """Return mock business rules for development"""
-        return [
-            BusinessRule(
-                id="RULE-001",
-                description="Validate payment amount must be greater than zero",
-                confidence_score=0.95,
-                category="Validation Rules",
-                code_reference="payment_service.py:45",
-                validation_logic="if amount <= 0: raise ValueError('Invalid amount')",
-                related_entities=["PaymentProcessor", "validate_amount"]
-            ),
-            BusinessRule(
-                id="RULE-002",
-                description="Calculate insurance premium based on risk factors",
-                confidence_score=0.88,
-                category="Calculation Rules",
-                code_reference="premium_calculator.py:120",
-                validation_logic=None,
-                related_entities=["PremiumCalculator", "calculate_premium"]
-            ),
-            BusinessRule(
-                id="RULE-003",
-                description="Require manager approval for claims over $10,000",
-                confidence_score=0.92,
-                category="Workflow Rules",
-                code_reference="claims_workflow.py:78",
-                validation_logic="if claim_amount > 10000: require_approval()",
-                related_entities=["ClaimsProcessor", "ApprovalWorkflow"]
-            )
-        ]
-    
-    def _mock_overview(self) -> str:
-        """Return mock overview for development"""
-        return """This repository contains a comprehensive insurance processing system designed to handle various aspects of insurance operations including claims processing, premium calculations, and customer management.
-
-The system follows a microservices architecture pattern with separate services for different business domains. Each service is independently deployable and communicates through well-defined APIs. The codebase demonstrates strong separation of concerns with clear boundaries between business logic, data access, and presentation layers.
-
-Key technologies include Python for backend services, with extensive use of object-oriented design patterns. The system integrates with multiple external services for payment processing, document management, and regulatory compliance checking. Database operations are abstracted through a repository pattern, allowing for flexibility in data storage solutions.
-
-The codebase shows evidence of iterative development with multiple refactoring cycles visible in the git history. There's a strong emphasis on validation and business rule enforcement throughout the system, with centralized rule engines for complex decision-making processes."""
-    
-    def _mock_architecture_doc(self) -> str:
-        """Return mock architecture documentation for development"""
-        return """# System Architecture
-
-## Overview
-The system follows a layered architecture with clear separation between presentation, business logic, and data access layers.
-
-## Component Organization
-- **Core Services**: Central business logic and rule engines
-- **API Layer**: RESTful endpoints for external communication
-- **Data Access Layer**: Repository pattern for database operations
-- **Integration Layer**: External service connectors and adapters
-
-## Design Patterns
-- Repository Pattern for data access
-- Factory Pattern for object creation
-- Observer Pattern for event handling
-- Strategy Pattern for algorithm selection
-
-## Scalability Considerations
-The system is designed for horizontal scaling with stateless services and distributed caching mechanisms.
-
-## Security Architecture
-- Authentication via OAuth 2.0
-- Role-based access control (RBAC)
-- Data encryption at rest and in transit
-- Audit logging for all critical operations"""
