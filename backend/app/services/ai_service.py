@@ -204,6 +204,52 @@ class AIService:
         """Get the current model ID from configuration"""
         return settings.BEDROCK_MODEL_ID
     
+    def get_available_models(self):
+        """Get available Bedrock models"""
+        try:
+            self._ensure_client_ready()
+            
+            # Create a separate bedrock client for listing models (not bedrock-runtime)
+            session = self._create_session()
+            bedrock_client = session.client('bedrock')
+            
+            # Get foundation models
+            response = bedrock_client.list_foundation_models()
+            model_summaries = response.get('modelSummaries', [])
+            
+            # Filter for supported models and format for UI
+            supported_models = []
+            for model in model_summaries:
+                model_id = model.get('modelId', '')
+                # Focus on Anthropic Claude models
+                if 'anthropic.claude' in model_id:
+                    supported_models.append({
+                        'id': model_id,
+                        'name': model.get('modelName', model_id),
+                        'provider': model.get('providerName', 'Anthropic'),
+                        'status': model.get('modelLifecycle', {}).get('status', 'ACTIVE')
+                    })
+            
+            return supported_models
+            
+        except Exception as e:
+            logger.error(f"Error fetching available models: {e}")
+            # Return a fallback list of known models if API call fails
+            return [
+                {
+                    'id': 'anthropic.claude-v2',
+                    'name': 'Claude v2',
+                    'provider': 'Anthropic',
+                    'status': 'ACTIVE'
+                },
+                {
+                    'id': 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+                    'name': 'Claude 3.5 Sonnet v2',
+                    'provider': 'Anthropic',
+                    'status': 'ACTIVE'
+                }
+            ]
+    
     async def extract_business_rules(
         self,
         code: str,

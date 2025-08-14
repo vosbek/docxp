@@ -1,264 +1,406 @@
+// Color palette with high contrast
+$primary-text: #1a202c;
+$secondary-text: #4a5568;
+$tertiary-text: #718096;
+
+$success-color: #059669;
+$success-bg: #d1fae5;
+$success-border: #a7f3d0;
+
+$error-color: #dc2626;
+$error-bg: #fee2e2;
+$error-border: #fecaca;
+
+$warning-color: #d97706;
+$warning-bg: #fef3c7;
+$warning-border: #fed7aa;
+
+$info-color: #2563eb;
+$info-bg: #dbeafe;
+$info-border: #bfdbfe;
+
+$neutral-bg: #f8fafc;
+$neutral-border: #e2e8f0;
+$card-bg: #ffffff;
+
+$brand-blue: #3b82f6;
+$code-bg: #f1f5f9;
+$code-border: #cbd5e1;
+
 .aws-config-container {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 24px;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 // Header Section
 .config-header {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  text-align: center;
   
-  .status-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .header-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: $primary-text;
+    margin: 0 0 8px 0;
+  }
+  
+  .header-subtitle {
+    font-size: 16px;
+    color: $secondary-text;
+    margin: 0;
+  }
+}
+
+// Status Card
+.status-card {
+  background: $card-bg;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  
+  &.status-connected {
+    border-color: $success-border;
+    background: linear-gradient(135deg, $card-bg 0%, $success-bg 100%);
+  }
+  
+  &.status-error {
+    border-color: $error-border;
+    background: linear-gradient(135deg, $card-bg 0%, $error-bg 100%);
+  }
+  
+  &.status-unknown {
+    border-color: $neutral-border;
+    background: $neutral-bg;
+  }
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  .status-icon {
+    font-size: 24px;
     
-    .header-title {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 0;
+    .status-connected & {
+      color: $success-color;
     }
     
-    .status-indicator {
+    .status-error & {
+      color: $error-color;
+    }
+    
+    .status-unknown & {
+      color: $tertiary-text;
+    }
+  }
+  
+  .status-info {
+    flex: 1;
+    
+    .status-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: $primary-text;
+      margin: 0 0 4px 0;
+    }
+    
+    .status-message {
+      font-size: 14px;
+      color: $secondary-text;
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+  
+  .refresh-button {
+    ::ng-deep .p-button {
+      border: 1px solid $neutral-border;
+      color: $secondary-text;
+      
+      &:hover {
+        background: $neutral-bg;
+        border-color: $brand-blue;
+        color: $brand-blue;
+      }
+    }
+  }
+}
+
+// Connection Details
+.connection-details {
+  border-top: 1px solid $neutral-border;
+  padding-top: 16px;
+  
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .detail-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: $tertiary-text;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .detail-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: $primary-text;
+    }
+  }
+}
+
+// Error Details
+.error-details {
+  border-top: 1px solid $error-border;
+  padding-top: 16px;
+  
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: $error-bg;
+    border: 1px solid $error-border;
+    border-radius: 8px;
+    color: $error-color;
+    font-size: 14px;
+    font-weight: 500;
+    
+    i {
+      font-size: 16px;
+    }
+  }
+}
+
+// Model Card
+.model-card {
+  background: $card-bg;
+  border: 1px solid $neutral-border;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  .model-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
+    .model-icon {
+      width: 48px;
+      height: 48px;
+      background: $info-bg;
+      border-radius: 8px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
       
-      .status-details {
+      i {
+        font-size: 20px;
+        color: $info-color;
+      }
+    }
+    
+    .model-info {
+      flex: 1;
+      
+      .model-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: $primary-text;
+        margin: 0 0 4px 0;
+      }
+      
+      .model-provider {
         font-size: 14px;
-        color: var(--text-secondary);
+        font-weight: 500;
+        color: $info-color;
+        margin: 0 0 8px 0;
+      }
+      
+      .model-description {
+        font-size: 14px;
+        color: $secondary-text;
+        margin: 0;
+        line-height: 1.4;
       }
     }
   }
 }
 
-// Tab Styling
-.auth-tabs {
-  ::ng-deep {
-    .p-tabview-nav {
-      background: var(--gray-50);
-      border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-      border: 1px solid var(--gray-200);
-      
-      .p-tabview-nav-link {
-        border: none;
-        background: transparent;
-        
-        &:hover {
-          background: var(--gray-100);
-        }
-      }
-      
-      .p-highlight .p-tabview-nav-link {
-        background: var(--surface-0);
-        color: var(--brand-blue);
-        border-bottom: 2px solid var(--brand-blue);
-      }
-    }
-    
-    .p-tabview-panels {
-      background: var(--surface-0);
-      border: 1px solid var(--gray-200);
-      border-top: none;
-      border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-    }
-    
-    .p-tabview-panel {
-      padding: 0;
-    }
-  }
-}
-
-// Tab Content
-.tab-content {
-  padding: 32px;
-}
-
-.method-description {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: var(--gray-50);
-  border-radius: var(--border-radius);
-  border-left: 4px solid var(--brand-blue);
+// Instructions Card
+.instructions-card {
+  background: $card-bg;
+  border: 1px solid $neutral-border;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
-  .description-text {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.5;
+  .instructions-header {
+    background: $neutral-bg;
+    padding: 20px 24px;
+    border-bottom: 1px solid $neutral-border;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    i {
+      font-size: 20px;
+      color: $brand-blue;
+    }
+    
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: $primary-text;
+      margin: 0;
+    }
+  }
+  
+  .instructions-content {
+    padding: 24px;
+    
+    .instructions-intro {
+      font-size: 16px;
+      color: $secondary-text;
+      margin: 0 0 32px 0;
+      line-height: 1.5;
+      
+      code {
+        background: $code-bg;
+        border: 1px solid $code-border;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: $primary-text;
+      }
+    }
   }
 }
 
-// Form Styling
-.auth-form {
-  .form-row {
+// Authentication Methods
+.auth-method {
+  margin-bottom: 32px;
+  
+  &:last-of-type {
     margin-bottom: 24px;
   }
   
-  .form-group {
+  .method-title {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: $primary-text;
+    margin: 0 0 8px 0;
     
-    .form-label {
+    i {
+      color: $brand-blue;
+    }
+  }
+  
+  .method-description {
+    font-size: 14px;
+    color: $secondary-text;
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+  }
+}
+
+// Environment Variables
+.env-variables {
+  background: $code-bg;
+  border: 1px solid $code-border;
+  border-radius: 8px;
+  padding: 16px;
+  
+  .env-var {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    &.optional {
+      opacity: 0.8;
+    }
+    
+    code {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+      font-size: 13px;
       font-weight: 500;
-      color: var(--text-primary);
-      font-size: 14px;
+      background: $card-bg;
+      border: 1px solid $neutral-border;
+      border-radius: 4px;
+      padding: 8px 12px;
+      color: $primary-text;
+      flex: 1;
+      margin-right: 8px;
     }
     
-    .form-input, .form-dropdown {
-      width: 100%;
-      
-      ::ng-deep input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid var(--gray-300);
-        border-radius: var(--border-radius);
-        font-size: 14px;
-        
-        &:focus {
-          border-color: var(--brand-blue);
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-        
-        &.ng-invalid.ng-touched {
-          border-color: var(--danger-color);
-          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
-        }
-      }
-    }
-    
-    .help-text {
+    .optional-label {
       font-size: 12px;
-      color: var(--text-tertiary);
+      color: $tertiary-text;
       font-style: italic;
     }
-    
-    .error-message {
-      font-size: 12px;
-      color: var(--danger-color);
-      font-weight: 500;
-    }
-  }
-  
-  .form-actions {
-    display: flex;
-    gap: 16px;
-    margin-top: 32px;
-    
-    .test-btn {
-      flex: 1;
-    }
-    
-    .save-btn {
-      flex: 1;
-    }
   }
 }
 
-// SSO Help Section
-.sso-help {
+// Restart Notice
+.restart-notice {
+  background: $info-bg;
+  border: 1px solid $info-border;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin-top: 24px;
   
-  ::ng-deep .p-message {
-    .p-message-wrapper {
-      padding: 16px;
-    }
-    
-    ol {
-      margin: 8px 0 0 0;
-      padding-left: 20px;
-      
-      li {
-        margin-bottom: 4px;
-        
-        code {
-          background: var(--gray-100);
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-          font-size: 12px;
-        }
-      }
-    }
-  }
-}
-
-// Current Model Info Section
-.model-info-section {
-  .section-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 0.5rem 0;
+  i {
+    font-size: 16px;
+    color: $info-color;
+    margin-top: 2px;
+    flex-shrink: 0;
   }
   
-  .section-description {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin: 0 0 1.5rem 0;
-  }
-  
-  .current-model-display {
-    .model-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.5rem;
-      background: var(--gray-50);
-      border-radius: var(--border-radius-lg);
-      border: 1px solid var(--gray-200);
-      margin-bottom: 1rem;
-      transition: all var(--transition-duration) ease;
-      
-      &:hover {
-        background: var(--gray-100);
-        border-color: var(--brand-blue);
-      }
-      
-      .model-details {
-        .model-name {
-          font-size: 1.125rem;
-          font-weight: 600;
-          color: var(--text-primary);
-          margin-bottom: 0.25rem;
-        }
-        
-        .model-provider {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--brand-blue);
-          margin-bottom: 0.5rem;
-        }
-        
-        .model-description {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          line-height: 1.4;
-        }
-      }
-      
-      .model-icon {
-        i {
-          font-size: 2rem;
-          color: var(--brand-blue);
-        }
-      }
+  .restart-content {
+    font-size: 14px;
+    color: $primary-text;
+    line-height: 1.5;
+    
+    strong {
+      font-weight: 600;
     }
     
-    ::ng-deep .p-message {
-      margin-top: 0;
-      
-      code {
-        background: var(--gray-200);
-        color: var(--text-primary);
-        padding: 0.125rem 0.375rem;
-        border-radius: 0.25rem;
-        font-family: 'Courier New', monospace;
-        font-size: 0.8rem;
-        font-weight: 600;
-      }
+    code {
+      background: $card-bg;
+      border: 1px solid $info-border;
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-size: 13px;
+      font-weight: 600;
     }
   }
 }
@@ -280,22 +422,85 @@
     padding: 16px;
   }
   
-  .config-header .status-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+  .config-header {
+    margin-bottom: 24px;
+    
+    .header-title {
+      font-size: 24px;
+    }
+    
+    .header-subtitle {
+      font-size: 14px;
+    }
   }
   
-  .tab-content {
+  .status-card,
+  .model-card,
+  .instructions-card {
     padding: 20px;
   }
   
-  .auth-form .form-actions {
+  .status-header {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
     
-    .test-btn,
-    .save-btn {
-      flex: none;
+    .status-info {
+      order: 2;
     }
+    
+    .refresh-button {
+      order: 3;
+      align-self: flex-end;
+    }
+  }
+  
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .model-header {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .instructions-header {
+    padding: 16px 20px;
+  }
+  
+  .instructions-content {
+    padding: 20px;
+  }
+  
+  .env-var {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    
+    code {
+      margin-right: 0;
+      word-break: break-all;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .aws-config-container {
+    padding: 12px;
+  }
+  
+  .status-card,
+  .model-card {
+    padding: 16px;
+  }
+  
+  .instructions-header {
+    padding: 12px 16px;
+  }
+  
+  .instructions-content {
+    padding: 16px;
   }
 }

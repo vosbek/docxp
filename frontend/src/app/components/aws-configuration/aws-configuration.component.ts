@@ -1,18 +1,9 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 // PrimeNG Imports
-import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { DropdownModule } from 'primeng/dropdown';
-import { TabViewModule } from 'primeng/tabview';
-import { MessageModule } from 'primeng/message';
 import { ToastModule } from 'primeng/toast';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { DividerModule } from 'primeng/divider';
-import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 
 import { ApiService } from '../../services/api.service';
@@ -22,10 +13,6 @@ interface AWSModel {
   name: string;
   provider: string;
   description: string;
-}
-
-interface AWSProfile {
-  name: string;
 }
 
 interface AWSStatus {
@@ -42,18 +29,8 @@ interface AWSStatus {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    CardModule,
     ButtonModule,
-    InputTextModule,
-    DropdownModule,
-    TabViewModule,
-    MessageModule,
-    ToastModule,
-    ProgressSpinnerModule,
-    DividerModule,
-    TagModule
+    ToastModule
   ],
   providers: [MessageService],
   templateUrl: './aws-configuration.component.html',
@@ -62,89 +39,52 @@ interface AWSStatus {
 export class AwsConfigurationComponent implements OnInit {
   @Output() configurationComplete = new EventEmitter<{success: boolean, message: string}>();
 
-  // Forms
-  accessKeysForm: FormGroup;
-  ssoProfileForm: FormGroup;
-  
   // State
-  activeTab: number = 0;
   loading: boolean = false;
-  testing: boolean = false;
-  configuring: boolean = false;
   
   // Data
-  awsProfiles: string[] = [];
-  currentModel: any = null;
+  currentModel: AWSModel | null = null;
   awsStatus: AWSStatus | null = null;
-  
-  // Regions
-  regions = [
-    { label: 'US East 1 (N. Virginia)', value: 'us-east-1' },
-    { label: 'US East 2 (Ohio)', value: 'us-east-2' },
-    { label: 'US West 1 (N. California)', value: 'us-west-1' },
-    { label: 'US West 2 (Oregon)', value: 'us-west-2' },
-    { label: 'Europe (Ireland)', value: 'eu-west-1' },
-    { label: 'Europe (London)', value: 'eu-west-2' },
-    { label: 'Europe (Frankfurt)', value: 'eu-central-1' },
-    { label: 'Asia Pacific (Tokyo)', value: 'ap-northeast-1' },
-    { label: 'Asia Pacific (Singapore)', value: 'ap-southeast-1' },
-    { label: 'Asia Pacific (Sydney)', value: 'ap-southeast-2' }
-  ];
 
   constructor(
-    private fb: FormBuilder,
     private apiService: ApiService,
     private messageService: MessageService
-  ) {
-    this.accessKeysForm = this.fb.group({
-      aws_access_key_id: ['', Validators.required],
-      aws_secret_access_key: ['', Validators.required],
-      aws_session_token: [''],
-      aws_region: ['us-east-1', Validators.required]
-    });
-
-    this.ssoProfileForm = this.fb.group({
-      aws_profile: ['', Validators.required],
-      aws_region: ['us-east-1', Validators.required]
-    });
-  }
+  ) {}
 
   ngOnInit() {
+    this.refreshStatus();
+  }
+
+  refreshStatus() {
     this.loadAWSStatus();
-    this.loadAWSProfiles();
     this.loadCurrentModelInfo();
   }
 
   loadAWSStatus() {
+    this.loading = true;
     this.apiService.getAWSStatus().subscribe({
       next: (status: AWSStatus) => {
         this.awsStatus = status;
+        this.loading = false;
+        
         if (status.connected) {
           this.messageService.add({
             severity: 'success',
             summary: 'AWS Connected',
-            detail: `Connected to account ${status.account_id} with ${status.available_models_count} models`
+            detail: `Connected to account ${status.account_id} with ${status.available_models_count} models`,
+            life: 3000
           });
         }
       },
       error: (error) => {
         console.error('Failed to load AWS status:', error);
-      }
-    });
-  }
-
-  loadAWSProfiles() {
-    this.loading = true;
-    this.apiService.getAWSProfiles().subscribe({
-      next: (response: any) => {
-        if (response.success) {
-          this.awsProfiles = response.profiles;
-        }
         this.loading = false;
-      },
-      error: (error) => {
-        console.error('Failed to load AWS profiles:', error);
-        this.loading = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Status Check Failed',
+          detail: 'Unable to check AWS connection status',
+          life: 5000
+        });
       }
     });
   }
@@ -162,195 +102,42 @@ export class AwsConfigurationComponent implements OnInit {
     });
   }
 
-  testAccessKeysCredentials() {
-    if (this.accessKeysForm.invalid) {
-      this.markFormGroupTouched(this.accessKeysForm);
-      return;
-    }
-
-    this.testing = true;
-    const formData = this.accessKeysForm.value;
-
-    this.apiService.testAWSCredentials({
-      auth_method: 'access_keys',
-      ...formData
-    }).subscribe({
-      next: (response: any) => {
-        this.testing = false;
-        if (response.success) {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Credentials Valid',
-            detail: `Connected to AWS account ${response.account_id} with ${response.available_models_count} models`
-          });
-        } else {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Credentials Invalid',
-            detail: response.message
-          });
-        }
-      },
-      error: (error) => {
-        this.testing = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Test Failed',
-          detail: error.error?.detail || 'Failed to test credentials'
-        });
-      }
-    });
+  // Template helper methods
+  getStatusCardClass(): string {
+    if (!this.awsStatus) return 'status-unknown';
+    return this.awsStatus.connected ? 'status-connected' : 'status-error';
   }
 
-  testSSProfileCredentials() {
-    if (this.ssoProfileForm.invalid) {
-      this.markFormGroupTouched(this.ssoProfileForm);
-      return;
-    }
-
-    this.testing = true;
-    const formData = this.ssoProfileForm.value;
-
-    this.apiService.testAWSCredentials({
-      auth_method: 'sso_profile',
-      ...formData
-    }).subscribe({
-      next: (response: any) => {
-        this.testing = false;
-        if (response.success) {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Profile Valid',
-            detail: `Connected to AWS account ${response.account_id} with ${response.available_models_count} models`
-          });
-        } else {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Profile Invalid',
-            detail: response.message
-          });
-        }
-      },
-      error: (error) => {
-        this.testing = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Test Failed',
-          detail: error.error?.detail || 'Failed to test profile'
-        });
-      }
-    });
+  getStatusIcon(): string {
+    if (!this.awsStatus) return 'pi pi-question-circle';
+    return this.awsStatus.connected ? 'pi pi-check-circle' : 'pi pi-times-circle';
   }
 
-  configureAccessKeys() {
-    if (this.accessKeysForm.invalid) {
-      this.markFormGroupTouched(this.accessKeysForm);
-      return;
-    }
-
-    this.configuring = true;
-    const formData = this.accessKeysForm.value;
-
-    this.apiService.configureAWS({
-      auth_method: 'access_keys',
-      ...formData
-    }).subscribe({
-      next: (response: any) => {
-        this.configuring = false;
-        if (response.success) {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Configuration Saved',
-            detail: 'AWS credentials configured successfully'
-          });
-          this.loadAWSStatus();
-          this.configurationComplete.emit({success: true, message: 'AWS credentials configured'});
-        } else {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Configuration Failed',
-            detail: response.message
-          });
-        }
-      },
-      error: (error) => {
-        this.configuring = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Configuration Failed',
-          detail: error.error?.detail || 'Failed to configure credentials'
-        });
-      }
-    });
+  getStatusTitle(): string {
+    if (!this.awsStatus) return 'Checking Connection...';
+    return this.awsStatus.connected ? 'AWS Connected' : 'Connection Failed';
   }
 
-  configureSSProfile() {
-    if (this.ssoProfileForm.invalid) {
-      this.markFormGroupTouched(this.ssoProfileForm);
-      return;
-    }
-
-    this.configuring = true;
-    const formData = this.ssoProfileForm.value;
-
-    this.apiService.configureAWS({
-      auth_method: 'sso_profile',
-      ...formData
-    }).subscribe({
-      next: (response: any) => {
-        this.configuring = false;
-        if (response.success) {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Configuration Saved',
-            detail: 'AWS profile configured successfully'
-          });
-          this.loadAWSStatus();
-          this.configurationComplete.emit({success: true, message: 'AWS profile configured'});
-        } else {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Configuration Failed',
-            detail: response.message
-          });
-        }
-      },
-      error: (error) => {
-        this.configuring = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Configuration Failed',
-          detail: error.error?.detail || 'Failed to configure profile'
-        });
-      }
-    });
-  }
-
-
-  private markFormGroupTouched(formGroup: FormGroup) {
-    Object.keys(formGroup.controls).forEach(key => {
-      const control = formGroup.get(key);
-      if (control) {
-        control.markAsTouched();
-      }
-    });
-  }
-
-  getConnectionStatusSeverity(): "success" | "secondary" | "info" | "warning" | "danger" | "contrast" | undefined {
-    if (!this.awsStatus) return 'secondary';
-    return this.awsStatus.connected ? 'success' : 'danger';
-  }
-
-  getConnectionStatusText(): string {
-    if (!this.awsStatus) return 'Unknown';
+  getStatusMessage(): string {
+    if (!this.awsStatus) return 'Loading AWS connection status...';
+    
     if (this.awsStatus.connected) {
-      return `Connected (${this.awsStatus.account_id})`;
+      return `Successfully connected to AWS account ${this.awsStatus.account_id}`;
+    } else {
+      return 'AWS connection failed. Check your .env configuration.';
     }
-    return 'Not Connected';
   }
 
-  // Helper methods for template bindings
-  getAwsProfileOptions(): any[] {
-    return this.awsProfiles.map(p => ({label: p, value: p}));
+  getAuthMethodDisplay(): string {
+    if (!this.awsStatus) return 'N/A';
+    
+    switch (this.awsStatus.auth_method) {
+      case 'access_keys':
+        return 'Access Keys';
+      case 'sso_profile':
+        return 'SSO Profile';
+      default:
+        return this.awsStatus.auth_method || 'Unknown';
+    }
   }
 }

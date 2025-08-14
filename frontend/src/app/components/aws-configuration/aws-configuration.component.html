@@ -1,233 +1,158 @@
 <div class="aws-config-container">
   <p-toast></p-toast>
   
-  <!-- Header with current status -->
+  <!-- Header -->
   <div class="config-header">
-    <div class="status-section">
-      <h2 class="header-title">AWS Configuration</h2>
-      <div class="status-indicator">
-        <p-tag 
-          [value]="getConnectionStatusText()"
-          [severity]="getConnectionStatusSeverity()"
-          icon="pi pi-aws">
-        </p-tag>
-        <span class="status-details" *ngIf="awsStatus && awsStatus.connected">
-          {{awsStatus.available_models_count}} models available in {{awsStatus.region}}
-        </span>
+    <h2 class="header-title">AWS Configuration</h2>
+    <p class="header-subtitle">Environment-controlled AWS Bedrock connection</p>
+  </div>
+
+  <!-- Connection Status Card -->
+  <div class="status-card" [ngClass]="getStatusCardClass()">
+    <div class="status-header">
+      <div class="status-icon">
+        <i [class]="getStatusIcon()"></i>
+      </div>
+      <div class="status-info">
+        <h3 class="status-title">{{ getStatusTitle() }}</h3>
+        <p class="status-message">{{ getStatusMessage() }}</p>
+      </div>
+      <div class="refresh-button">
+        <p-button 
+          icon="pi pi-refresh" 
+          [loading]="loading"
+          (onClick)="refreshStatus()"
+          severity="secondary"
+          size="small"
+          [text]="true">
+        </p-button>
+      </div>
+    </div>
+
+    <!-- Connection Details (when connected) -->
+    <div class="connection-details" *ngIf="awsStatus?.connected">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Account ID</span>
+          <span class="detail-value">{{ awsStatus.account_id || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Region</span>
+          <span class="detail-value">{{ awsStatus.region || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Auth Method</span>
+          <span class="detail-value">{{ getAuthMethodDisplay() }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Available Models</span>
+          <span class="detail-value">{{ awsStatus.available_models_count || 0 }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Details (when error) -->
+    <div class="error-details" *ngIf="awsStatus?.error">
+      <div class="error-message">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ awsStatus.error }}</span>
       </div>
     </div>
   </div>
 
-  <p-divider></p-divider>
-
-  <!-- Authentication Method Selection -->
-  <p-tabView [(activeIndex)]="activeTab" class="auth-tabs">
-    
-    <!-- Access Keys Tab -->
-    <p-tabPanel header="Access Keys" leftIcon="pi pi-key">
-      <div class="tab-content">
-        <div class="method-description">
-          <p class="description-text">
-            Use AWS Access Key ID and Secret Access Key for authentication. 
-            This method is suitable for programmatic access and CI/CD environments.
-          </p>
-        </div>
-
-        <form [formGroup]="accessKeysForm" class="auth-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="accessKeyId" class="form-label">Access Key ID *</label>
-              <input 
-                pInputText 
-                id="accessKeyId"
-                formControlName="aws_access_key_id"
-                placeholder="AKIA..."
-                class="form-input"
-                [class.ng-invalid]="accessKeysForm.get('aws_access_key_id')?.invalid && accessKeysForm.get('aws_access_key_id')?.touched">
-              <small class="error-message" 
-                *ngIf="accessKeysForm.get('aws_access_key_id')?.invalid && accessKeysForm.get('aws_access_key_id')?.touched">
-                Access Key ID is required
-              </small>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="secretKey" class="form-label">Secret Access Key *</label>
-              <input 
-                pInputText 
-                id="secretKey"
-                type="password"
-                formControlName="aws_secret_access_key"
-                placeholder="Enter secret key"
-                class="form-input"
-                [class.ng-invalid]="accessKeysForm.get('aws_secret_access_key')?.invalid && accessKeysForm.get('aws_secret_access_key')?.touched">
-              <small class="error-message"
-                *ngIf="accessKeysForm.get('aws_secret_access_key')?.invalid && accessKeysForm.get('aws_secret_access_key')?.touched">
-                Secret Access Key is required
-              </small>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="sessionToken" class="form-label">Session Token (Optional)</label>
-              <input 
-                pInputText 
-                id="sessionToken"
-                formControlName="aws_session_token"
-                placeholder="For temporary credentials"
-                class="form-input">
-              <small class="help-text">
-                Only required for temporary security credentials
-              </small>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="accessKeysRegion" class="form-label">AWS Region *</label>
-              <p-dropdown 
-                formControlName="aws_region"
-                [options]="regions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select region"
-                class="form-dropdown"
-                [class.ng-invalid]="accessKeysForm.get('aws_region')?.invalid && accessKeysForm.get('aws_region')?.touched">
-              </p-dropdown>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <p-button 
-              label="Test Connection"
-              icon="pi pi-check"
-              [loading]="testing"
-              (onClick)="testAccessKeysCredentials()"
-              severity="secondary"
-              class="test-btn">
-            </p-button>
-            
-            <p-button 
-              label="Save Configuration"
-              icon="pi pi-save"
-              [loading]="configuring"
-              (onClick)="configureAccessKeys()"
-              class="save-btn">
-            </p-button>
-          </div>
-        </form>
+  <!-- Current Model Card -->
+  <div class="model-card" *ngIf="currentModel">
+    <div class="model-header">
+      <div class="model-icon">
+        <i class="pi pi-cpu"></i>
       </div>
-    </p-tabPanel>
+      <div class="model-info">
+        <h3 class="model-name">{{ currentModel.name }}</h3>
+        <p class="model-provider">{{ currentModel.provider }}</p>
+        <p class="model-description">{{ currentModel.description }}</p>
+      </div>
+    </div>
+  </div>
 
-    <!-- SSO Profile Tab -->
-    <p-tabPanel header="SSO Profile" leftIcon="pi pi-user">
-      <div class="tab-content">
-        <div class="method-description">
-          <p class="description-text">
-            Use AWS SSO profile for authentication. This method uses profiles configured 
-            in your AWS CLI (~/.aws/config).
-          </p>
-        </div>
+  <!-- Configuration Instructions Card -->
+  <div class="instructions-card">
+    <div class="instructions-header">
+      <i class="pi pi-cog"></i>
+      <h3>AWS Configuration Instructions</h3>
+    </div>
+    
+    <div class="instructions-content">
+      <p class="instructions-intro">
+        AWS credentials are managed through environment variables in your <code>.env</code> file. 
+        Choose one of the authentication methods below:
+      </p>
 
-        <form [formGroup]="ssoProfileForm" class="auth-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="awsProfile" class="form-label">AWS Profile *</label>
-              <p-dropdown 
-                formControlName="aws_profile"
-                [options]="getAwsProfileOptions()"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select AWS profile"
-                [loading]="loading"
-                class="form-dropdown"
-                [class.ng-invalid]="ssoProfileForm.get('aws_profile')?.invalid && ssoProfileForm.get('aws_profile')?.touched">
-              </p-dropdown>
-              <small class="help-text">
-                Profiles from ~/.aws/config and ~/.aws/credentials
-              </small>
-              <small class="error-message"
-                *ngIf="ssoProfileForm.get('aws_profile')?.invalid && ssoProfileForm.get('aws_profile')?.touched">
-                AWS Profile is required
-              </small>
-            </div>
+      <!-- Access Keys Method -->
+      <div class="auth-method">
+        <h4 class="method-title">
+          <i class="pi pi-key"></i>
+          Method 1: Access Keys
+        </h4>
+        <p class="method-description">Use AWS access key and secret key for authentication.</p>
+        
+        <div class="env-variables">
+          <div class="env-var">
+            <code>AWS_ACCESS_KEY_ID=AKIA...</code>
           </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="ssoRegion" class="form-label">AWS Region *</label>
-              <p-dropdown 
-                formControlName="aws_region"
-                [options]="regions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select region"
-                class="form-dropdown"
-                [class.ng-invalid]="ssoProfileForm.get('aws_region')?.invalid && ssoProfileForm.get('aws_region')?.touched">
-              </p-dropdown>
-            </div>
+          <div class="env-var">
+            <code>AWS_SECRET_ACCESS_KEY=your-secret-key</code>
           </div>
-
-          <div class="form-actions">
-            <p-button 
-              label="Test Connection"
-              icon="pi pi-check"
-              [loading]="testing"
-              (onClick)="testSSProfileCredentials()"
-              severity="secondary"
-              class="test-btn">
-            </p-button>
-            
-            <p-button 
-              label="Save Configuration"
-              icon="pi pi-save"
-              [loading]="configuring"
-              (onClick)="configureSSProfile()"
-              class="save-btn">
-            </p-button>
+          <div class="env-var optional">
+            <code>AWS_SESSION_TOKEN=your-session-token</code>
+            <span class="optional-label">(optional, for temporary credentials)</span>
           </div>
-        </form>
-
-        <div class="sso-help" *ngIf="awsProfiles.length === 0">
-          <p-message severity="info">
-            <p>No AWS profiles found. To use SSO authentication:</p>
-            <ol>
-              <li>Configure AWS CLI: <code>aws configure sso</code></li>
-              <li>Set up your SSO session</li>
-              <li>Refresh this page</li>
-            </ol>
-          </p-message>
+          <div class="env-var">
+            <code>AWS_REGION=us-east-1</code>
+          </div>
         </div>
       </div>
-    </p-tabPanel>
-  </p-tabView>
 
-  <p-divider></p-divider>
-
-  <!-- Current Model Info -->
-  <div class="model-info-section" *ngIf="currentModel">
-    <h3 class="section-title">Current AI Model</h3>
-    <p class="section-description">
-      Model configuration is managed via environment variables
-    </p>
-    
-    <div class="current-model-display">
-      <div class="model-card">
-        <div class="model-details">
-          <div class="model-name">{{currentModel.name}}</div>
-          <div class="model-provider">{{currentModel.provider}}</div>
-          <div class="model-description">{{currentModel.description}}</div>
+      <!-- SSO Profile Method -->
+      <div class="auth-method">
+        <h4 class="method-title">
+          <i class="pi pi-user"></i>
+          Method 2: SSO Profile
+        </h4>
+        <p class="method-description">Use AWS CLI SSO profile for authentication.</p>
+        
+        <div class="env-variables">
+          <div class="env-var">
+            <code>AWS_PROFILE=your-sso-profile</code>
+          </div>
+          <div class="env-var">
+            <code>AWS_REGION=us-east-1</code>
+          </div>
         </div>
-        <div class="model-icon">
+      </div>
+
+      <!-- Model Configuration -->
+      <div class="auth-method">
+        <h4 class="method-title">
           <i class="pi pi-cpu"></i>
+          Model Configuration
+        </h4>
+        <p class="method-description">Configure which Bedrock model to use.</p>
+        
+        <div class="env-variables">
+          <div class="env-var">
+            <code>BEDROCK_MODEL_ID=anthropic.claude-v2</code>
+          </div>
         </div>
       </div>
-      
-      <p-message severity="info">
-        <span>To change the model, update the <code>BEDROCK_MODEL_ID</code> environment variable and restart the application.</span>
-      </p-message>
+
+      <!-- Restart Notice -->
+      <div class="restart-notice">
+        <i class="pi pi-info-circle"></i>
+        <div class="restart-content">
+          <strong>Important:</strong> After updating your <code>.env</code> file, restart the application 
+          for changes to take effect. Click the refresh button above to check your connection status.
+        </div>
+      </div>
     </div>
   </div>
 </div>
