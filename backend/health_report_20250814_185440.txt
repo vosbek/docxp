@@ -1,0 +1,54 @@
+================================================================================
+DocXP Enterprise Platform Health Report
+================================================================================
+Generated: 2025-08-14T18:54:39.764340
+Overall Status: HEALTHY
+
+[OK] Database: healthy
+   schema_valid: True
+   total_records: {
+  "documentation_jobs": 0,
+  "repositories": 0,
+  "configuration_templates": 0
+}
+   database_size_mb: 0.04
+
+[OK] Api Endpoints: healthy
+   analytics_endpoint: working
+   total_jobs: 0
+   successful_jobs: 0
+
+[CONFIG] Aws Bedrock: not_configured
+   configured: False
+   config: {
+  "region": "us-east-1",
+  "profile": "",
+  "has_access_key": false,
+  "has_secret_key": false,
+  "model_id": "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+}
+
+[OK] File System: healthy
+   output: {
+  "exists": true,
+  "writable": true
+}
+   temp: {
+  "exists": true,
+  "writable": true
+}
+   configs: {
+  "exists": true,
+  "writable": true
+}
+
+RECOMMENDATIONS:
+----------------------------------------
+1. Configure AWS credentials for AI features
+
+BACKUP INFORMATION:
+----------------------------------------
+Backup directory: C:\devl\workspaces\docxp\backend\backups
+Available backups: 2
+
+================================================================================
