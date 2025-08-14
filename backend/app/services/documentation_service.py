@@ -23,6 +23,7 @@ from app.services.ai_service import ai_service_instance
 from app.services.diagram_service import DiagramService
 from app.services.database_analyzer import database_analyzer
 from app.services.integration_analyzer import integration_analyzer
+from app.services.migration_dashboard import migration_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,8 @@ class DocumentationService:
         'generating_architecture_docs': {'weight': 10, 'description': 'Generating architecture documentation'},
         'generating_database_docs': {'weight': 4, 'description': 'Generating database documentation'},
         'generating_integration_docs': {'weight': 6, 'description': 'Generating integration flow documentation'},
-        'generating_diagrams': {'weight': 6, 'description': 'Generating system diagrams'},
+        'generating_migration_dashboard': {'weight': 4, 'description': 'Generating migration dashboard and executive summary'},
+        'generating_diagrams': {'weight': 5, 'description': 'Generating system diagrams'},
         'saving_documentation': {'weight': 3, 'description': 'Saving generated documentation'},
         'finalizing': {'weight': 2, 'description': 'Finalizing and completing generation'}
     }
@@ -195,6 +197,13 @@ class DocumentationService:
             if integration_analysis.get('technology_breakdown', {}).get('integration_flows', 0) > 0:
                 async with self._progress_step('generating_integration_docs') as update_progress:
                     documentation['INTEGRATION_FLOWS.md'] = await self._generate_integration_documentation(integration_analysis, update_progress)
+            
+            # Generate migration dashboard and executive summary
+            async with self._progress_step('generating_migration_dashboard') as update_progress:
+                migration_analysis = migration_dashboard.generate_migration_dashboard(
+                    entities, database_analysis, integration_analysis
+                )
+                documentation['MIGRATION_SUMMARY.md'] = await self._generate_migration_summary_doc(migration_analysis, update_progress)
             
             # Generate diagrams if requested
             diagrams = {}
@@ -1325,6 +1334,199 @@ Failed to generate integration flow documentation: {str(e)}
 Please check the logs for more details.
 """
             return error_doc
+    
+    async def _generate_migration_summary_doc(self, migration_analysis: Dict[str, Any], update_progress: Callable = None) -> str:
+        """Generate executive migration summary documentation"""
+        if update_progress:
+            await update_progress(10, status="Generating migration summary")
+        
+        summary = migration_analysis['summary']
+        executive_summary = migration_analysis['executive_summary']
+        risk_matrix = migration_analysis['risk_matrix']
+        roadmap = migration_analysis['migration_roadmap']
+        
+        if update_progress:
+            await update_progress(30, status="Creating executive dashboard")
+        
+        # Create rich markdown documentation with tables and charts
+        content = f"""# Enterprise Migration Summary & Dashboard
+
+**Generated**: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+**Migration Readiness Score**: {summary.migration_readiness_score}/100
+**Estimated Timeline**: {summary.timeline_estimate}
+**Total Effort**: {summary.estimated_effort_days} days
+
+---
+
+## 📊 Executive Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Migration Readiness** | {summary.migration_readiness_score}/100 | {'✅ Ready' if summary.migration_readiness_score >= 70 else '⚠️  Needs Preparation' if summary.migration_readiness_score >= 40 else '❌ High Risk'} |
+| **Total Components** | {summary.total_components} | Analysis Complete |
+| **Critical Components** | {summary.critical_components} | {'❌ Action Required' if summary.critical_components > 0 else '✅ Good'} |
+| **High Risk Components** | {summary.high_risk_components} | {'⚠️  Monitor Closely' if summary.high_risk_components > 0 else '✅ Low Risk'} |
+| **Estimated Investment** | {executive_summary['investment_required']} | Budget Planning |
+| **Business Impact** | {executive_summary['business_impact']} | Risk Assessment |
+
+### 🎯 **Recommended Approach**: {summary.recommended_approach}
+
+### 💡 Key Insights
+"""
+        
+        for insight in executive_summary['key_insights']:
+            content += f"- {insight}\n"
+        
+        if update_progress:
+            await update_progress(50, status="Building risk assessment matrix")
+        
+        content += f"""
+---
+
+## 🚨 Risk Assessment Matrix
+
+### Critical Risk Components ({len(risk_matrix['critical'])})
+"""
+        if risk_matrix['critical']:
+            content += """
+| Component | Type | Complexity | Effort | Modernization Approach |
+|-----------|------|------------|--------|------------------------|
+"""
+            for comp in risk_matrix['critical'][:10]:  # Limit to top 10
+                content += f"| {comp['name']} | {comp['type']} | {comp['complexity']} | {comp['effort']} | {comp['approach']} |\n"
+        else:
+            content += "✅ No critical risk components identified.\n"
+        
+        content += f"""
+### High Risk Components ({len(risk_matrix['high'])})
+"""
+        if risk_matrix['high']:
+            content += """
+| Component | Type | Complexity | Effort | Dependencies |
+|-----------|------|------------|--------|--------------|
+"""
+            for comp in risk_matrix['high'][:10]:  # Limit to top 10
+                content += f"| {comp['name']} | {comp['type']} | {comp['complexity']} | {comp['effort']} | {comp['dependencies']} |\n"
+        else:
+            content += "✅ No high risk components identified.\n"
+        
+        if update_progress:
+            await update_progress(70, status="Creating migration roadmap")
+        
+        content += """
+---
+
+## 🗺️  Migration Roadmap
+
+"""
+        
+        for phase_key, phase_data in roadmap.items():
+            phase_num = phase_key.split('_')[1]
+            content += f"""### Phase {phase_num}: {phase_data['name']}
+
+**Focus**: {phase_data['focus']}  
+**Components**: {len(phase_data['components'])} components
+
+| Priority | Component | Type | Effort | Risk Level |
+|----------|-----------|------|--------|------------|
+"""
+            for comp in phase_data['components']:
+                priority_icon = "🔴" if comp.priority == 1 else "🟡" if comp.priority <= 2 else "🟢"
+                content += f"| {priority_icon} P{comp.priority} | {comp.name} | {comp.type} | {comp.effort_estimate} | {comp.risk_level} |\n"
+            
+            content += "\n"
+        
+        if update_progress:
+            await update_progress(85, status="Adding technology breakdown")
+        
+        content += """
+---
+
+## 🔧 Technology Breakdown
+
+| Technology Type | Components | Percentage |
+|----------------|------------|------------|
+"""
+        
+        total_components = sum(executive_summary['technology_breakdown'].values())
+        for tech_type, count in executive_summary['technology_breakdown'].items():
+            percentage = (count / total_components * 100) if total_components > 0 else 0
+            content += f"| {tech_type} | {count} | {percentage:.1f}% |\n"
+        
+        content += f"""
+---
+
+## 📈 Effort Breakdown
+
+**Total Estimated Effort**: {summary.estimated_effort_days} days  
+**Timeline**: {summary.timeline_estimate}  
+**Team Size Recommendation**: {max(2, summary.estimated_effort_days // 60)} developers
+
+### Effort Distribution
+"""
+        
+        effort_breakdown = migration_analysis.get('effort_breakdown', {})
+        for comp_type, breakdown in effort_breakdown.items():
+            total_days = breakdown['total_effort'] // 8
+            content += f"- **{comp_type}**: {total_days} days ({breakdown['components']} components)\n"
+        
+        content += f"""
+---
+
+## 🎯 Next Steps & Recommendations
+
+### Immediate Actions (Next 30 Days)
+1. **Stakeholder Alignment**: Present this analysis to key stakeholders
+2. **Team Assembly**: Identify migration team members and technical leads
+3. **Risk Mitigation**: Address critical and high-risk components first
+4. **Environment Setup**: Prepare development and testing environments
+
+### Phase 1 Preparation (Next 60 Days)
+1. **Detailed Design**: Create detailed technical designs for Phase 1 components
+2. **Proof of Concept**: Build POC for the most complex integrations
+3. **Testing Strategy**: Define comprehensive testing approach
+4. **Change Management**: Prepare business users for upcoming changes
+
+### Success Criteria
+- [ ] All critical risk components addressed
+- [ ] Modern API architecture implemented
+- [ ] Database modernization completed
+- [ ] Integration testing passed
+- [ ] User acceptance testing completed
+- [ ] Performance benchmarks met
+
+---
+
+## 📋 Migration Checklist
+
+### Pre-Migration
+- [ ] Backup current system
+- [ ] Document current business processes
+- [ ] Set up monitoring and rollback procedures
+- [ ] Train team on new technologies
+
+### During Migration
+- [ ] Implement components in priority order
+- [ ] Continuous integration testing
+- [ ] Regular stakeholder communication
+- [ ] Monitor system performance
+
+### Post-Migration
+- [ ] Performance optimization
+- [ ] Documentation updates
+- [ ] Team knowledge transfer
+- [ ] Support process establishment
+
+---
+
+*This migration analysis was generated by DocXP Enterprise Migration Platform. For questions or updates, please review the detailed technical documentation files.*
+"""
+        
+        if update_progress:
+            await update_progress(100, status="Migration summary completed")
+        
+        logger.info(f"Generated migration summary documentation: {len(content)} characters")
+        return content
     
     async def _update_job_status(self, job_id: str, status: str):
         """Update job status in database"""

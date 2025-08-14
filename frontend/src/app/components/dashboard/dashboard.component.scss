@@ -235,18 +235,26 @@
 .activity-section {
   grid-column: 1 / -1;
   padding: 24px;
+  background: var(--surface-0);
+}
+
+.jobs-table {
+  background: var(--surface-0);
+  border-radius: var(--border-radius);
 }
 
 ::ng-deep .premium-table {
+  background: var(--surface-0) !important;
+  
   .p-datatable-header {
     background: transparent;
     border: none;
   }
   
   .p-datatable-thead > tr > th {
-    background: var(--gray-50);
+    background: var(--gray-100) !important;
     border: none;
-    color: var(--text-secondary);
+    color: var(--text-primary) !important;
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
@@ -256,12 +264,14 @@
   
   .p-datatable-tbody > tr {
     border: none;
+    background: var(--surface-0) !important;
     transition: background-color 0.2s ease;
     
     > td {
       border: none;
       padding: 16px 12px;
       font-size: 14px;
+      color: var(--text-primary) !important;
       
       &.job-id {
         font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
@@ -286,7 +296,7 @@
     }
     
     &:hover {
-      background: var(--gray-50);
+      background: var(--gray-50) !important;
     }
   }
 }
