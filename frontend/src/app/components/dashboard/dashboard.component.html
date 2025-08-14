@@ -128,6 +128,37 @@
     </div>
   </div>
 
+  <!-- Architecture Diagrams Section -->
+  <div class="diagrams-section premium-card" @cardAnimation *ngIf="sampleDiagrams.length > 0">
+    <div class="section-header">
+      <h3 class="section-title">
+        <i class="pi pi-chart-bar mr-2"></i>
+        Architecture Diagrams
+      </h3>
+      <div class="section-controls">
+        <button pButton 
+                icon="pi pi-refresh" 
+                class="p-button-text p-button-sm" 
+                pTooltip="Refresh Diagrams"
+                (click)="loadSampleDiagrams()">
+        </button>
+        <button pButton 
+                label="View All" 
+                class="p-button-text p-button-sm"
+                (click)="navigateToDiagrams()">
+        </button>
+      </div>
+    </div>
+    
+    <!-- DiagramViewer Integration -->
+    <div class="diagram-viewer-wrapper">
+      <app-diagram-viewer 
+        [diagrams]="sampleDiagrams"
+        [initialDiagram]="'migration_architecture'">
+      </app-diagram-viewer>
+    </div>
+  </div>
+
   <!-- Quick Actions Section -->
   <div class="quick-actions premium-card" @cardAnimation>
     <div class="section-header">

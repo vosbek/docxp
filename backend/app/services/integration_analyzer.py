@@ -38,8 +38,8 @@ class RESTEndpoint:
     method: str
     path: str
     handler_function: str
-    handler_class: Optional[str] = None
     parameters: List[str]
+    handler_class: Optional[str] = None
     return_type: Optional[str] = None
     framework: str = "unknown"  # spring, struts, fastapi, etc.
 
@@ -74,8 +74,8 @@ class IntegrationFlow:
     http_call: Optional[HTTPCall] = None
     rest_endpoint: Optional[RESTEndpoint] = None
     struts_action: Optional[StrutsAction] = None
-    backend_methods: List[str] = None
-    database_queries: List[str] = None
+    backend_methods: Optional[List[str]] = None
+    database_queries: Optional[List[str]] = None
     confidence_score: float = 0.0  # 0.0 to 1.0
 
 class IntegrationAnalyzer:

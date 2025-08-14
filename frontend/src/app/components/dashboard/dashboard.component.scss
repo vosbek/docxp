@@ -424,6 +424,32 @@
   }
 }
 
+// Diagrams Section
+.diagrams-section {
+  padding: 24px;
+  margin-bottom: 24px;
+  
+  .diagram-viewer-wrapper {
+    margin-top: 16px;
+    
+    // Override the DiagramViewer's min-height for dashboard integration
+    :host ::ng-deep app-diagram-viewer .diagram-viewer-container {
+      min-height: 500px;
+    }
+    
+    // Ensure proper spacing in dashboard context
+    :host ::ng-deep app-diagram-viewer .diagram-content {
+      background: transparent;
+    }
+    
+    // Adjust diagram toolbar for dashboard
+    :host ::ng-deep app-diagram-viewer .diagram-toolbar {
+      background: var(--gray-50);
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+  }
+}
+
 // Responsive Design
 @media (max-width: 1200px) {
   .content-grid {

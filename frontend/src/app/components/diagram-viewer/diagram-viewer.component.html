@@ -1,0 +1,185 @@
+<div class="diagram-viewer-container">
+  <!-- Header with controls -->
+  <div class="diagram-header">
+    <div class="diagram-info">
+      <h3 class="diagram-title">
+        <i class="pi pi-chart-bar"></i>
+        {{ currentDiagramInfo || 'Architecture Diagrams' }}
+      </h3>
+      <p class="diagram-description" *ngIf="selectedDiagram?.description">
+        {{ selectedDiagram.description }}
+      </p>
+    </div>
+    
+    <!-- Diagram selector -->
+    <div class="diagram-controls" *ngIf="hasMultipleDiagrams">
+      <p-dropdown 
+        [options]="diagramOptions"
+        [(ngModel)]="selectedDiagram"
+        (onChange)="onDiagramSelectionChange($event)"
+        placeholder="Select Diagram"
+        [style]="{'width': '280px'}"
+        optionLabel="label"
+        optionValue="value"
+        [showClear]="false">
+        <ng-template pTemplate="selectedItem" let-selectedOption>
+          <div class="diagram-option">
+            <i [class]="selectedOption?.icon"></i>
+            <span>{{ selectedOption?.label }}</span>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="item" let-option>
+          <div class="diagram-option">
+            <i [class]="option.icon"></i>
+            <span>{{ option.label }}</span>
+          </div>
+        </ng-template>
+      </p-dropdown>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="diagram-toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">Zoom:</span>
+      <button pButton 
+              icon="pi pi-minus" 
+              class="p-button-outlined p-button-sm toolbar-btn"
+              (click)="zoomOut()"
+              [disabled]="zoomLevel <= 0.25"
+              pTooltip="Zoom Out">
+      </button>
+      <span class="zoom-level">{{ (zoomLevel * 100).toFixed(0) }}%</span>
+      <button pButton 
+              icon="pi pi-plus" 
+              class="p-button-outlined p-button-sm toolbar-btn"
+              (click)="zoomIn()"
+              [disabled]="zoomLevel >= 3"
+              pTooltip="Zoom In">
+      </button>
+      <button pButton 
+              icon="pi pi-refresh" 
+              class="p-button-outlined p-button-sm toolbar-btn"
+              (click)="resetZoom()"
+              pTooltip="Reset Zoom">
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <span class="toolbar-label">Export:</span>
+      <button pButton 
+              icon="pi pi-image" 
+              label="PNG"
+              class="p-button-outlined p-button-sm toolbar-btn"
+              (click)="exportDiagram('png')"
+              [disabled]="!selectedDiagram"
+              pTooltip="Export as PNG">
+      </button>
+      <button pButton 
+              icon="pi pi-file" 
+              label="SVG"
+              class="p-button-outlined p-button-sm toolbar-btn"
+              (click)="exportDiagram('svg')"
+              [disabled]="!selectedDiagram"
+              pTooltip="Export as SVG">
+      </button>
+      <button pButton 
+              icon="pi pi-file-pdf" 
+              label="PDF"
+              class="p-button-outlined p-button-sm toolbar-btn"
+              (click)="exportDiagram('pdf')"
+              [disabled]="!selectedDiagram"
+              pTooltip="Export as PDF">
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button pButton 
+              icon="pi pi-eye" 
+              label="Fullscreen"
+              class="p-button-outlined p-button-sm toolbar-btn"
+              pTooltip="View Fullscreen (Coming Soon)"
+              [disabled]="true">
+      </button>
+    </div>
+  </div>
+
+  <!-- Diagram container -->
+  <div class="diagram-content">
+    <div class="diagram-wrapper" 
+         [class.loading]="isLoading"
+         #diagramContainer>
+      
+      <!-- Loading indicator -->
+      <div class="loading-overlay" *ngIf="isLoading">
+        <div class="loading-spinner">
+          <i class="pi pi-spin pi-spinner loading-icon"></i>
+          <p>Rendering diagram...</p>
+        </div>
+      </div>
+
+      <!-- No diagram message -->
+      <div class="no-diagram-message" *ngIf="!selectedDiagram && !isLoading">
+        <i class="pi pi-chart-bar no-diagram-icon"></i>
+        <h4>No Diagram Selected</h4>
+        <p>Please select a diagram from the dropdown above to view the architecture visualization.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagram legend (for complex diagrams) -->
+  <div class="diagram-legend" *ngIf="selectedDiagram?.type === 'migration_risk_matrix'">
+    <h4><i class="pi pi-info-circle"></i> Risk Level Legend</h4>
+    <div class="legend-items">
+      <div class="legend-item critical">
+        <span class="legend-color"></span>
+        <span class="legend-text">Critical Risk - Immediate Action Required</span>
+      </div>
+      <div class="legend-item high">
+        <span class="legend-color"></span>
+        <span class="legend-text">High Risk - Plan Carefully</span>
+      </div>
+      <div class="legend-item medium">
+        <span class="legend-color"></span>
+        <span class="legend-text">Medium Risk - Standard Process</span>
+      </div>
+      <div class="legend-item low">
+        <span class="legend-color"></span>
+        <span class="legend-text">Low Risk - Quick Wins</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-legend" *ngIf="selectedDiagram?.type === 'migration_architecture'">
+    <h4><i class="pi pi-info-circle"></i> Architecture Legend</h4>
+    <div class="legend-items">
+      <div class="legend-item frontend">
+        <span class="legend-color"></span>
+        <span class="legend-text">Frontend Layer</span>
+      </div>
+      <div class="legend-item backend">
+        <span class="legend-color"></span>
+        <span class="legend-text">Backend Layer</span>
+      </div>
+      <div class="legend-item legacy">
+        <span class="legend-color"></span>
+        <span class="legend-text">Legacy Systems</span>
+      </div>
+      <div class="legend-item modern">
+        <span class="legend-color"></span>
+        <span class="legend-text">Modern Architecture</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complexity indicators -->
+  <div class="complexity-legend" *ngIf="selectedDiagram?.type.includes('migration')">
+    <h4><i class="pi pi-tags"></i> Complexity Indicators</h4>
+    <div class="complexity-items">
+      <span class="complexity-item">🔥 Very High</span>
+      <span class="complexity-item">⚠️ High</span>
+      <span class="complexity-item">⚡ Medium</span>
+      <span class="complexity-item">✅ Low</span>
+    </div>
+  </div>
+</div>
