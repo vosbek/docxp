@@ -26,10 +26,6 @@ class AWSCredentialsRequest(BaseModel):
     aws_profile: Optional[str] = None
     aws_region: str = "us-east-1"
 
-class ModelSelectionRequest(BaseModel):
-    """Model selection request"""
-    bedrock_model_id: str
-
 class AWSStatusResponse(BaseModel):
     """AWS connection status response"""
     connected: bool
@@ -283,57 +279,21 @@ async def configure_aws_credentials(request: AWSCredentialsRequest):
         logger.error(f"Error configuring AWS credentials: {e}")
         raise HTTPException(status_code=500, detail=f"Configuration failed: {e}")
 
-@router.get("/models")
-async def get_available_models():
-    """Get list of available Bedrock models"""
+@router.get("/model-info")
+async def get_current_model_info():
+    """Get current model information"""
     try:
         ai_service = ai_service_instance
-        models = ai_service.get_available_models()
+        model_info = ai_service.get_current_model_info()
         
         return {
             "success": True,
-            "models": models,
-            "current_model": ai_service.get_current_model_id()
+            "model": model_info
         }
         
     except Exception as e:
-        logger.error(f"Error fetching models: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch models: {e}")
-
-@router.post("/set-model")
-async def set_bedrock_model(request: ModelSelectionRequest):
-    """Set the Bedrock model to use"""
-    try:
-        ai_service = ai_service_instance
-        ai_service.set_model_id(request.bedrock_model_id)
-        
-        # Update the .env file
-        env_path = ".env"
-        env_lines = []
-        
-        if os.path.exists(env_path):
-            with open(env_path, 'r') as f:
-                env_lines = [line.strip() for line in f.readlines()]
-        
-        # Remove existing BEDROCK_MODEL_ID line
-        env_lines = [line for line in env_lines if not line.startswith('BEDROCK_MODEL_ID=')]
-        
-        # Add new model ID
-        env_lines.append(f"BEDROCK_MODEL_ID={request.bedrock_model_id}")
-        
-        # Write updated .env file
-        with open(env_path, 'w') as f:
-            f.write('\n'.join(env_lines) + '\n')
-        
-        return {
-            "success": True,
-            "message": f"Model set to {request.bedrock_model_id}",
-            "model_id": request.bedrock_model_id
-        }
-        
-    except Exception as e:
-        logger.error(f"Error setting model: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to set model: {e}")
+        logger.error(f"Error fetching model info: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch model info: {e}")
 
 @router.get("/profiles")
 async def get_aws_profiles():

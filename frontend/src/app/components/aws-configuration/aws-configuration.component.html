@@ -206,45 +206,27 @@
 
   <p-divider></p-divider>
 
-  <!-- Model Selection -->
-  <div class="model-selection-section">
-    <h3 class="section-title">Bedrock Model Selection</h3>
+  <!-- Current Model Info -->
+  <div class="model-info-section" *ngIf="currentModel">
+    <h3 class="section-title">Current AI Model</h3>
     <p class="section-description">
-      Choose the AI model to use for documentation generation
+      Model configuration is managed via environment variables
     </p>
     
-    <div class="model-selector">
-      <div class="form-group">
-        <label for="modelSelect" class="form-label">AI Model</label>
-        <p-dropdown 
-          [(ngModel)]="selectedModel"
-          [options]="availableModels"
-          optionLabel="description"
-          optionValue="id"
-          placeholder="Select a model"
-          (onChange)="setBedrockModel()"
-          class="model-dropdown">
-          
-          <ng-template pTemplate="selectedItem">
-            <div class="model-item" *ngIf="selectedModel">
-              <span class="model-name">{{getSelectedModelName()}}</span>
-              <small class="model-provider">{{getSelectedModelProvider()}}</small>
-            </div>
-          </ng-template>
-          
-          <ng-template pTemplate="item" let-model>
-            <div class="model-item">
-              <span class="model-name">{{model.name}}</span>
-              <small class="model-provider">{{model.provider}}</small>
-            </div>
-          </ng-template>
-        </p-dropdown>
+    <div class="current-model-display">
+      <div class="model-card">
+        <div class="model-details">
+          <div class="model-name">{{currentModel.name}}</div>
+          <div class="model-provider">{{currentModel.provider}}</div>
+          <div class="model-description">{{currentModel.description}}</div>
+        </div>
+        <div class="model-icon">
+          <i class="pi pi-cpu"></i>
+        </div>
       </div>
-    </div>
-
-    <div class="model-info" *ngIf="availableModels.length > 0">
-      <p-message severity="success">
-        Found {{availableModels.length}} compatible models for text generation
+      
+      <p-message severity="info">
+        <span>To change the model, update the <code>BEDROCK_MODEL_ID</code> environment variable and restart the application.</span>
       </p-message>
     </div>
   </div>

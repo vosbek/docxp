@@ -74,8 +74,7 @@ export class AwsConfigurationComponent implements OnInit {
   
   // Data
   awsProfiles: string[] = [];
-  availableModels: AWSModel[] = [];
-  selectedModel: string = 'anthropic.claude-v2';
+  currentModel: any = null;
   awsStatus: AWSStatus | null = null;
   
   // Regions
@@ -113,7 +112,7 @@ export class AwsConfigurationComponent implements OnInit {
   ngOnInit() {
     this.loadAWSStatus();
     this.loadAWSProfiles();
-    this.loadAvailableModels();
+    this.loadCurrentModelInfo();
   }
 
   loadAWSStatus() {
@@ -150,16 +149,15 @@ export class AwsConfigurationComponent implements OnInit {
     });
   }
 
-  loadAvailableModels() {
-    this.apiService.getAvailableModels().subscribe({
+  loadCurrentModelInfo() {
+    this.apiService.getCurrentModelInfo().subscribe({
       next: (response: any) => {
         if (response.success) {
-          this.availableModels = response.models;
-          this.selectedModel = response.current_model || 'anthropic.claude-v2';
+          this.currentModel = response.model;
         }
       },
       error: (error) => {
-        console.error('Failed to load models:', error);
+        console.error('Failed to load current model info:', error);
       }
     });
   }
@@ -328,28 +326,6 @@ export class AwsConfigurationComponent implements OnInit {
     });
   }
 
-  setBedrockModel() {
-    if (!this.selectedModel) return;
-
-    this.apiService.setBedrockModel(this.selectedModel).subscribe({
-      next: (response: any) => {
-        if (response.success) {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Model Updated',
-            detail: `Model set to ${this.selectedModel}`
-          });
-        }
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Model Update Failed',
-          detail: error.error?.detail || 'Failed to set model'
-        });
-      }
-    });
-  }
 
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
@@ -376,15 +352,5 @@ export class AwsConfigurationComponent implements OnInit {
   // Helper methods for template bindings
   getAwsProfileOptions(): any[] {
     return this.awsProfiles.map(p => ({label: p, value: p}));
-  }
-
-  getSelectedModelName(): string {
-    const model = this.availableModels.find(m => m.id === this.selectedModel);
-    return model ? model.name : '';
-  }
-
-  getSelectedModelProvider(): string {
-    const model = this.availableModels.find(m => m.id === this.selectedModel);
-    return model ? model.provider : '';
   }
 }

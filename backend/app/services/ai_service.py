@@ -172,94 +172,36 @@ class AIService:
             except Exception as sts_error:
                 raise Exception(f"AWS credential verification failed: {sts_error}")
     
-    def get_available_models(self):
-        """Get list of available Bedrock models and inference profiles"""
-        self._ensure_client_ready()
-        try:
-            # Get inference profiles first (preferred for newer models)
-            text_models = []
-            
-            session = self._create_session()
-            bedrock_client = session.client('bedrock')
-            
-            # Fetch inference profiles (these are what we should use for Claude 3.5 Sonnet v2 and 3.7)
-            try:
-                logger.info("Fetching inference profiles...")
-                profiles_response = bedrock_client.list_inference_profiles()
-                for profile in profiles_response.get('inferenceProfileSummaries', []):
-                    profile_arn = profile.get('inferenceProfileArn', '')
-                    profile_name = profile.get('inferenceProfileName', '')
-                    profile_type = profile.get('type', '')
-                    
-                    # Focus on Claude 3.5 Sonnet v2 and Claude 3.7 inference profiles
-                    if any(model_pattern in profile_name.lower() for model_pattern in [
-                        'claude-3-5-sonnet', 'claude-3-7', 'claude-v2', 'anthropic'
-                    ]):
-                        text_models.append({
-                            'id': profile_arn,  # Use ARN instead of model ID
-                            'name': profile_name,
-                            'provider': 'Anthropic',
-                            'description': f"Anthropic - {profile_name} (Inference Profile)",
-                            'type': 'inference_profile'
-                        })
-                        logger.info(f"Added inference profile: {profile_name} ({profile_arn})")
-                        
-            except Exception as profile_error:
-                logger.warning(f"Could not fetch inference profiles: {profile_error}")
-            
-            # Only add foundation models if no inference profiles found
-            if not text_models:
-                logger.info("No inference profiles found, falling back to foundation models...")
-                models = self._test_connection()
-                for model in models:
-                    model_id = model.get('modelId', '')
-                    if any(provider in model_id.lower() for provider in ['anthropic']):
-                        text_models.append({
-                            'id': model_id,
-                            'name': model.get('modelName', model_id),
-                            'provider': model.get('providerName', 'Unknown'),
-                            'description': f"{model.get('providerName', 'Unknown')} - {model.get('modelName', model_id)} (Foundation Model)",
-                            'type': 'foundation_model'
-                        })
-            
-            logger.info(f"Found {len(text_models)} compatible models/profiles")
-            return text_models
-            
-        except Exception as e:
-            logger.warning(f"Could not fetch Bedrock models: {e}")
-            # Return default inference profiles for Claude 3.5 Sonnet v2 and Claude 3.7
-            return [
-                {
-                    'id': 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-                    'name': 'Claude 3.5 Sonnet v2',
-                    'provider': 'Anthropic',
-                    'description': 'Anthropic - Claude 3.5 Sonnet v2 (Inference Profile)',
-                    'type': 'inference_profile'
-                },
-                {
-                    'id': 'us.anthropic.claude-3-7-haiku-20250109-v1:0',
-                    'name': 'Claude 3.7 Haiku',
-                    'provider': 'Anthropic', 
-                    'description': 'Anthropic - Claude 3.7 Haiku (Inference Profile)',
-                    'type': 'inference_profile'
-                }
-            ]
-    
-    def set_model_id(self, model_id: str):
-        """Set the model ID to use for AI operations"""
-        # Validate the model ID exists in available models
-        available_models = self.get_available_models()
-        model_ids = [model['id'] for model in available_models]
+    def get_current_model_info(self):
+        """Get current model configuration info"""
+        # Return current model from configuration - no discovery needed
+        current_model_id = settings.BEDROCK_MODEL_ID
         
-        if model_id in model_ids:
-            # Update the settings temporarily for this instance
-            settings.BEDROCK_MODEL_ID = model_id
-            logger.info(f"Model ID set to: {model_id}")
-        else:
-            logger.warning(f"Model ID {model_id} not found in available models. Using default: {settings.BEDROCK_MODEL_ID}")
+        # Map model IDs to display names
+        model_info = {
+            'us.anthropic.claude-3-5-sonnet-20241022-v2:0': {
+                'id': current_model_id,
+                'name': 'Claude 3.5 Sonnet v2',
+                'provider': 'Anthropic',
+                'description': 'Anthropic Claude 3.5 Sonnet v2 (Inference Profile)'
+            },
+            'us.anthropic.claude-3-7-sonnet-20250219-v1:0': {
+                'id': current_model_id,
+                'name': 'Claude 3.7 Sonnet',
+                'provider': 'Anthropic',
+                'description': 'Anthropic Claude 3.7 Sonnet (Inference Profile)'
+            }
+        }
+        
+        return model_info.get(current_model_id, {
+            'id': current_model_id,
+            'name': 'Custom Model',
+            'provider': 'Anthropic',
+            'description': f'Custom Model: {current_model_id}'
+        })
     
     def get_current_model_id(self):
-        """Get the current model ID being used"""
+        """Get the current model ID from configuration"""
         return settings.BEDROCK_MODEL_ID
     
     async def extract_business_rules(

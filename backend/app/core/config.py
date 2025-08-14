@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
     AWS_SESSION_TOKEN: Optional[str] = Field(default=None, env="AWS_SESSION_TOKEN")
     AWS_PROFILE: Optional[str] = Field(default=None, env="AWS_PROFILE")
+    # Bedrock Model Configuration - Choose between Claude 3.5 Sonnet v2 or Claude 3.7 Sonnet
+    # us.anthropic.claude-3-5-sonnet-20241022-v2:0 (default)
+    # us.anthropic.claude-3-7-sonnet-20250219-v1:0 
     BEDROCK_MODEL_ID: str = Field(default="us.anthropic.claude-3-5-sonnet-20241022-v2:0", env="BEDROCK_MODEL_ID")
     
     # Feature flags

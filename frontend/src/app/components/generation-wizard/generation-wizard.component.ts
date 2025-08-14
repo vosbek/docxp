@@ -82,8 +82,6 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   
   // Step 1: AWS Configuration
   awsConfigured: boolean = false;
-  availableModels: any[] = [];
-  selectedModel: string = 'anthropic.claude-v2';
   
   // Step 3: Configuration
   depths = [
@@ -137,7 +135,6 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.initializeSteps();
     this.checkAWSStatus();
-    this.loadAvailableModels();
     
     // Check if repository path was passed as query param
     this.route.queryParams.subscribe(params => {
@@ -169,25 +166,11 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadAvailableModels() {
-    this.apiService.getAvailableModels().subscribe({
-      next: (response: any) => {
-        if (response.success) {
-          this.availableModels = response.models;
-          this.selectedModel = response.current_model || 'anthropic.claude-v2';
-        }
-      },
-      error: (error) => {
-        console.error('Failed to load models:', error);
-      }
-    });
-  }
 
   onAWSConfigurationComplete(event: {success: boolean, message: string}) {
     if (event.success) {
       this.awsConfigured = true;
       this.checkAWSStatus();
-      this.loadAvailableModels();
       
       this.messageService.add({
         severity: 'success',
@@ -199,34 +182,6 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
     }
   }
 
-  setModel() {
-    if (this.selectedModel) {
-      this.apiService.setBedrockModel(this.selectedModel).subscribe({
-        next: (response: any) => {
-          if (response.success) {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Model Updated',
-              detail: `Model set to ${this.selectedModel}`
-            });
-          }
-        },
-        error: (error) => {
-          console.error('Failed to set model:', error);
-        }
-      });
-    }
-  }
-
-  getSelectedModelName(): string {
-    const model = this.availableModels.find(m => m.id === this.selectedModel);
-    return model ? model.name : '';
-  }
-
-  getSelectedModelProvider(): string {
-    const model = this.availableModels.find(m => m.id === this.selectedModel);
-    return model ? model.provider : '';
-  }
   
   initializeSteps() {
     this.steps = [

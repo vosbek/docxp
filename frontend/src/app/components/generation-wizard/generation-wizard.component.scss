@@ -280,22 +280,28 @@
   .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
   }
   
   .info-card {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background: #F8FAFC;
-    border-radius: 8px;
-    border: 1px solid #E5E7EB;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+    transition: all var(--transition-duration) ease;
+    
+    &:hover {
+      background: var(--gray-100);
+      border-color: var(--brand-blue);
+    }
     
     .info-icon {
-      font-size: 24px;
-      color: #667eea;
+      font-size: 1.5rem;
+      color: var(--brand-blue);
     }
     
     .info-content {
@@ -303,14 +309,14 @@
       flex-direction: column;
       
       .info-value {
-        font-size: 18px;
+        font-size: 1.125rem;
         font-weight: 600;
         color: var(--text-primary);
-        margin-bottom: 2px;
+        margin-bottom: 0.125rem;
       }
       
       .info-label {
-        font-size: 11px;
+        font-size: 0.6875rem;
         color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -320,25 +326,30 @@
   
   .language-distribution {
     h4 {
-      font-size: 14px;
+      font-size: 0.875rem;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 12px;
+      margin-bottom: 0.75rem;
     }
     
     .language-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 0.375rem;
     }
     
     .language-tag {
-      padding: 4px 8px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 12px;
-      font-size: 12px;
+      padding: 0.25rem 0.5rem;
+      background: var(--brand-blue);
+      color: var(--text-inverse);
+      border-radius: var(--border-radius);
+      font-size: 0.75rem;
       font-weight: 500;
+      transition: all var(--transition-duration) ease;
+      
+      &:hover {
+        background: var(--brand-blue-dark);
+      }
     }
   }
 }

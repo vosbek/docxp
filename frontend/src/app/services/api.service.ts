@@ -220,12 +220,8 @@ export class ApiService {
     return this.http.post<any>(`${this.apiUrl}/configuration/aws/configure`, config);
   }
 
-  getAvailableModels(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/configuration/aws/models`);
-  }
-
-  setBedrockModel(modelId: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/configuration/aws/set-model`, { bedrock_model_id: modelId });
+  getCurrentModelInfo(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/configuration/aws/model-info`);
   }
 
   getAWSProfiles(): Observable<any> {
