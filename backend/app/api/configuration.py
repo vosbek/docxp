@@ -10,6 +10,7 @@ from datetime import datetime
 
 from app.core.database import get_session, ConfigurationTemplate
 from app.models.schemas import ConfigurationTemplate as ConfigSchema
+from app.services.database_analyzer import database_analyzer
 
 router = APIRouter()
 
@@ -127,4 +128,25 @@ async def get_default_config():
         "ignore_patterns": settings.IGNORE_PATTERNS,
         "max_file_size_mb": settings.MAX_FILE_SIZE_MB,
         "processing_timeout": settings.PROCESSING_TIMEOUT
+    }
+
+@router.get("/database-status")
+async def get_database_status():
+    """Get database connection status and configuration"""
+    from app.core.config import settings
+    
+    status = database_analyzer.get_connection_status()
+    
+    return {
+        "database_analysis_enabled": settings.ENABLE_DB_ANALYSIS,
+        "connection_timeout": settings.DB_CONNECTION_TIMEOUT,
+        "query_timeout": settings.DB_QUERY_TIMEOUT,
+        "configured_databases": status['total_configured'],
+        "connections": status['connections'],
+        "supported_databases": ["Oracle", "PostgreSQL", "MySQL", "SQL Server"],
+        "analysis_capabilities": {
+            "static_analysis": "Always available - extracts SQL queries from source code",
+            "schema_analysis": "Available when database credentials are provided",
+            "graceful_degradation": "Works without database connectivity"
+        }
     }

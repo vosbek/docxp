@@ -29,7 +29,7 @@ Base = declarative_base()
 
 # Database models
 class DocumentationJob(Base):
-    """Documentation generation job"""
+    """Documentation generation job with enhanced progress tracking"""
     __tablename__ = "documentation_jobs"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -41,6 +41,12 @@ class DocumentationJob(Base):
     
     # Configuration
     config = Column(JSON, nullable=False)
+    
+    # Enhanced Progress Tracking
+    progress_percentage = Column(Integer, default=0)  # 0-100
+    current_step = Column(String, nullable=True)  # Current step key
+    step_description = Column(String, nullable=True)  # Human-readable step description
+    progress_data = Column(JSON, nullable=True)  # Detailed progress information
     
     # Results
     entities_count = Column(Integer, default=0)

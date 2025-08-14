@@ -1,18 +1,25 @@
 """
-CORBA IDL parser for distributed object interfaces
+CORBA IDL Parser for Enterprise Legacy Migration Analysis
+
+Enhanced parser for CORBA Interface Definition Language (IDL) files with focus on:
+- Legacy system migration assessment
+- Modernization opportunity identification  
+- Integration pattern analysis
+- Service dependency mapping
 """
 
 import logging
 import re
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from app.parsers.base_parser import BaseParser
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class CorbaParser(BaseParser):
-    """Parser for CORBA IDL (Interface Definition Language) files"""
+    """Enhanced parser for CORBA IDL files with enterprise migration analysis"""
     
     def parse(self, file_path: Path) -> List[Dict[str, Any]]:
         """Parse CORBA IDL files and extract entities"""
@@ -48,6 +55,13 @@ class CorbaParser(BaseParser):
             # Extract enums
             enums = self._extract_enums(content, str(file_path))
             entities.extend(enums)
+            
+            # Perform enterprise migration analysis
+            migration_analysis = self._analyze_migration_patterns(
+                content, modules, interfaces, structs, exceptions, enums, str(file_path)
+            )
+            if migration_analysis:
+                entities.append(migration_analysis)
             
         except Exception as e:
             logger.warning(f"Error parsing {file_path}: {e}")
@@ -313,3 +327,226 @@ class CorbaParser(BaseParser):
             entities.append(entity)
         
         return entities
+    
+    def _analyze_migration_patterns(self, content: str, modules: List[Dict], interfaces: List[Dict], 
+                                   structs: List[Dict], exceptions: List[Dict], enums: List[Dict], 
+                                   file_path: str) -> Optional[Dict[str, Any]]:
+        """Analyze CORBA patterns for enterprise migration planning"""
+        if not interfaces and not structs and not enums:
+            return None
+        
+        # Calculate migration complexity
+        complexity_score = self._calculate_migration_complexity(interfaces, structs, enums)
+        
+        # Identify modernization opportunities
+        modernization_ops = self._identify_modernization_opportunities(interfaces, structs)
+        
+        # Analyze service patterns
+        service_patterns = self._analyze_service_patterns(interfaces, content)
+        
+        # Analyze data structure complexity
+        data_analysis = self._analyze_data_structures(structs, enums)
+        
+        # Generate migration recommendations
+        recommendations = self._generate_migration_recommendations(
+            interfaces, structs, complexity_score, modernization_ops
+        )
+        
+        return self.create_entity(
+            name="CORBA_Migration_Analysis",
+            entity_type='corba_migration_analysis',
+            file_path=file_path,
+            line_number=1,
+            docstring="Enterprise CORBA migration analysis and recommendations",
+            complexity_score=complexity_score,
+            total_interfaces=len(interfaces),
+            total_structs=len(structs),
+            total_enums=len(enums),
+            modernization_opportunities=modernization_ops,
+            service_patterns=service_patterns,
+            data_analysis=data_analysis,
+            migration_recommendations=recommendations,
+            migration_priority=self._determine_migration_priority(complexity_score, len(interfaces))
+        )
+    
+    def _calculate_migration_complexity(self, interfaces: List[Dict], structs: List[Dict], 
+                                       enums: List[Dict]) -> str:
+        """Calculate migration complexity based on CORBA constructs"""
+        complexity_points = 0
+        
+        # Interface complexity (methods and inheritance add complexity)
+        for interface in interfaces:
+            complexity_points += 5  # Base complexity per interface
+            if interface.get('inheritance'):
+                complexity_points += 10  # Inheritance increases complexity
+        
+        # Data structure complexity
+        complexity_points += len(structs) * 3
+        complexity_points += len(enums) * 1
+        
+        # Determine complexity level
+        if complexity_points < 15:
+            return "Low"
+        elif complexity_points < 40:
+            return "Medium"
+        elif complexity_points < 80:
+            return "High"
+        else:
+            return "Very High"
+    
+    def _identify_modernization_opportunities(self, interfaces: List[Dict], 
+                                            structs: List[Dict]) -> List[str]:
+        """Identify specific modernization opportunities"""
+        opportunities = []
+        
+        # REST API conversion opportunities
+        if interfaces:
+            opportunities.append(f"Convert {len(interfaces)} CORBA interfaces to REST APIs")
+            
+            # Look for CRUD-like operations
+            crud_keywords = ['create', 'read', 'update', 'delete', 'get', 'set', 'list', 'find']
+            crud_candidates = 0
+            
+            for interface in interfaces:
+                interface_name = interface.get('name', '').lower()
+                if any(keyword in interface_name for keyword in crud_keywords):
+                    crud_candidates += 1
+            
+            if crud_candidates > 0:
+                opportunities.append(f"{crud_candidates} interfaces are candidates for RESTful API conversion")
+        
+        # Data structure modernization
+        if structs:
+            opportunities.append(f"Modernize {len(structs)} data structures to JSON/XML schemas")
+            
+            # Check for simple structures suitable for JSON
+            json_suitable = sum(1 for struct in structs if len(struct.get('members', [])) <= 10)
+            if json_suitable > 0:
+                opportunities.append(f"{json_suitable} structs are suitable for JSON serialization")
+        
+        # Microservices decomposition
+        if len(interfaces) > 5:
+            opportunities.append("Large interface count suggests microservices decomposition opportunities")
+        
+        return opportunities
+    
+    def _analyze_service_patterns(self, interfaces: List[Dict], content: str) -> Dict[str, Any]:
+        """Analyze CORBA service patterns"""
+        patterns = {
+            'synchronous_services': 0,
+            'asynchronous_services': 0,
+            'callback_patterns': 0,
+            'service_registry_patterns': 0,
+            'legacy_patterns': []
+        }
+        
+        # Count oneway (asynchronous) vs regular (synchronous) operations
+        oneway_count = content.lower().count('oneway')
+        patterns['asynchronous_services'] = oneway_count
+        patterns['synchronous_services'] = len(interfaces) - oneway_count
+        
+        # Look for callback patterns
+        callback_keywords = ['callback', 'notify', 'event', 'signal', 'observer']
+        for interface in interfaces:
+            interface_name = interface.get('name', '').lower()
+            if any(keyword in interface_name for keyword in callback_keywords):
+                patterns['callback_patterns'] += 1
+        
+        # Look for service registry patterns
+        registry_keywords = ['registry', 'locator', 'finder', 'resolver', 'directory']
+        for interface in interfaces:
+            interface_name = interface.get('name', '').lower()
+            if any(keyword in interface_name for keyword in registry_keywords):
+                patterns['service_registry_patterns'] += 1
+        
+        # Identify legacy patterns that need modernization
+        if patterns['synchronous_services'] > patterns['asynchronous_services']:
+            patterns['legacy_patterns'].append("Heavy reliance on synchronous calls - consider async patterns")
+        
+        if patterns['callback_patterns'] > 0:
+            patterns['legacy_patterns'].append("Callback patterns detected - consider event-driven architecture")
+        
+        return patterns
+    
+    def _analyze_data_structures(self, structs: List[Dict], enums: List[Dict]) -> Dict[str, Any]:
+        """Analyze data structure patterns for migration assessment"""
+        analysis = {
+            'total_structures': len(structs) + len(enums),
+            'complex_structures': 0,
+            'simple_structures': 0,
+            'json_compatible': 0,
+            'migration_challenges': []
+        }
+        
+        # Analyze struct complexity
+        for struct in structs:
+            member_count = len(struct.get('members', []))
+            if member_count > 10:
+                analysis['complex_structures'] += 1
+            else:
+                analysis['simple_structures'] += 1
+            
+            # Check for JSON compatibility (simplified heuristic)
+            members = struct.get('members', [])
+            if members and all(self._is_basic_type(member) for member in members):
+                analysis['json_compatible'] += 1
+        
+        # Identify migration challenges
+        if analysis['complex_structures'] > analysis['simple_structures']:
+            analysis['migration_challenges'].append("Many complex data structures may require careful schema design")
+        
+        if analysis['json_compatible'] < len(structs) / 2:
+            analysis['migration_challenges'].append("Some data structures may not directly map to JSON")
+        
+        return analysis
+    
+    def _is_basic_type(self, member: str) -> bool:
+        """Check if a struct member uses basic types suitable for JSON"""
+        basic_types = ['string', 'long', 'short', 'boolean', 'double', 'float', 'char']
+        return any(basic_type in member.lower() for basic_type in basic_types)
+    
+    def _generate_migration_recommendations(self, interfaces: List[Dict], structs: List[Dict], 
+                                          complexity_score: str, modernization_ops: List[str]) -> List[str]:
+        """Generate specific migration recommendations"""
+        recommendations = []
+        
+        # Complexity-based recommendations
+        if complexity_score in ["High", "Very High"]:
+            recommendations.append("High complexity detected - recommend phased migration approach")
+            recommendations.append("Consider creating API gateway to abstract CORBA complexity during transition")
+        else:
+            recommendations.append("Moderate complexity - direct migration to REST APIs feasible")
+        
+        # Interface-specific recommendations
+        if interfaces:
+            recommendations.append(f"Migrate {len(interfaces)} CORBA interfaces using these strategies:")
+            recommendations.append("  1. Create REST API endpoints for each interface method")
+            recommendations.append("  2. Implement request/response DTOs based on existing structs")
+            recommendations.append("  3. Add proper error handling and status codes")
+        
+        # Data structure recommendations
+        if structs:
+            recommendations.append("Data structure migration strategy:")
+            recommendations.append("  1. Convert CORBA structs to JSON schemas or DTOs")
+            recommendations.append("  2. Validate data transformation mappings")
+            recommendations.append("  3. Consider using OpenAPI/Swagger for API documentation")
+        
+        # Technology stack recommendations
+        recommendations.append("Consider modern alternatives:")
+        recommendations.append("  - REST APIs with JSON for simple request/response patterns")
+        recommendations.append("  - gRPC for high-performance, strongly-typed service communication")
+        recommendations.append("  - GraphQL for flexible data querying requirements")
+        recommendations.append("  - Message queues (Kafka/RabbitMQ) for asynchronous communication")
+        
+        return recommendations
+    
+    def _determine_migration_priority(self, complexity_score: str, interface_count: int) -> str:
+        """Determine migration priority based on analysis"""
+        if complexity_score == "Very High" or interface_count > 20:
+            return "High Priority - Complex legacy system requiring immediate attention"
+        elif complexity_score == "High" or interface_count > 10:
+            return "Medium Priority - Significant modernization effort required"
+        elif complexity_score == "Medium" or interface_count > 5:
+            return "Low Priority - Manageable migration effort"
+        else:
+            return "Very Low Priority - Simple migration candidate"

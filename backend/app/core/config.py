@@ -22,6 +22,43 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./docxp.db"
     
+    # External Database Analysis (Optional - graceful degradation if not available)
+    # Oracle Database
+    ORACLE_HOST: Optional[str] = Field(default=None, env="ORACLE_HOST")
+    ORACLE_PORT: int = Field(default=1521, env="ORACLE_PORT")
+    ORACLE_SERVICE: Optional[str] = Field(default=None, env="ORACLE_SERVICE")
+    ORACLE_USERNAME: Optional[str] = Field(default=None, env="ORACLE_USERNAME")
+    ORACLE_PASSWORD: Optional[str] = Field(default=None, env="ORACLE_PASSWORD")
+    
+    # PostgreSQL Database
+    POSTGRES_HOST: Optional[str] = Field(default=None, env="POSTGRES_HOST")
+    POSTGRES_PORT: int = Field(default=5432, env="POSTGRES_PORT")
+    POSTGRES_DATABASE: Optional[str] = Field(default=None, env="POSTGRES_DATABASE")
+    POSTGRES_USERNAME: Optional[str] = Field(default=None, env="POSTGRES_USERNAME")
+    POSTGRES_PASSWORD: Optional[str] = Field(default=None, env="POSTGRES_PASSWORD")
+    POSTGRES_URL: Optional[str] = Field(default=None, env="POSTGRES_URL")  # Alternative full URL
+    
+    # MySQL Database
+    MYSQL_HOST: Optional[str] = Field(default=None, env="MYSQL_HOST")
+    MYSQL_PORT: int = Field(default=3306, env="MYSQL_PORT")
+    MYSQL_DATABASE: Optional[str] = Field(default=None, env="MYSQL_DATABASE")
+    MYSQL_USERNAME: Optional[str] = Field(default=None, env="MYSQL_USERNAME")
+    MYSQL_PASSWORD: Optional[str] = Field(default=None, env="MYSQL_PASSWORD")
+    MYSQL_URL: Optional[str] = Field(default=None, env="MYSQL_URL")  # Alternative full URL
+    
+    # SQL Server Database
+    SQLSERVER_HOST: Optional[str] = Field(default=None, env="SQLSERVER_HOST")
+    SQLSERVER_PORT: int = Field(default=1433, env="SQLSERVER_PORT")
+    SQLSERVER_DATABASE: Optional[str] = Field(default=None, env="SQLSERVER_DATABASE")
+    SQLSERVER_USERNAME: Optional[str] = Field(default=None, env="SQLSERVER_USERNAME")
+    SQLSERVER_PASSWORD: Optional[str] = Field(default=None, env="SQLSERVER_PASSWORD")
+    SQLSERVER_URL: Optional[str] = Field(default=None, env="SQLSERVER_URL")  # Alternative full URL
+    
+    # Database Analysis Configuration
+    DB_CONNECTION_TIMEOUT: int = Field(default=10, env="DB_CONNECTION_TIMEOUT")  # seconds
+    DB_QUERY_TIMEOUT: int = Field(default=30, env="DB_QUERY_TIMEOUT")  # seconds
+    ENABLE_DB_ANALYSIS: bool = Field(default=True, env="ENABLE_DB_ANALYSIS")  # Can disable entirely
+    
     # AWS Bedrock - Support multiple authentication methods
     AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
     AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None, env="AWS_ACCESS_KEY_ID")
