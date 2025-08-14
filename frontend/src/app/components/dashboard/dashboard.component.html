@@ -128,26 +128,27 @@
     </div>
   </div>
 
-  <!-- Architecture Diagrams Section -->
+  <!-- Architecture Diagrams Preview Section -->
   <div class="diagrams-section premium-card" @cardAnimation *ngIf="sampleDiagrams.length > 0">
     <div class="section-header">
       <h3 class="section-title">
         <i class="pi pi-chart-bar mr-2"></i>
-        Architecture Diagrams
+        Enterprise Migration Diagrams
       </h3>
       <div class="section-controls">
+        <span class="preview-badge">Preview</span>
         <button pButton 
-                icon="pi pi-refresh" 
-                class="p-button-text p-button-sm" 
-                pTooltip="Refresh Diagrams"
-                (click)="loadSampleDiagrams()">
-        </button>
-        <button pButton 
-                label="View All" 
+                label="View Job Results" 
                 class="p-button-text p-button-sm"
-                (click)="navigateToDiagrams()">
+                (click)="navigateToRepository()"
+                pTooltip="View diagrams from completed jobs">
         </button>
       </div>
+    </div>
+    
+    <div class="diagram-preview-notice">
+      <i class="pi pi-info-circle notice-icon"></i>
+      <p>These are sample enterprise migration diagrams. Actual diagrams are generated for each repository analysis and can be viewed in the job results.</p>
     </div>
     
     <!-- DiagramViewer Integration -->

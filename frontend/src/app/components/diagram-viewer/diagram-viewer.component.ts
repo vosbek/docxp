@@ -7,12 +7,34 @@ import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import mermaid from 'mermaid';
 
+// Enterprise-grade type definitions for diagram data
+export type DiagramType = 
+  | 'class' 
+  | 'flow' 
+  | 'migration_architecture' 
+  | 'migration_risk_matrix' 
+  | 'data_flow' 
+  | 'technology_integration' 
+  | 'legacy_architecture';
+
 export interface DiagramData {
-  id: string;
-  name: string;
-  type: 'class' | 'flow' | 'migration_architecture' | 'migration_risk_matrix' | 'data_flow' | 'technology_integration' | 'legacy_architecture';
-  content: string;
-  description?: string;
+  readonly id: string;
+  readonly name: string;
+  readonly type: DiagramType;
+  readonly content: string;
+  readonly description?: string;
+}
+
+export interface DiagramOption {
+  readonly label: string;
+  readonly value: DiagramData;
+  readonly icon: string;
+}
+
+export interface ExportFormat {
+  readonly format: 'png' | 'svg' | 'pdf';
+  readonly mimeType: string;
+  readonly extension: string;
 }
 
 @Component({
@@ -28,7 +50,7 @@ export class DiagramViewerComponent implements OnInit, OnDestroy {
   @ViewChild('diagramContainer', { static: true }) diagramContainer!: ElementRef;
 
   selectedDiagram: DiagramData | null = null;
-  diagramOptions: any[] = [];
+  diagramOptions: DiagramOption[] = [];
   isLoading = false;
   zoomLevel = 1;
   private mermaidInitialized = false;
@@ -66,9 +88,15 @@ export class DiagramViewerComponent implements OnInit, OnDestroy {
       mermaid.initialize({
         startOnLoad: true,
         theme: 'default',
-        securityLevel: 'loose',
+        securityLevel: 'strict', // Changed from 'loose' to 'strict' for enterprise security
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         fontSize: 14,
+        // Enhanced security configuration for enterprise deployment
+        dompurifyConfig: {
+          USE_PROFILES: { html: true },
+          FORBID_TAGS: ['script', 'object', 'embed', 'link'],
+          FORBID_ATTR: ['onclick', 'onmouseover', 'onload', 'onerror']
+        },
         sequence: {
           actorMargin: 50,
           width: 150,
@@ -101,8 +129,8 @@ export class DiagramViewerComponent implements OnInit, OnDestroy {
     }));
   }
 
-  private getDiagramDisplayName(type: string, name: string): string {
-    const displayNames: { [key: string]: string } = {
+  private getDiagramDisplayName(type: DiagramType, name: string): string {
+    const displayNames: Record<DiagramType, string> = {
       'class': '📊 Class Diagram',
       'flow': '🔄 Flow Diagram', 
       'migration_architecture': '🏗️ Migration Architecture',
@@ -114,8 +142,8 @@ export class DiagramViewerComponent implements OnInit, OnDestroy {
     return displayNames[type] || name;
   }
 
-  private getDiagramIcon(type: string): string {
-    const icons: { [key: string]: string } = {
+  private getDiagramIcon(type: DiagramType): string {
+    const icons: Record<DiagramType, string> = {
       'class': 'pi pi-sitemap',
       'flow': 'pi pi-share-alt',
       'migration_architecture': 'pi pi-building',
@@ -265,91 +293,162 @@ export class DiagramViewerComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Export functionality
-  async exportDiagram(format: 'png' | 'svg' | 'pdf') {
+  // Enterprise-grade export functionality with proper error handling
+  async exportDiagram(format: ExportFormat['format']): Promise<void> {
     if (!this.selectedDiagram) {
+      this.showErrorMessage('Export Failed', 'No diagram selected for export');
+      return;
+    }
+
+    const exportFormats: Record<ExportFormat['format'], ExportFormat> = {
+      'svg': { format: 'svg', mimeType: 'image/svg+xml', extension: 'svg' },
+      'png': { format: 'png', mimeType: 'image/png', extension: 'png' },
+      'pdf': { format: 'pdf', mimeType: 'application/pdf', extension: 'pdf' }
+    };
+
+    const selectedFormat = exportFormats[format];
+    if (!selectedFormat) {
+      this.showErrorMessage('Export Failed', `Unsupported export format: ${format}`);
       return;
     }
 
     try {
-      const diagramElement = this.diagramContainer.nativeElement.querySelector('svg');
+      const diagramElement = this.diagramContainer.nativeElement.querySelector('svg') as SVGElement;
       if (!diagramElement) {
-        throw new Error('No diagram to export');
+        throw new Error('No diagram element found for export');
       }
 
-      const diagramName = `${this.selectedDiagram.type}_${Date.now()}`;
+      const sanitizedName = this.sanitizeFileName(this.selectedDiagram.name);
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const filename = `${sanitizedName}_${this.selectedDiagram.type}_${timestamp}.${selectedFormat.extension}`;
 
       switch (format) {
         case 'svg':
-          this.downloadSVG(diagramElement, `${diagramName}.svg`);
+          await this.downloadSVG(diagramElement, filename);
           break;
         case 'png':
-          await this.downloadPNG(diagramElement, `${diagramName}.png`);
+          await this.downloadPNG(diagramElement, filename);
           break;
         case 'pdf':
-          await this.downloadPDF(diagramElement, `${diagramName}.pdf`);
+          await this.downloadPDF(diagramElement, filename);
           break;
+        default:
+          throw new Error(`Unsupported format: ${format}`);
       }
 
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Export Successful',
-        detail: `Diagram exported as ${format.toUpperCase()}`,
-        life: 3000
-      });
+      this.showSuccessMessage('Export Successful', `Diagram exported as ${format.toUpperCase()}: ${filename}`);
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Export error:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Export Failed',
-        detail: 'Failed to export diagram. Please try again.',
-        life: 5000
-      });
+      this.showErrorMessage('Export Failed', `Failed to export diagram: ${errorMessage}`);
     }
   }
 
-  private downloadSVG(svgElement: SVGElement, filename: string) {
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const blob = new Blob([svgData], { type: 'image/svg+xml' });
-    this.downloadBlob(blob, filename);
+  private sanitizeFileName(name: string): string {
+    return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   }
 
-  private async downloadPNG(svgElement: SVGElement, filename: string) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context not available');
-
-    const img = new Image();
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const svg64 = btoa(svgData);
-    const b64Start = 'data:image/svg+xml;base64,';
-
-    return new Promise<void>((resolve, reject) => {
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        
-        canvas.toBlob(blob => {
-          if (blob) {
-            this.downloadBlob(blob, filename);
-            resolve();
-          } else {
-            reject(new Error('Failed to create PNG blob'));
-          }
-        }, 'image/png');
-      };
-      
-      img.onerror = () => reject(new Error('Failed to load SVG as image'));
-      img.src = b64Start + svg64;
+  private showSuccessMessage(summary: string, detail: string): void {
+    this.messageService.add({
+      severity: 'success',
+      summary,
+      detail,
+      life: 3000
     });
   }
 
-  private async downloadPDF(svgElement: SVGElement, filename: string) {
-    // For PDF export, we would typically use a library like jsPDF
-    // For now, we'll fallback to PNG export
-    await this.downloadPNG(svgElement, filename.replace('.pdf', '.png'));
+  private showErrorMessage(summary: string, detail: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary,
+      detail,
+      life: 5000
+    });
+  }
+
+  private async downloadSVG(svgElement: SVGElement, filename: string): Promise<void> {
+    try {
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      this.downloadBlob(blob, filename);
+    } catch (error) {
+      throw new Error(`SVG export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async downloadPNG(svgElement: SVGElement, filename: string): Promise<void> {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas 2D context not available in this browser');
+      }
+
+      const img = new Image();
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      
+      // Ensure SVG has proper dimensions
+      const svgRect = svgElement.getBoundingClientRect();
+      if (svgRect.width === 0 || svgRect.height === 0) {
+        throw new Error('SVG element has no dimensions for PNG conversion');
+      }
+
+      const svg64 = btoa(unescape(encodeURIComponent(svgData)));
+      const b64Start = 'data:image/svg+xml;base64,';
+
+      return new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('PNG conversion timeout - image loading took too long'));
+        }, 10000); // 10-second timeout
+
+        img.onload = () => {
+          clearTimeout(timeout);
+          try {
+            canvas.width = img.naturalWidth || svgRect.width;
+            canvas.height = img.naturalHeight || svgRect.height;
+            
+            // Set white background for better contrast
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.drawImage(img, 0, 0);
+            
+            canvas.toBlob(blob => {
+              if (blob) {
+                this.downloadBlob(blob, filename);
+                resolve();
+              } else {
+                reject(new Error('Failed to create PNG blob from canvas'));
+              }
+            }, 'image/png', 1.0);
+          } catch (drawError) {
+            reject(new Error(`Canvas drawing failed: ${drawError instanceof Error ? drawError.message : 'Unknown error'}`));
+          }
+        };
+        
+        img.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('Failed to load SVG as image for PNG conversion'));
+        };
+        
+        img.src = b64Start + svg64;
+      });
+    } catch (error) {
+      throw new Error(`PNG export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async downloadPDF(svgElement: SVGElement, filename: string): Promise<void> {
+    try {
+      // For enterprise-grade PDF export, we would typically use a library like jsPDF
+      // For now, we'll fallback to PNG export with a clear message
+      const pngFilename = filename.replace('.pdf', '.png');
+      this.showSuccessMessage('PDF Export Note', 'PDF export is currently implemented as high-quality PNG. Enterprise PDF support coming soon.');
+      await this.downloadPNG(svgElement, pngFilename);
+    } catch (error) {
+      throw new Error(`PDF export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   private downloadBlob(blob: Blob, filename: string) {

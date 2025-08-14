@@ -141,11 +141,11 @@
     /* Enhance mermaid diagram styling */
     .node {
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: opacity 0.2s ease;
       
       &:hover {
         opacity: 0.8;
-        transform: scale(1.02);
+        /* Removed transform scale to prevent layout jumping */
       }
     }
     

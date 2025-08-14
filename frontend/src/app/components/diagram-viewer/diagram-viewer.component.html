@@ -7,7 +7,7 @@
         {{ currentDiagramInfo || 'Architecture Diagrams' }}
       </h3>
       <p class="diagram-description" *ngIf="selectedDiagram?.description">
-        {{ selectedDiagram.description }}
+        {{ selectedDiagram?.description }}
       </p>
     </div>
     
@@ -18,7 +18,7 @@
         [(ngModel)]="selectedDiagram"
         (onChange)="onDiagramSelectionChange($event)"
         placeholder="Select Diagram"
-        [style]="{'width': '280px'}"
+        [style]="{'min-width': '350px', 'width': 'auto'}"
         optionLabel="label"
         optionValue="value"
         [showClear]="false">
@@ -173,7 +173,7 @@
   </div>
 
   <!-- Complexity indicators -->
-  <div class="complexity-legend" *ngIf="selectedDiagram?.type.includes('migration')">
+  <div class="complexity-legend" *ngIf="selectedDiagram?.type?.includes('migration')">
     <h4><i class="pi pi-tags"></i> Complexity Indicators</h4>
     <div class="complexity-items">
       <span class="complexity-item">🔥 Very High</span>

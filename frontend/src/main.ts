@@ -32,7 +32,7 @@ const routes: Routes = [
   },
   { 
     path: 'jobs/:id', 
-    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+    loadComponent: () => import('./app/components/job-details/job-details.component').then(m => m.JobDetailsComponent) 
   },
   { 
     path: 'documentation/:id', 

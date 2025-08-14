@@ -395,18 +395,8 @@ http://localhost:8001/docs
   }
   
   viewJobDetails(job: RecentJob) {
-    // For now, show job details in a message
-    // In production, this would navigate to a details page or open a modal
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Job Details',
-      detail: `Job ${job.id}: ${job.repository} - Status: ${job.status}, Entities: ${job.entities}, Rules: ${job.rules}`
-    });
-    
-    // Optional: Try to navigate to job details page if it exists
-    this.router.navigate(['/jobs', job.id]).catch(() => {
-      // If route doesn't exist, just show the message above
-    });
+    // Navigate to job details page
+    this.router.navigate(['/jobs', job.id]);
   }
   
   downloadDocumentation(job: RecentJob) {
@@ -474,7 +464,8 @@ http://localhost:8001/docs
     }, 30000);
   }
 
-  // Diagram-related methods
+  // Sample diagram methods - used for dashboard preview only
+  // Real diagrams are generated per job and viewed in job details
   loadSampleDiagrams() {
     // Sample enterprise migration diagrams for dashboard preview
     this.sampleDiagrams = [
@@ -509,15 +500,6 @@ http://localhost:8001/docs
     ];
   }
 
-  navigateToDiagrams() {
-    // Navigate to a dedicated diagrams page (to be implemented)
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Coming Soon',
-      detail: 'Dedicated diagrams page will be available in the next release',
-      life: 3000
-    });
-  }
 
   private generateSampleMigrationArchitectureDiagram(): string {
     return `graph TB
