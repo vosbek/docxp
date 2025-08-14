@@ -77,6 +77,56 @@ class AIService:
             body=json.dumps(body_dict)
         )
     
+    def _is_claude_3_plus_model(self, model_id: str) -> bool:
+        """Check if the model is Claude 3+ and requires Messages API format"""
+        claude_3_plus_patterns = [
+            'claude-3',
+            'claude-3-5',
+            'claude-3-7',
+            'us.anthropic.claude-3',
+            'anthropic.claude-3'
+        ]
+        return any(pattern in model_id.lower() for pattern in claude_3_plus_patterns)
+    
+    def _format_request_body(self, prompt: str, model_id: str, **kwargs) -> Dict:
+        """Format request body based on model type"""
+        if self._is_claude_3_plus_model(model_id):
+            # Claude 3+ uses Messages API
+            body = {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "max_tokens": kwargs.get("max_tokens_to_sample", 2000),
+                "temperature": kwargs.get("temperature", 0.2),
+                "top_p": kwargs.get("top_p", 0.9),
+                "anthropic_version": "bedrock-2023-05-31"
+            }
+        else:
+            # Legacy Claude models use Text Completions API
+            body = {
+                "prompt": f"\n\nHuman: {prompt}\n\nAssistant:",
+                "max_tokens_to_sample": kwargs.get("max_tokens_to_sample", 2000),
+                "temperature": kwargs.get("temperature", 0.2),
+                "top_p": kwargs.get("top_p", 0.9)
+            }
+        
+        return body
+    
+    def _parse_model_response(self, response_body: Dict, model_id: str) -> str:
+        """Parse model response based on model type"""
+        if self._is_claude_3_plus_model(model_id):
+            # Claude 3+ response format
+            content = response_body.get('content', [])
+            if content and isinstance(content, list) and len(content) > 0:
+                return content[0].get('text', '')
+            return ''
+        else:
+            # Legacy Claude response format
+            return response_body.get('completion', '')
+    
     def _create_session(self):
         """Create AWS session with current credentials"""
         session_kwargs = {
@@ -263,18 +313,22 @@ class AIService:
         prompt = self._create_business_rule_prompt(code, entities, keywords)
         
         try:
+            # Format request body based on model type
+            body = self._format_request_body(
+                prompt, 
+                settings.BEDROCK_MODEL_ID,
+                max_tokens_to_sample=2000,
+                temperature=0.2,
+                top_p=0.9
+            )
+            
             # Run the blocking boto3 call in a thread pool
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
                 self._invoke_model_sync,
                 settings.BEDROCK_MODEL_ID,
-                {
-                    "prompt": prompt,
-                    "max_tokens_to_sample": 2000,
-                    "temperature": 0.2,
-                    "top_p": 0.9
-                }
+                body
             )
             
             result = json.loads(response['body'].read())
@@ -300,21 +354,25 @@ class AIService:
         prompt = self._create_overview_prompt(entities, business_rules, depth)
         
         try:
+            # Format request body based on model type
+            body = self._format_request_body(
+                prompt, 
+                settings.BEDROCK_MODEL_ID,
+                max_tokens_to_sample=3000,
+                temperature=0.3
+            )
+            
             # Run the blocking boto3 call in a thread pool
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
                 self._invoke_model_sync,
                 settings.BEDROCK_MODEL_ID,
-                {
-                    "prompt": prompt,
-                    "max_tokens_to_sample": 3000,
-                    "temperature": 0.3
-                }
+                body
             )
             
             result = json.loads(response['body'].read())
-            completion = result.get('completion', '')
+            completion = self._parse_model_response(result, settings.BEDROCK_MODEL_ID)
             if not completion:
                 raise RuntimeError("No completion received from AI model")
             return completion
@@ -335,21 +393,25 @@ class AIService:
         prompt = self._create_architecture_prompt(entities, depth)
         
         try:
+            # Format request body based on model type
+            body = self._format_request_body(
+                prompt, 
+                settings.BEDROCK_MODEL_ID,
+                max_tokens_to_sample=4000,
+                temperature=0.3
+            )
+            
             # Run the blocking boto3 call in a thread pool
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
                 None,
                 self._invoke_model_sync,
                 settings.BEDROCK_MODEL_ID,
-                {
-                    "prompt": prompt,
-                    "max_tokens_to_sample": 4000,
-                    "temperature": 0.3
-                }
+                body
             )
             
             result = json.loads(response['body'].read())
-            completion = result.get('completion', '')
+            completion = self._parse_model_response(result, settings.BEDROCK_MODEL_ID)
             if not completion:
                 raise RuntimeError("No completion received from AI model")
             return completion
@@ -477,7 +539,7 @@ Format with clear sections and subsections using Markdown.
         rules = []
         
         try:
-            completion = ai_response.get('completion', '')
+            completion = self._parse_model_response(ai_response, settings.BEDROCK_MODEL_ID)
             if not completion:
                 logger.warning("No completion text in AI response")
                 return rules
