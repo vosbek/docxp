@@ -58,6 +58,7 @@ class JobStatusResponse(BaseModel):
     """Response model for job status"""
     job_id: str
     status: str
+    repository_path: Optional[str]
     created_at: datetime
     completed_at: Optional[datetime]
     entities_count: int
