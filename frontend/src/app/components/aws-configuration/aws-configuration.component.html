@@ -34,11 +34,11 @@
       <div class="detail-grid">
         <div class="detail-item">
           <span class="detail-label">Account ID</span>
-          <span class="detail-value">{{ awsStatus.account_id || 'N/A' }}</span>
+          <span class="detail-value">{{ awsStatus?.account_id || 'N/A' }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Region</span>
-          <span class="detail-value">{{ awsStatus.region || 'N/A' }}</span>
+          <span class="detail-value">{{ awsStatus?.region || 'N/A' }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Auth Method</span>
@@ -46,7 +46,7 @@
         </div>
         <div class="detail-item">
           <span class="detail-label">Available Models</span>
-          <span class="detail-value">{{ awsStatus.available_models_count || 0 }}</span>
+          <span class="detail-value">{{ awsStatus?.available_models_count || 0 }}</span>
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@
     <div class="error-details" *ngIf="awsStatus?.error">
       <div class="error-message">
         <i class="pi pi-exclamation-triangle"></i>
-        <span>{{ awsStatus.error }}</span>
+        <span>{{ awsStatus?.error }}</span>
       </div>
     </div>
   </div>

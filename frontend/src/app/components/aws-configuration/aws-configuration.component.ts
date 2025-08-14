@@ -122,7 +122,7 @@ export class AwsConfigurationComponent implements OnInit {
     if (!this.awsStatus) return 'Loading AWS connection status...';
     
     if (this.awsStatus.connected) {
-      return `Successfully connected to AWS account ${this.awsStatus.account_id}`;
+      return `Successfully connected to AWS account ${this.awsStatus.account_id || 'Unknown'}`;
     } else {
       return 'AWS connection failed. Check your .env configuration.';
     }
