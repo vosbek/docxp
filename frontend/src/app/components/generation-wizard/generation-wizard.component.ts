@@ -82,6 +82,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   
   // Step 1: AWS Configuration
   awsConfigured: boolean = false;
+  currentModel: any = null;
   
   // Step 3: Configuration
   depths = [
@@ -151,6 +152,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
       next: (status: any) => {
         this.awsConfigured = status.connected;
         if (this.awsConfigured) {
+          this.loadCurrentModel();
           this.messageService.add({
             severity: 'success',
             summary: 'AWS Connected',
@@ -166,11 +168,22 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadCurrentModel() {
+    this.apiService.getCurrentModelInfo().subscribe({
+      next: (modelInfo: any) => {
+        this.currentModel = modelInfo;
+      },
+      error: (error) => {
+        console.error('Failed to load current model info:', error);
+      }
+    });
+  }
+
 
   onAWSConfigurationComplete(event: {success: boolean, message: string}) {
     if (event.success) {
       this.awsConfigured = true;
-      this.checkAWSStatus();
+      this.loadCurrentModel();
       
       this.messageService.add({
         severity: 'success',

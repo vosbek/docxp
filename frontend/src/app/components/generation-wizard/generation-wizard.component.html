@@ -26,31 +26,15 @@
           <p>AWS is already configured! You can proceed to repository selection or update your configuration below.</p>
         </p-message>
         
-        <div class="model-selection" *ngIf="availableModels.length > 0">
+        <div class="current-model-display" *ngIf="currentModel">
           <h3>Current AI Model</h3>
-          <p-dropdown 
-            [(ngModel)]="selectedModel"
-            [options]="availableModels"
-            optionLabel="description"
-            optionValue="id"
-            placeholder="Select a model"
-            (onChange)="setModel()"
-            [style]="{'width':'100%'}">
-            
-            <ng-template pTemplate="selectedItem">
-              <div class="model-item" *ngIf="selectedModel">
-                <span class="model-name">{{getSelectedModelName()}}</span>
-                <small class="model-provider">{{getSelectedModelProvider()}}</small>
-              </div>
-            </ng-template>
-            
-            <ng-template pTemplate="item" let-model>
-              <div class="model-item">
-                <span class="model-name">{{model.name}}</span>
-                <small class="model-provider">{{model.provider}}</small>
-              </div>
-            </ng-template>
-          </p-dropdown>
+          <div class="model-card">
+            <div class="model-details">
+              <div class="model-name">{{currentModel.name}}</div>
+              <div class="model-provider">{{currentModel.provider}}</div>
+              <div class="model-description">{{currentModel.description}}</div>
+            </div>
+          </div>
         </div>
       </div>
       
