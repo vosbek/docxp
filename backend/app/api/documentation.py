@@ -15,7 +15,7 @@ import traceback
 from pathlib import Path
 import zipfile
 
-from app.core.database import get_session, DocumentationJob
+from app.core.database import get_session, DocumentationJob, AsyncSessionLocal
 from app.models.schemas import (
     DocumentationRequest,
     DocumentationResponse,
@@ -25,6 +25,34 @@ from app.services.documentation_service import DocumentationService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+async def _run_documentation_with_independent_session(job_id: str, request: DocumentationRequest):
+    """Run documentation generation with independent database session"""
+    try:
+        async with AsyncSessionLocal() as independent_session:
+            doc_service = DocumentationService(independent_session)
+            await doc_service.generate_documentation(job_id, request)
+            logger.info(f"Documentation generation completed successfully for job {job_id}")
+    except Exception as e:
+        logger.error(f"Critical error in documentation generation for job {job_id}: {e}")
+        traceback.print_exc()
+        
+        # Try to update job status to failed with independent session
+        try:
+            async with AsyncSessionLocal() as error_session:
+                from sqlalchemy import update
+                query = update(DocumentationJob).where(
+                    DocumentationJob.job_id == job_id
+                ).values(
+                    status="failed",
+                    error_message=str(e),
+                    completed_at=datetime.utcnow()
+                )
+                await error_session.execute(query)
+                await error_session.commit()
+                logger.info(f"Updated job {job_id} status to failed")
+        except Exception as status_error:
+            logger.error(f"Failed to update job status to failed: {status_error}")
 
 @router.post("/generate", response_model=DocumentationResponse)
 async def generate_documentation(
@@ -49,10 +77,9 @@ async def generate_documentation(
         db.add(job)
         await db.commit()
         
-        # Start generation in background
-        doc_service = DocumentationService(db)
+        # Start generation in background with independent session
         background_tasks.add_task(
-            doc_service.generate_documentation,
+            _run_documentation_with_independent_session,
             job_id,
             request
         )
