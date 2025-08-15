@@ -24,6 +24,7 @@ from app.services.diagram_service import DiagramService
 from app.services.database_analyzer import database_analyzer, DatabaseTable, SQLQuery
 from app.services.integration_analyzer import integration_analyzer
 from app.services.migration_dashboard import migration_dashboard
+from app.services.enhanced_documentation_integration import get_enhanced_documentation_integration
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +35,19 @@ class DocumentationService:
     GENERATION_STEPS = {
         'initializing': {'weight': 2, 'description': 'Initializing documentation generation'},
         'analyzing_repository': {'weight': 4, 'description': 'Analyzing repository structure and files'},
-        'parsing_files': {'weight': 16, 'description': 'Parsing source code files'},
-        'analyzing_database_usage': {'weight': 6, 'description': 'Analyzing database usage and SQL queries'},
-        'analyzing_integration_flows': {'weight': 8, 'description': 'Analyzing cross-technology integration flows'},
-        'extracting_business_rules': {'weight': 20, 'description': 'Extracting business rules with AI'},
-        'generating_overview': {'weight': 12, 'description': 'Generating system overview'},
-        'generating_api_docs': {'weight': 8, 'description': 'Generating API documentation'},
-        'generating_business_rules_docs': {'weight': 6, 'description': 'Generating business rules documentation'},
-        'generating_architecture_docs': {'weight': 10, 'description': 'Generating architecture documentation'},
-        'generating_database_docs': {'weight': 4, 'description': 'Generating database documentation'},
-        'generating_integration_docs': {'weight': 6, 'description': 'Generating integration flow documentation'},
-        'generating_migration_dashboard': {'weight': 4, 'description': 'Generating migration dashboard and executive summary'},
-        'generating_diagrams': {'weight': 5, 'description': 'Generating system diagrams'},
+        'parsing_files': {'weight': 14, 'description': 'Parsing source code files'},
+        'analyzing_database_usage': {'weight': 5, 'description': 'Analyzing database usage and SQL queries'},
+        'analyzing_integration_flows': {'weight': 6, 'description': 'Analyzing cross-technology integration flows'},
+        'extracting_business_rules': {'weight': 15, 'description': 'Extracting business rules with AI'},
+        'generating_overview': {'weight': 8, 'description': 'Generating system overview'},
+        'generating_api_docs': {'weight': 6, 'description': 'Generating API documentation'},
+        'generating_business_rules_docs': {'weight': 4, 'description': 'Generating business rules documentation'},
+        'generating_architecture_docs': {'weight': 6, 'description': 'Generating architecture documentation'},
+        'generating_database_docs': {'weight': 3, 'description': 'Generating database documentation'},
+        'generating_integration_docs': {'weight': 4, 'description': 'Generating integration flow documentation'},
+        'generating_migration_dashboard': {'weight': 3, 'description': 'Generating migration dashboard and executive summary'},
+        'generating_enhanced_docs': {'weight': 25, 'description': 'Generating enhanced enterprise documentation with code intelligence'},
+        'generating_diagrams': {'weight': 4, 'description': 'Generating system diagrams'},
         'saving_documentation': {'weight': 3, 'description': 'Saving generated documentation'},
         'finalizing': {'weight': 2, 'description': 'Finalizing and completing generation'}
     }
@@ -55,6 +57,7 @@ class DocumentationService:
         self.parser_factory = ParserFactory()
         self.ai_service = ai_service_instance
         self.diagram_service = DiagramService()
+        self.enhanced_integration = get_enhanced_documentation_integration()
         self.executor = ThreadPoolExecutor(max_workers=4)
         
         # Progress tracking
@@ -229,6 +232,15 @@ class DocumentationService:
                     entities, database_analysis, integration_analysis
                 )
                 documentation['MIGRATION_SUMMARY.md'] = await self._generate_migration_summary_doc(migration_analysis, update_progress)
+            
+            # Check if enhanced documentation is requested (exhaustive depth gets enhanced)
+            if request.documentation_depth.value == 'exhaustive':
+                # Generate enhanced documentation with full intelligence
+                async with self._progress_step('generating_enhanced_docs') as update_progress:
+                    enhanced_docs = await self.enhanced_integration.generate_enhanced_documentation(
+                        job_id, entities, request, update_progress
+                    )
+                    documentation.update(enhanced_docs)
             
             # Generate diagrams if requested
             diagrams = {}
