@@ -182,7 +182,8 @@ class CodeIntelligenceBuilder:
                 'language': self._detect_language(file_path),
                 'visibility': entity.get('visibility', 'public'),
                 'is_abstract': entity.get('is_abstract', False),
-                'design_patterns': entity.get('design_patterns', [])
+                'design_patterns': entity.get('design_patterns', []),
+                'module_path': self._extract_module_path(file_path)
             }
         )
         

@@ -295,10 +295,10 @@ class CodeIntelligenceGraph:
             if entity_types and entity.type not in entity_types:
                 continue
             
-            # Search in name, docstring, and entity_metadata
+            # Search in name, docstring, and metadata
             if (query_lower in entity.name.lower() or
                 (entity.docstring and query_lower in entity.docstring.lower()) or
-                any(query_lower in str(value).lower() for value in entity.entity_metadata.values())):
+                any(query_lower in str(value).lower() for value in entity.metadata.values())):
                 results.append(entity)
         
         # Sort by relevance (exact name matches first)

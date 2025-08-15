@@ -682,7 +682,7 @@ Generate a comprehensive migration analysis that provides clear, actionable guid
             confidence_score=raw_rule.confidence_score,
             category=raw_rule.category,
             code_entity_id=entity.id,
-            module_path=entity.entity_metadata.get('module_path', ''),
+            module_path=entity.metadata.get('module_path', ''),
             class_context=class_context,
             method_context=method_context,
             business_impact=getattr(raw_rule, 'business_impact', None),
