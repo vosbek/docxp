@@ -221,7 +221,7 @@ class EnhancedDocumentationIntegration:
         
         # Generate comprehensive overview
         return await self.enhanced_ai_service.generate_comprehensive_overview(
-            depth=request.documentation_depth,
+            depth=request.depth,
             module_structures=module_structures,
             business_rules_by_hierarchy=business_rules_by_hierarchy,
             call_graphs=call_graphs,

@@ -209,7 +209,7 @@ class DocumentationService:
                 documentation['MIGRATION_SUMMARY.md'] = await self._generate_migration_summary_doc(migration_analysis, update_progress)
             
             # Check if enhanced documentation is requested (exhaustive depth gets enhanced)
-            if request.documentation_depth.value == 'exhaustive':
+            if request.depth.value == 'exhaustive':
                 # Generate enhanced documentation with full intelligence
                 async with self._progress_step('generating_enhanced_docs') as update_progress:
                     enhanced_docs = await self.enhanced_integration.generate_enhanced_documentation(
