@@ -162,6 +162,85 @@ async def list_jobs(
     except Exception as e:
         logger.error(f"Error listing jobs: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to list jobs")
+
+@router.delete("/jobs/cleanup")
+async def cleanup_jobs(
+    status: str = "processing",
+    db: AsyncSession = Depends(get_session)
+):
+    """Clean up jobs by status (useful for clearing broken jobs)"""
+    try:
+        from sqlalchemy import delete
+        
+        # Count jobs to be deleted
+        count_query = select(DocumentationJob).where(DocumentationJob.status == status)
+        result = await db.execute(count_query)
+        jobs_to_delete = result.scalars().all()
+        count = len(jobs_to_delete)
+        
+        if count == 0:
+            return {"message": f"No jobs found with status '{status}'", "deleted_count": 0}
+        
+        # Show which jobs will be deleted
+        job_info = [{"job_id": job.job_id, "created_at": job.created_at, "repository_path": job.repository_path} for job in jobs_to_delete]
+        
+        # Delete the jobs
+        delete_query = delete(DocumentationJob).where(DocumentationJob.status == status)
+        await db.execute(delete_query)
+        await db.commit()
+        
+        logger.info(f"Cleaned up {count} jobs with status '{status}'")
+        return {
+            "message": f"Successfully deleted {count} jobs with status '{status}'",
+            "deleted_count": count,
+            "deleted_jobs": job_info
+        }
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up jobs: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup jobs: {str(e)}")
+
+@router.delete("/jobs/{job_id}")
+async def delete_specific_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_session)
+):
+    """Delete a specific job by ID"""
+    try:
+        from sqlalchemy import delete
+        
+        # Check if job exists
+        job_query = select(DocumentationJob).where(DocumentationJob.job_id == job_id)
+        result = await db.execute(job_query)
+        job = result.scalar_one_or_none()
+        
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        
+        # Delete the job
+        delete_query = delete(DocumentationJob).where(DocumentationJob.job_id == job_id)
+        await db.execute(delete_query)
+        await db.commit()
+        
+        logger.info(f"Deleted job {job_id}")
+        return {
+            "message": f"Successfully deleted job {job_id}",
+            "deleted_job": {
+                "job_id": job.job_id,
+                "status": job.status,
+                "created_at": job.created_at,
+                "repository_path": job.repository_path
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting job {job_id}: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
+
 @router.post("/sync")
 async def sync_repository(
     repo_path: str,
