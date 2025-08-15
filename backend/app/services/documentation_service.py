@@ -24,6 +24,7 @@ from app.services.diagram_service import DiagramService
 from app.services.database_analyzer import database_analyzer, DatabaseTable, SQLQuery
 from app.services.integration_analyzer import integration_analyzer
 from app.services.migration_dashboard import migration_dashboard
+from app.services.enhanced_documentation_integration import get_enhanced_documentation_integration
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +35,19 @@ class DocumentationService:
     GENERATION_STEPS = {
         'initializing': {'weight': 2, 'description': 'Initializing documentation generation'},
         'analyzing_repository': {'weight': 4, 'description': 'Analyzing repository structure and files'},
-        'parsing_files': {'weight': 16, 'description': 'Parsing source code files'},
-        'analyzing_database_usage': {'weight': 6, 'description': 'Analyzing database usage and SQL queries'},
-        'analyzing_integration_flows': {'weight': 8, 'description': 'Analyzing cross-technology integration flows'},
-        'extracting_business_rules': {'weight': 20, 'description': 'Extracting business rules with AI'},
-        'generating_overview': {'weight': 12, 'description': 'Generating system overview'},
-        'generating_api_docs': {'weight': 8, 'description': 'Generating API documentation'},
-        'generating_business_rules_docs': {'weight': 6, 'description': 'Generating business rules documentation'},
-        'generating_architecture_docs': {'weight': 10, 'description': 'Generating architecture documentation'},
-        'generating_database_docs': {'weight': 4, 'description': 'Generating database documentation'},
-        'generating_integration_docs': {'weight': 6, 'description': 'Generating integration flow documentation'},
-        'generating_migration_dashboard': {'weight': 4, 'description': 'Generating migration dashboard and executive summary'},
-        'generating_diagrams': {'weight': 5, 'description': 'Generating system diagrams'},
+        'parsing_files': {'weight': 14, 'description': 'Parsing source code files'},
+        'analyzing_database_usage': {'weight': 5, 'description': 'Analyzing database usage and SQL queries'},
+        'analyzing_integration_flows': {'weight': 6, 'description': 'Analyzing cross-technology integration flows'},
+        'extracting_business_rules': {'weight': 15, 'description': 'Extracting business rules with AI'},
+        'generating_overview': {'weight': 8, 'description': 'Generating system overview'},
+        'generating_api_docs': {'weight': 6, 'description': 'Generating API documentation'},
+        'generating_business_rules_docs': {'weight': 4, 'description': 'Generating business rules documentation'},
+        'generating_architecture_docs': {'weight': 6, 'description': 'Generating architecture documentation'},
+        'generating_database_docs': {'weight': 3, 'description': 'Generating database documentation'},
+        'generating_integration_docs': {'weight': 4, 'description': 'Generating integration flow documentation'},
+        'generating_migration_dashboard': {'weight': 3, 'description': 'Generating migration dashboard and executive summary'},
+        'generating_enhanced_docs': {'weight': 25, 'description': 'Generating enhanced enterprise documentation with code intelligence'},
+        'generating_diagrams': {'weight': 4, 'description': 'Generating system diagrams'},
         'saving_documentation': {'weight': 3, 'description': 'Saving generated documentation'},
         'finalizing': {'weight': 2, 'description': 'Finalizing and completing generation'}
     }
@@ -55,6 +57,7 @@ class DocumentationService:
         self.parser_factory = ParserFactory()
         self.ai_service = ai_service_instance
         self.diagram_service = DiagramService()
+        self.enhanced_integration = get_enhanced_documentation_integration()
         self.executor = ThreadPoolExecutor(max_workers=4)
         
         # Progress tracking
@@ -96,11 +99,38 @@ class DocumentationService:
             progress_data=json.dumps(progress_data)
         )
         
-        await self.db.execute(query)
-        await self.db.commit()
-        
-        # Log progress
-        logger.info(f"Job {self.current_job_id} - Step: {step_key} ({overall_progress}%): {step_info['description']}")
+        # Execute database update with error handling
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Validate session is still active
+                await self.db.execute(select(1))
+                
+                # Execute update
+                result = await self.db.execute(query)
+                if result.rowcount == 0:
+                    logger.warning(f"No job found for update: {self.current_job_id}")
+                    return
+                    
+                await self.db.commit()
+                
+                # Log successful progress update
+                logger.info(f"✅ DB UPDATED - Job {self.current_job_id} - Step: {step_key} ({overall_progress}%): {step_info['description']}")
+                break  # Success, exit retry loop
+                
+            except Exception as e:
+                logger.error(f"❌ DB UPDATE FAILED (attempt {attempt + 1}/{max_retries}) for job {self.current_job_id}: {e}")
+                
+                if attempt < max_retries - 1:
+                    try:
+                        await self.db.rollback()
+                        await asyncio.sleep(1)  # Brief delay before retry
+                    except:
+                        pass
+                else:
+                    logger.error(f"🚨 CRITICAL: Failed to update progress after {max_retries} attempts. Job {self.current_job_id} progress tracking broken!")
+                    # Still log the progress locally even if DB update fails
+                    logger.info(f"📝 LOCAL PROGRESS - Job {self.current_job_id} - Step: {step_key} ({overall_progress}%)")
         if additional_info:
             logger.debug(f"Additional info: {additional_info}")
     
@@ -229,6 +259,15 @@ class DocumentationService:
                     entities, database_analysis, integration_analysis
                 )
                 documentation['MIGRATION_SUMMARY.md'] = await self._generate_migration_summary_doc(migration_analysis, update_progress)
+            
+            # Check if enhanced documentation is requested (exhaustive depth gets enhanced)
+            if request.depth.value == 'exhaustive':
+                # Generate enhanced documentation with full intelligence
+                async with self._progress_step('generating_enhanced_docs') as update_progress:
+                    enhanced_docs = await self.enhanced_integration.generate_enhanced_documentation(
+                        job_id, entities, request, update_progress
+                    )
+                    documentation.update(enhanced_docs)
             
             # Generate diagrams if requested
             diagrams = {}
@@ -1619,8 +1658,47 @@ Please check the logs for more details.
             processing_time_seconds=processing_time
         )
         
-        await self.db.execute(query)
-        await self.db.commit()
+        # Execute with robust error handling for job completion
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Validate session is still active
+                await self.db.execute(select(1))
+                
+                result = await self.db.execute(query)
+                if result.rowcount == 0:
+                    logger.error(f"🚨 CRITICAL: No job found to complete: {job_id}")
+                    return
+                    
+                await self.db.commit()
+                logger.info(f"✅ JOB COMPLETION UPDATED - {job_id}: Entities: {entities_count}, Rules: {business_rules_count}, Status: {status}")
+                return  # Success
+                
+            except Exception as e:
+                logger.error(f"❌ JOB COMPLETION UPDATE FAILED (attempt {attempt + 1}/{max_retries}) for {job_id}: {e}")
+                
+                if attempt < max_retries - 1:
+                    try:
+                        await self.db.rollback()
+                        await asyncio.sleep(2)  # Longer delay for completion updates
+                    except:
+                        pass
+                else:
+                    logger.error(f"🚨 CRITICAL: Failed to update job completion after {max_retries} attempts!")
+                    logger.error(f"📊 LOST METRICS - Job {job_id}: {entities_count} entities, {business_rules_count} rules, {files_processed} files")
+                    
+                    # Try one last simple status update
+                    try:
+                        await self.db.rollback()
+                        simple_query = update(DocumentationJob).where(
+                            DocumentationJob.job_id == job_id
+                        ).values(status="completed", completed_at=datetime.utcnow())
+                        
+                        await self.db.execute(simple_query)
+                        await self.db.commit()
+                        logger.warning(f"⚠️ FALLBACK: Updated job {job_id} to completed status only (metrics lost)")
+                    except Exception as fallback_error:
+                        logger.critical(f"💥 COMPLETE FAILURE: Cannot update job {job_id} completion: {fallback_error}")
     
     async def _update_job_error(self, job_id: str, error_message: str):
         """Update job with error status"""

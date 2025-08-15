@@ -15,7 +15,7 @@ import traceback
 from pathlib import Path
 import zipfile
 
-from app.core.database import get_session, DocumentationJob
+from app.core.database import get_session, DocumentationJob, AsyncSessionLocal
 from app.models.schemas import (
     DocumentationRequest,
     DocumentationResponse,
@@ -25,6 +25,34 @@ from app.services.documentation_service import DocumentationService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+async def _run_documentation_with_independent_session(job_id: str, request: DocumentationRequest):
+    """Run documentation generation with independent database session"""
+    try:
+        async with AsyncSessionLocal() as independent_session:
+            doc_service = DocumentationService(independent_session)
+            await doc_service.generate_documentation(job_id, request)
+            logger.info(f"Documentation generation completed successfully for job {job_id}")
+    except Exception as e:
+        logger.error(f"Critical error in documentation generation for job {job_id}: {e}")
+        traceback.print_exc()
+        
+        # Try to update job status to failed with independent session
+        try:
+            async with AsyncSessionLocal() as error_session:
+                from sqlalchemy import update
+                query = update(DocumentationJob).where(
+                    DocumentationJob.job_id == job_id
+                ).values(
+                    status="failed",
+                    error_message=str(e),
+                    completed_at=datetime.utcnow()
+                )
+                await error_session.execute(query)
+                await error_session.commit()
+                logger.info(f"Updated job {job_id} status to failed")
+        except Exception as status_error:
+            logger.error(f"Failed to update job status to failed: {status_error}")
 
 @router.post("/generate", response_model=DocumentationResponse)
 async def generate_documentation(
@@ -49,10 +77,9 @@ async def generate_documentation(
         db.add(job)
         await db.commit()
         
-        # Start generation in background
-        doc_service = DocumentationService(db)
+        # Start generation in background with independent session
         background_tasks.add_task(
-            doc_service.generate_documentation,
+            _run_documentation_with_independent_session,
             job_id,
             request
         )
@@ -136,6 +163,85 @@ async def list_jobs(
     except Exception as e:
         logger.error(f"Error listing jobs: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to list jobs")
+
+@router.delete("/jobs/cleanup")
+async def cleanup_jobs(
+    status: str = "processing",
+    db: AsyncSession = Depends(get_session)
+):
+    """Clean up jobs by status (useful for clearing broken jobs)"""
+    try:
+        from sqlalchemy import delete
+        
+        # Count jobs to be deleted
+        count_query = select(DocumentationJob).where(DocumentationJob.status == status)
+        result = await db.execute(count_query)
+        jobs_to_delete = result.scalars().all()
+        count = len(jobs_to_delete)
+        
+        if count == 0:
+            return {"message": f"No jobs found with status '{status}'", "deleted_count": 0}
+        
+        # Show which jobs will be deleted
+        job_info = [{"job_id": job.job_id, "created_at": job.created_at, "repository_path": job.repository_path} for job in jobs_to_delete]
+        
+        # Delete the jobs
+        delete_query = delete(DocumentationJob).where(DocumentationJob.status == status)
+        await db.execute(delete_query)
+        await db.commit()
+        
+        logger.info(f"Cleaned up {count} jobs with status '{status}'")
+        return {
+            "message": f"Successfully deleted {count} jobs with status '{status}'",
+            "deleted_count": count,
+            "deleted_jobs": job_info
+        }
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up jobs: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup jobs: {str(e)}")
+
+@router.delete("/jobs/{job_id}")
+async def delete_specific_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_session)
+):
+    """Delete a specific job by ID"""
+    try:
+        from sqlalchemy import delete
+        
+        # Check if job exists
+        job_query = select(DocumentationJob).where(DocumentationJob.job_id == job_id)
+        result = await db.execute(job_query)
+        job = result.scalar_one_or_none()
+        
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        
+        # Delete the job
+        delete_query = delete(DocumentationJob).where(DocumentationJob.job_id == job_id)
+        await db.execute(delete_query)
+        await db.commit()
+        
+        logger.info(f"Deleted job {job_id}")
+        return {
+            "message": f"Successfully deleted job {job_id}",
+            "deleted_job": {
+                "job_id": job.job_id,
+                "status": job.status,
+                "created_at": job.created_at,
+                "repository_path": job.repository_path
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting job {job_id}: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
+
 @router.post("/sync")
 async def sync_repository(
     repo_path: str,
