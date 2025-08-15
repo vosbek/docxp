@@ -99,11 +99,38 @@ class DocumentationService:
             progress_data=json.dumps(progress_data)
         )
         
-        await self.db.execute(query)
-        await self.db.commit()
-        
-        # Log progress
-        logger.info(f"Job {self.current_job_id} - Step: {step_key} ({overall_progress}%): {step_info['description']}")
+        # Execute database update with error handling
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Validate session is still active
+                await self.db.execute(select(1))
+                
+                # Execute update
+                result = await self.db.execute(query)
+                if result.rowcount == 0:
+                    logger.warning(f"No job found for update: {self.current_job_id}")
+                    return
+                    
+                await self.db.commit()
+                
+                # Log successful progress update
+                logger.info(f"✅ DB UPDATED - Job {self.current_job_id} - Step: {step_key} ({overall_progress}%): {step_info['description']}")
+                break  # Success, exit retry loop
+                
+            except Exception as e:
+                logger.error(f"❌ DB UPDATE FAILED (attempt {attempt + 1}/{max_retries}) for job {self.current_job_id}: {e}")
+                
+                if attempt < max_retries - 1:
+                    try:
+                        await self.db.rollback()
+                        await asyncio.sleep(1)  # Brief delay before retry
+                    except:
+                        pass
+                else:
+                    logger.error(f"🚨 CRITICAL: Failed to update progress after {max_retries} attempts. Job {self.current_job_id} progress tracking broken!")
+                    # Still log the progress locally even if DB update fails
+                    logger.info(f"📝 LOCAL PROGRESS - Job {self.current_job_id} - Step: {step_key} ({overall_progress}%)")
         if additional_info:
             logger.debug(f"Additional info: {additional_info}")
     
@@ -1631,8 +1658,47 @@ Please check the logs for more details.
             processing_time_seconds=processing_time
         )
         
-        await self.db.execute(query)
-        await self.db.commit()
+        # Execute with robust error handling for job completion
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Validate session is still active
+                await self.db.execute(select(1))
+                
+                result = await self.db.execute(query)
+                if result.rowcount == 0:
+                    logger.error(f"🚨 CRITICAL: No job found to complete: {job_id}")
+                    return
+                    
+                await self.db.commit()
+                logger.info(f"✅ JOB COMPLETION UPDATED - {job_id}: Entities: {entities_count}, Rules: {business_rules_count}, Status: {status}")
+                return  # Success
+                
+            except Exception as e:
+                logger.error(f"❌ JOB COMPLETION UPDATE FAILED (attempt {attempt + 1}/{max_retries}) for {job_id}: {e}")
+                
+                if attempt < max_retries - 1:
+                    try:
+                        await self.db.rollback()
+                        await asyncio.sleep(2)  # Longer delay for completion updates
+                    except:
+                        pass
+                else:
+                    logger.error(f"🚨 CRITICAL: Failed to update job completion after {max_retries} attempts!")
+                    logger.error(f"📊 LOST METRICS - Job {job_id}: {entities_count} entities, {business_rules_count} rules, {files_processed} files")
+                    
+                    # Try one last simple status update
+                    try:
+                        await self.db.rollback()
+                        simple_query = update(DocumentationJob).where(
+                            DocumentationJob.job_id == job_id
+                        ).values(status="completed", completed_at=datetime.utcnow())
+                        
+                        await self.db.execute(simple_query)
+                        await self.db.commit()
+                        logger.warning(f"⚠️ FALLBACK: Updated job {job_id} to completed status only (metrics lost)")
+                    except Exception as fallback_error:
+                        logger.critical(f"💥 COMPLETE FAILURE: Cannot update job {job_id} completion: {fallback_error}")
     
     async def _update_job_error(self, job_id: str, error_message: str):
         """Update job with error status"""
