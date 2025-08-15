@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import json
 
-from app.services.code_intelligence import CodeIntelligenceGraph, CodeEntity, BusinessRuleContext
+from app.services.code_intelligence import CodeIntelligenceGraph, CodeEntityData, BusinessRuleContext
 from app.services.ai_service import AIService
 from app.core.logging_config import get_logger
 
@@ -432,7 +432,7 @@ Create Mermaid flowcharts showing:
 
 ```mermaid
 flowchart TD
-    Start([User Initiates Process]) --> Validate{Business Rule Validation}
+    Start([User Initiates Process]) --> Validate{{Business Rule Validation}}
     Validate -->|Valid| Process[Execute Business Logic]
     Validate -->|Invalid| Error[Handle Business Rule Violation]
     Process --> Integration[External System Integration]
@@ -653,7 +653,7 @@ sequenceDiagram
         """Generate fallback business process diagram"""
         return """```mermaid
 flowchart TD
-    Start([Process Start]) --> Validate{Validation}
+    Start([Process Start]) --> Validate{{Validation}}
     Validate -->|Valid| Process[Business Logic]
     Validate -->|Invalid| Error[Error Handling]
     Process --> Complete([Complete])

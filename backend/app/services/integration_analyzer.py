@@ -38,8 +38,8 @@ class RESTEndpoint:
     method: str
     path: str
     handler_function: str
-    handler_class: Optional[str] = None
     parameters: List[str]
+    handler_class: Optional[str] = None
     return_type: Optional[str] = None
     framework: str = "unknown"  # spring, struts, fastapi, etc.
 
