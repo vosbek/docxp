@@ -21,7 +21,7 @@ from app.models.schemas import DocumentationRequest, BusinessRule
 from app.parsers.parser_factory import ParserFactory
 from app.services.ai_service import ai_service_instance
 from app.services.diagram_service import DiagramService
-from app.services.database_analyzer import database_analyzer
+from app.services.database_analyzer import database_analyzer, DatabaseTable, SQLQuery
 from app.services.integration_analyzer import integration_analyzer
 from app.services.migration_dashboard import migration_dashboard
 
@@ -126,6 +126,31 @@ class DocumentationService:
             await self._update_progress(step_key, progress, additional_info)
         
         return update_step_progress
+    
+    def _serialize_database_objects(self, obj):
+        """Custom JSON serializer for database objects"""
+        if isinstance(obj, DatabaseTable):
+            return {
+                'name': obj.name,
+                'columns': obj.columns,
+                'indexes': obj.indexes,
+                'foreign_keys': obj.foreign_keys,
+                'is_inferred': obj.is_inferred
+            }
+        elif isinstance(obj, SQLQuery):
+            return {
+                'file_path': obj.file_path,
+                'line_number': obj.line_number,
+                'query_text': obj.query_text,
+                'query_type': obj.query_type,
+                'tables': obj.tables,
+                'parameters': obj.parameters,
+                'is_prepared_statement': obj.is_prepared_statement,
+                'context_function': obj.context_function,
+                'context_class': obj.context_class
+            }
+        # For any other non-serializable objects, convert to string
+        return str(obj)
     
     async def generate_documentation(self, job_id: str, request: DocumentationRequest):
         """
@@ -1066,7 +1091,7 @@ You are a database architecture expert creating documentation for enterprise leg
 
 ## Detailed Analysis Results
 
-{json.dumps(database_analysis, indent=2)}
+{json.dumps(database_analysis, indent=2, default=self._serialize_database_objects)}
 
 ## Requirements
 
@@ -1260,7 +1285,7 @@ You are an enterprise integration architect creating documentation for legacy sy
 
 ## Detailed Integration Analysis Results
 
-{json.dumps(integration_analysis, indent=2)}
+{json.dumps(integration_analysis, indent=2, default=self._serialize_database_objects)}
 
 ## Requirements
 
