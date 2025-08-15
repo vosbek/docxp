@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 def test_code_intelligence_creation():
     """Test code intelligence graph creation"""
     try:
-        from app.services.code_intelligence import CodeIntelligenceGraph, CodeEntity, BusinessRuleContext
+        from app.services.code_intelligence import CodeIntelligenceGraph, CodeEntityData, BusinessRuleContext
         
         # Create test graph
         graph = CodeIntelligenceGraph()
         
         # Add test entity
-        test_entity = CodeEntity(
+        test_entity = CodeEntityData(
             id="test_entity_1",
             name="TestClass",
             type="class",
@@ -165,8 +165,7 @@ async def test_simple_enhanced_generation():
         # Create test request
         test_request = DocumentationRequest(
             repository_path="/test",
-            output_format="markdown",
-            documentation_depth=DocumentationDepth.STANDARD,
+            depth=DocumentationDepth.STANDARD,
             include_diagrams=False,
             include_business_rules=True
         )

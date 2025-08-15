@@ -420,6 +420,44 @@ class AIService:
             logger.error(f"Error generating architecture doc: {e}")
             raise RuntimeError(f"Failed to generate architecture documentation: {e}")
     
+    async def generate_content(
+        self,
+        prompt: str,
+        max_tokens: int = 3000,
+        temperature: float = 0.3
+    ) -> str:
+        """Generate content from a prompt using AI"""
+        
+        self._ensure_client_ready()
+        
+        try:
+            # Format request body based on model type
+            body = self._format_request_body(
+                prompt, 
+                settings.BEDROCK_MODEL_ID,
+                max_tokens_to_sample=max_tokens,
+                temperature=temperature
+            )
+            
+            # Run the blocking boto3 call in a thread pool
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                self._invoke_model_sync,
+                settings.BEDROCK_MODEL_ID,
+                body
+            )
+            
+            result = json.loads(response['body'].read())
+            completion = self._parse_model_response(result, settings.BEDROCK_MODEL_ID)
+            if not completion:
+                raise RuntimeError("No completion received from AI model")
+            return completion
+            
+        except Exception as e:
+            logger.error(f"Error generating content: {e}")
+            raise RuntimeError(f"Failed to generate content: {e}")
+    
     def _create_business_rule_prompt(
         self,
         code: str,
