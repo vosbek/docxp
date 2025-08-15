@@ -10,10 +10,12 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { TabViewModule } from 'primeng/tabview';
 import { TimelineModule } from 'primeng/timeline';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
 import { ApiService, AnalyticsData, JobStatus } from '../../services/api.service';
+import { DiagramViewerComponent, DiagramData } from '../diagram-viewer/diagram-viewer.component';
 
 interface RecentJob {
   id: string;
@@ -47,7 +49,9 @@ interface MetricCard {
     ProgressBarModule,
     TabViewModule,
     TimelineModule,
-    ToastModule
+    ToastModule,
+    TooltipModule,
+    DiagramViewerComponent
   ],
   providers: [MessageService],
   templateUrl: './dashboard.component.html',
@@ -68,6 +72,7 @@ export class DashboardComponent implements OnInit {
   chartOptions: any;
   activityData: any;
   loading: boolean = true;
+  sampleDiagrams: DiagramData[] = [];
   
   constructor(
     private apiService: ApiService,
@@ -80,6 +85,7 @@ export class DashboardComponent implements OnInit {
     this.loadRecentJobs();
     this.initializeCharts();
     this.startHealthMonitoring();
+    this.loadSampleDiagrams();
   }
   
   loadMetrics() {
@@ -389,18 +395,8 @@ http://localhost:8001/docs
   }
   
   viewJobDetails(job: RecentJob) {
-    // For now, show job details in a message
-    // In production, this would navigate to a details page or open a modal
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Job Details',
-      detail: `Job ${job.id}: ${job.repository} - Status: ${job.status}, Entities: ${job.entities}, Rules: ${job.rules}`
-    });
-    
-    // Optional: Try to navigate to job details page if it exists
-    this.router.navigate(['/jobs', job.id]).catch(() => {
-      // If route doesn't exist, just show the message above
-    });
+    // Navigate to job details page
+    this.router.navigate(['/jobs', job.id]);
   }
   
   downloadDocumentation(job: RecentJob) {
@@ -466,5 +462,220 @@ http://localhost:8001/docs
         }
       });
     }, 30000);
+  }
+
+  // Sample diagram methods - used for dashboard preview only
+  // Real diagrams are generated per job and viewed in job details
+  loadSampleDiagrams() {
+    // Sample enterprise migration diagrams for dashboard preview
+    this.sampleDiagrams = [
+      {
+        id: 'migration_architecture',
+        name: 'Migration Architecture',
+        type: 'migration_architecture',
+        description: 'Enterprise migration architecture showing current and target state',
+        content: this.generateSampleMigrationArchitectureDiagram()
+      },
+      {
+        id: 'migration_risk_matrix',
+        name: 'Risk Assessment Matrix',
+        type: 'migration_risk_matrix', 
+        description: 'Component risk assessment for migration planning',
+        content: this.generateSampleRiskMatrixDiagram()
+      },
+      {
+        id: 'data_flow',
+        name: 'Data Flow Diagram',
+        type: 'data_flow',
+        description: 'Data flow across technology boundaries',
+        content: this.generateSampleDataFlowDiagram()
+      },
+      {
+        id: 'technology_integration',
+        name: 'Technology Integration Map',
+        type: 'technology_integration',
+        description: 'Cross-technology integration patterns and confidence scores',
+        content: this.generateSampleTechnologyMapDiagram()
+      }
+    ];
+  }
+
+
+  private generateSampleMigrationArchitectureDiagram(): string {
+    return `graph TB
+    subgraph "Frontend Layer"
+        ANG[🅰️ Angular Components]:::frontend
+        JSP[📄 JSP Pages]:::frontend
+    end
+
+    subgraph "Business Logic Layer"
+        JAVA[☕ Java Services]:::backend
+        STRUTS[⚙️ Struts Actions]:::backend
+    end
+
+    subgraph "Data Layer"
+        ORACLE[(🗄️ Oracle Database)]:::data
+    end
+
+    subgraph "Legacy Systems"
+        CORBA[🏛️ CORBA Services]:::legacy
+        MAINFRAME[💻 Mainframe]:::legacy
+    end
+
+    subgraph "Target Modern Architecture"
+        REST_API[🔗 REST APIs]:::modern
+        MICROSERVICES[⚡ Microservices]:::modern
+        CLOUD_DB[(☁️ Cloud Database)]:::modern
+    end
+
+    %% Current flows
+    ANG --> STRUTS
+    JSP --> STRUTS
+    STRUTS --> JAVA
+    JAVA --> ORACLE
+    JAVA --> CORBA
+
+    %% Migration paths
+    CORBA -.-> REST_API
+    STRUTS -.-> MICROSERVICES
+    ORACLE -.-> CLOUD_DB
+
+    %% Styling
+    classDef legacy fill:#ffcccc,stroke:#ff6666,stroke-width:2px
+    classDef modern fill:#ccffcc,stroke:#66ff66,stroke-width:2px
+    classDef frontend fill:#cce5ff,stroke:#0066cc,stroke-width:2px
+    classDef backend fill:#ffffcc,stroke:#cccc00,stroke-width:2px
+    classDef data fill:#ffccff,stroke:#cc00cc,stroke-width:2px`;
+  }
+
+  private generateSampleRiskMatrixDiagram(): string {
+    return `graph LR
+    subgraph "Critical Risk - Immediate Action Required"
+        CR0["CORBA Interface\\n(Very High complexity)"]:::critical
+        CR1["Legacy Authentication\\n(High complexity)"]:::critical
+    end
+
+    subgraph "High Risk - Plan Carefully"
+        HR0["Database Layer\\n(High complexity)"]:::high
+        HR1["Struts Actions\\n(Medium complexity)"]:::high
+        HR2["Session Management\\n(High complexity)"]:::high
+    end
+
+    subgraph "Medium Risk - Standard Process"
+        MR0["Business Logic\\n(Medium complexity)"]:::medium
+        MR1["Data Validation\\n(Low complexity)"]:::medium
+        MR2["Report Generation\\n(Medium complexity)"]:::medium
+    end
+
+    subgraph "Low Risk - Quick Wins"
+        LR0["Static Resources\\n(Low complexity)"]:::low
+        LR1["Configuration Files\\n(Low complexity)"]:::low
+        LR2["Utility Classes\\n(Low complexity)"]:::low
+    end
+
+    %% Risk Level Styling
+    classDef critical fill:#ffcccc,stroke:#cc0000,stroke-width:3px
+    classDef high fill:#ffd9cc,stroke:#ff6600,stroke-width:2px
+    classDef medium fill:#ffffcc,stroke:#cccc00,stroke-width:2px
+    classDef low fill:#ccffcc,stroke:#00cc00,stroke-width:2px`;
+  }
+
+  private generateSampleDataFlowDiagram(): string {
+    return `flowchart TD
+    USER[👤 User]:::user
+
+    subgraph "Frontend Data Entry"
+        FORMS[📝 Forms & UI]:::frontend
+        ANGULAR[🅰️ Angular Components]:::frontend
+        JSP[📄 JSP Pages]:::frontend
+    end
+
+    subgraph "API & Integration Layer"
+        REST[🔗 REST APIs]:::api
+        STRUTS[⚙️ Struts Actions]:::api
+        CORBA[🏛️ CORBA Services]:::legacy
+    end
+
+    subgraph "Business Logic"
+        SERVICES[⚡ Java Services]:::backend
+        PROCESSORS[🔄 Data Processors]:::backend
+        VALIDATION[✅ Validation Logic]:::backend
+    end
+
+    subgraph "Data Persistence"
+        DB[(🗄️ Oracle Database\\n47 tables)]:::database
+        CACHE[(⚡ Redis Cache)]:::cache
+        FILES[📁 File Storage]:::storage
+    end
+
+    %% User Interaction Flows
+    USER --> FORMS
+    USER --> ANGULAR
+    USER --> JSP
+
+    %% Frontend to API Flows
+    FORMS --> REST
+    ANGULAR --> REST
+    JSP --> STRUTS
+
+    %% API to Business Logic Flows
+    REST --> SERVICES
+    STRUTS --> SERVICES
+    CORBA --> SERVICES
+
+    %% Business Logic Processing
+    SERVICES --> PROCESSORS
+    PROCESSORS --> VALIDATION
+
+    %% Data Persistence Flows
+    VALIDATION --> DB
+    SERVICES --> CACHE
+    PROCESSORS --> FILES
+
+    %% Styling
+    classDef user fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    classDef frontend fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef api fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef backend fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef database fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef legacy fill:#ffebee,stroke:#d32f2f,stroke-width:3px
+    classDef cache fill:#fff8e1,stroke:#fbc02d,stroke-width:1px
+    classDef storage fill:#e0f2f1,stroke:#00695c,stroke-width:1px`;
+  }
+
+  private generateSampleTechnologyMapDiagram(): string {
+    return `graph TB
+    subgraph "Frontend Technologies"
+        ANG[🅰️ Angular\\n12 HTTP calls]:::frontend
+        JSP[📄 JSP\\n8 forms]:::frontend
+    end
+
+    subgraph "API Integration Layer"
+        REST[🔗 REST APIs\\n15 endpoints]:::api
+        STRUTS[⚙️ Struts Actions\\n23 actions]:::api
+    end
+
+    subgraph "Backend Services"
+        JAVA[☕ Java Services\\n34 services]:::backend
+        CORBA[🏛️ CORBA\\n7 interfaces]:::legacy
+    end
+
+    subgraph "Migration Recommendations"
+        REC[📋 Migration Complexity: Medium]:::recommendation
+    end
+
+    %% Integration Flows with Confidence Scores
+    ANG ==> REST
+    JSP --> STRUTS
+    REST ==> JAVA
+    STRUTS ==> JAVA
+    JAVA -.-> CORBA
+
+    %% Technology Integration Styling
+    classDef frontend fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
+    classDef api fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    classDef backend fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    classDef legacy fill:#ffebee,stroke:#f44336,stroke-width:3px
+    classDef recommendation fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px`;
   }
 }

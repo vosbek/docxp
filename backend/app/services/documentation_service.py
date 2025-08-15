@@ -21,7 +21,7 @@ from app.models.schemas import DocumentationRequest, BusinessRule
 from app.parsers.parser_factory import ParserFactory
 from app.services.ai_service import ai_service_instance
 from app.services.diagram_service import DiagramService
-from app.services.database_analyzer import database_analyzer
+from app.services.database_analyzer import database_analyzer, DatabaseTable, SQLQuery
 from app.services.integration_analyzer import integration_analyzer
 from app.services.migration_dashboard import migration_dashboard
 
@@ -127,6 +127,31 @@ class DocumentationService:
         
         return update_step_progress
     
+    def _serialize_database_objects(self, obj):
+        """Custom JSON serializer for database objects"""
+        if isinstance(obj, DatabaseTable):
+            return {
+                'name': obj.name,
+                'columns': obj.columns,
+                'indexes': obj.indexes,
+                'foreign_keys': obj.foreign_keys,
+                'is_inferred': obj.is_inferred
+            }
+        elif isinstance(obj, SQLQuery):
+            return {
+                'file_path': obj.file_path,
+                'line_number': obj.line_number,
+                'query_text': obj.query_text,
+                'query_type': obj.query_type,
+                'tables': obj.tables,
+                'parameters': obj.parameters,
+                'is_prepared_statement': obj.is_prepared_statement,
+                'context_function': obj.context_function,
+                'context_class': obj.context_class
+            }
+        # For any other non-serializable objects, convert to string
+        return str(obj)
+    
     async def generate_documentation(self, job_id: str, request: DocumentationRequest):
         """
         Generate documentation for a repository with detailed progress tracking
@@ -209,7 +234,12 @@ class DocumentationService:
             diagrams = {}
             if request.include_diagrams:
                 async with self._progress_step('generating_diagrams') as update_progress:
-                    diagrams = await self._generate_diagrams(entities, request, update_progress)
+                    diagrams = await self._generate_diagrams(
+                        entities, request, update_progress, 
+                        integration_analysis=integration_analysis, 
+                        database_analysis=database_analysis, 
+                        migration_analysis=migration_analysis
+                    )
             
             # Step 7: Save documentation
             async with self._progress_step('saving_documentation') as update_progress:
@@ -806,34 +836,63 @@ Documentation Depth: {request.depth.value}
         self,
         entities: List[Dict],
         request: DocumentationRequest,
-        update_progress: Callable = None
+        update_progress: Callable = None,
+        integration_analysis: Optional[Dict] = None,
+        database_analysis: Optional[Dict] = None,
+        migration_analysis: Optional[Dict] = None
     ) -> Dict[str, str]:
-        """Generate Mermaid diagrams with progress tracking"""
-        logger.info("Generating Mermaid diagrams")
+        """Generate comprehensive Mermaid diagrams with enterprise migration focus"""
+        logger.info("Generating enterprise migration diagrams")
         diagrams = {}
         
-        # Class diagram
+        # Original technical diagrams
         if update_progress:
-            await update_progress(20, current_task="Generating class diagram")
-        
+            await update_progress(10, current_task="Generating class diagram")
         diagrams['class_diagram.mmd'] = await self.diagram_service.generate_class_diagram(entities)
         
-        # Flow diagram  
         if update_progress:
-            await update_progress(50, current_task="Generating flow diagram")
-        
+            await update_progress(20, current_task="Generating flow diagram")
         diagrams['flow_diagram.mmd'] = await self.diagram_service.generate_flow_diagram(entities)
         
-        # Architecture diagram
+        # Enhanced migration architecture diagram
         if update_progress:
-            await update_progress(80, current_task="Generating architecture diagram")
+            await update_progress(35, current_task="Generating migration architecture diagram")
+        diagrams['migration_architecture.mmd'] = await self.diagram_service.generate_migration_architecture_diagram(
+            entities, integration_analysis, migration_analysis
+        )
         
-        diagrams['architecture.mmd'] = await self.diagram_service.generate_architecture_diagram(entities)
+        # Migration risk assessment matrix
+        if migration_analysis and migration_analysis.get('components'):
+            if update_progress:
+                await update_progress(50, current_task="Generating migration risk matrix")
+            diagrams['migration_risk_matrix.mmd'] = await self.diagram_service.generate_migration_risk_matrix(
+                migration_analysis
+            )
+        
+        # Data flow diagram with actual database and integration data
+        if update_progress:
+            await update_progress(65, current_task="Generating data flow diagram")
+        diagrams['data_flow_diagram.mmd'] = await self.diagram_service.generate_data_flow_diagram(
+            entities, database_analysis, integration_analysis
+        )
+        
+        # Technology integration mapping
+        if integration_analysis and integration_analysis.get('integration_flows'):
+            if update_progress:
+                await update_progress(80, current_task="Generating technology integration map")
+            diagrams['technology_integration_map.mmd'] = await self.diagram_service.generate_technology_integration_map(
+                integration_analysis
+            )
+        
+        # Legacy architecture diagram for comparison
+        if update_progress:
+            await update_progress(90, current_task="Generating legacy architecture diagram")
+        diagrams['legacy_architecture.mmd'] = await self.diagram_service.generate_architecture_diagram(entities)
         
         if update_progress:
-            await update_progress(100, current_task="Diagram generation complete")
+            await update_progress(100, current_task="Enterprise diagram generation complete")
         
-        logger.info(f"Generated {len(diagrams)} diagrams")
+        logger.info(f"Generated {len(diagrams)} enterprise migration diagrams")
         return diagrams
     
     async def _save_documentation(
@@ -1032,7 +1091,7 @@ You are a database architecture expert creating documentation for enterprise leg
 
 ## Detailed Analysis Results
 
-{json.dumps(database_analysis, indent=2)}
+{json.dumps(database_analysis, indent=2, default=self._serialize_database_objects)}
 
 ## Requirements
 
@@ -1226,7 +1285,7 @@ You are an enterprise integration architect creating documentation for legacy sy
 
 ## Detailed Integration Analysis Results
 
-{json.dumps(integration_analysis, indent=2)}
+{json.dumps(integration_analysis, indent=2, default=self._serialize_database_objects)}
 
 ## Requirements
 

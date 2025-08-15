@@ -87,6 +87,7 @@ async def get_job_status(
         return JobStatusResponse(
             job_id=job.job_id,
             status=job.status,
+            repository_path=job.repository_path,
             created_at=job.created_at,
             completed_at=job.completed_at,
             entities_count=job.entities_count or 0,
@@ -187,6 +188,71 @@ async def sync_repository(
     except Exception as e:
         logger.error(f"Sync failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/jobs/{job_id}/diagrams")
+async def get_job_diagrams(
+    job_id: str,
+    db: AsyncSession = Depends(get_session)
+):
+    """
+    Get diagrams for a completed documentation generation job
+    """
+    try:
+        # Get job details
+        query = await db.execute(
+            select(DocumentationJob).where(DocumentationJob.job_id == job_id)
+        )
+        job = query.scalar_one_or_none()
+        
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        if job.status != "completed":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Job is {job.status}, not completed"
+            )
+        
+        # Find diagrams directory
+        output_dir = Path(job.output_path) if job.output_path else Path(f"output/{job_id}")
+        diagrams_dir = output_dir / 'diagrams'
+        
+        if not diagrams_dir.exists():
+            return {"diagrams": []}
+        
+        # Read all diagram files
+        diagrams = []
+        for diagram_file in diagrams_dir.glob('*.mmd'):
+            try:
+                with open(diagram_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Extract diagram type from filename
+                diagram_name = diagram_file.stem
+                diagram_type = diagram_name.replace('_diagram', '').replace('_', '_')
+                
+                diagrams.append({
+                    "id": diagram_name,
+                    "name": diagram_name.replace('_', ' ').title(),
+                    "type": diagram_type,
+                    "content": content,
+                    "description": f"Generated {diagram_type.replace('_', ' ')} diagram for {job.repository_path}"
+                })
+            except Exception as e:
+                logger.warning(f"Failed to read diagram {diagram_file}: {e}")
+                continue
+        
+        return {
+            "job_id": job_id,
+            "repository_path": job.repository_path,
+            "diagrams": diagrams
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching job diagrams: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch diagrams")
 
 @router.get("/download/{job_id}")
 async def download_documentation(

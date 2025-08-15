@@ -1,0 +1,190 @@
+<div class="job-details-container">
+  <!-- Header -->
+  <div class="job-header premium-card">
+    <div class="header-content">
+      <div class="job-info">
+        <h1 class="job-title">
+          <i class="pi pi-file mr-2"></i>
+          Job Details: {{ getRepositoryName() }}
+        </h1>
+        <p class="job-id">Job ID: {{ jobId }}</p>
+      </div>
+      <div class="header-actions">
+        <button pButton 
+                icon="pi pi-arrow-left" 
+                label="Back" 
+                class="p-button-outlined mr-2"
+                (click)="goBack()">
+        </button>
+        <button pButton 
+                icon="pi pi-refresh" 
+                label="Refresh" 
+                class="p-button-outlined mr-2"
+                (click)="refreshJob()"
+                [loading]="loading">
+        </button>
+        <button pButton 
+                icon="pi pi-download" 
+                label="Download" 
+                class="p-button-primary"
+                (click)="downloadDocumentation()"
+                [disabled]="!job || job.status !== 'completed'">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container premium-card">
+    <div class="loading-content">
+      <i class="pi pi-spin pi-spinner loading-icon"></i>
+      <p>Loading job details...</p>
+    </div>
+  </div>
+
+  <!-- Job Details -->
+  <div *ngIf="!loading && job" class="job-content">
+    <!-- Status Card -->
+    <div class="status-card premium-card">
+      <div class="card-header">
+        <h3><i class="pi pi-info-circle mr-2"></i>Job Status</h3>
+      </div>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">Status:</span>
+          <p-tag [value]="job.status" [severity]="getStatusSeverity(job.status)"></p-tag>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Repository:</span>
+          <span class="status-value">{{ job.repository_path || 'Unknown' }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Created:</span>
+          <span class="status-value">{{ job.created_at | date:'medium' }}</span>
+        </div>
+        <div class="status-item" *ngIf="job.completed_at">
+          <span class="status-label">Completed:</span>
+          <span class="status-value">{{ job.completed_at | date:'medium' }}</span>
+        </div>
+        <div class="status-item" *ngIf="job.processing_time_seconds">
+          <span class="status-label">Duration:</span>
+          <span class="status-value">{{ formatDuration(job.processing_time_seconds) }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Files Processed:</span>
+          <span class="status-value">{{ job.files_processed || 0 }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="results-card premium-card">
+      <div class="card-header">
+        <h3><i class="pi pi-chart-bar mr-2"></i>Analysis Results</h3>
+      </div>
+      <div class="results-grid">
+        <div class="result-metric">
+          <div class="metric-icon entities">
+            <i class="pi pi-sitemap"></i>
+          </div>
+          <div class="metric-content">
+            <h4>{{ job.entities_count || 0 }}</h4>
+            <p>Entities Analyzed</p>
+          </div>
+        </div>
+        <div class="result-metric">
+          <div class="metric-icon rules">
+            <i class="pi pi-shield"></i>
+          </div>
+          <div class="metric-content">
+            <h4>{{ job.business_rules_count || 0 }}</h4>
+            <p>Business Rules</p>
+          </div>
+        </div>
+        <div class="result-metric">
+          <div class="metric-icon diagrams">
+            <i class="pi pi-chart-line"></i>
+          </div>
+          <div class="metric-content">
+            <h4>{{ diagrams.length }}</h4>
+            <p>Generated Diagrams</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Message (if any) -->
+    <div *ngIf="job.error_message" class="error-card premium-card">
+      <div class="card-header error">
+        <h3><i class="pi pi-exclamation-triangle mr-2"></i>Error Details</h3>
+      </div>
+      <div class="error-content">
+        <p>{{ job.error_message }}</p>
+      </div>
+    </div>
+
+    <!-- Diagrams Section -->
+    <div *ngIf="job.status === 'completed'" class="diagrams-section premium-card">
+      <div class="card-header">
+        <h3><i class="pi pi-chart-bar mr-2"></i>Generated Diagrams</h3>
+        <div class="section-controls" *ngIf="loadingDiagrams">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span class="ml-2">Loading diagrams...</span>
+        </div>
+      </div>
+      
+      <!-- Diagrams Content -->
+      <div *ngIf="!loadingDiagrams" class="diagrams-content">
+        <div *ngIf="diagrams.length > 0; else noDiagrams">
+          <app-diagram-viewer 
+            [diagrams]="diagrams"
+            [initialDiagram]="diagrams.length > 0 ? diagrams[0].id : undefined">
+          </app-diagram-viewer>
+        </div>
+        
+        <ng-template #noDiagrams>
+          <div class="no-diagrams-message">
+            <i class="pi pi-chart-bar no-diagrams-icon"></i>
+            <h4>No Diagrams Available</h4>
+            <p>No diagrams were generated for this job. This might be because:</p>
+            <ul>
+              <li>Diagram generation was not enabled in the job configuration</li>
+              <li>The repository structure was not suitable for diagram generation</li>
+              <li>This job was created before diagram support was added</li>
+            </ul>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Processing Status (for active jobs) -->
+    <div *ngIf="job.status === 'processing'" class="processing-card premium-card">
+      <div class="card-header">
+        <h3><i class="pi pi-clock mr-2"></i>Processing Status</h3>
+      </div>
+      <div class="processing-content">
+        <p-progressBar mode="indeterminate"></p-progressBar>
+        <p class="processing-text">Documentation generation is in progress...</p>
+        <p class="processing-hint">This page will automatically refresh when the job completes.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!loading && !job" class="error-state premium-card">
+    <div class="error-content">
+      <i class="pi pi-exclamation-triangle error-icon"></i>
+      <h3>Job Not Found</h3>
+      <p>The requested job could not be found. It may have been deleted or the ID is incorrect.</p>
+      <button pButton 
+              label="Go Back" 
+              icon="pi pi-arrow-left" 
+              class="p-button-outlined"
+              (click)="goBack()">
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Messages -->
+<p-toast position="top-right" [style]="{'marginTop': '80px'}"></p-toast>

@@ -31,6 +31,7 @@ export interface DocumentationResponse {
 export interface JobStatus {
   job_id: string;
   status: string;
+  repository_path?: string;
   created_at: Date;
   completed_at?: Date;
   entities_count: number;
@@ -60,6 +61,20 @@ export interface AnalyticsData {
   total_entities: number;
   total_business_rules: number;
   repositories_analyzed: number;
+}
+
+export interface DiagramData {
+  id: string;
+  name: string;
+  type: string;
+  content: string;
+  description?: string;
+}
+
+export interface JobDiagramsResponse {
+  job_id: string;
+  repository_path: string;
+  diagrams: DiagramData[];
 }
 
 @Injectable({
@@ -94,6 +109,12 @@ export class ApiService {
   listJobs(skip: number = 0, limit: number = 100): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.apiUrl}/documentation/jobs?skip=${skip}&limit=${limit}`
+    );
+  }
+  
+  getJobDiagrams(jobId: string): Observable<JobDiagramsResponse> {
+    return this.http.get<JobDiagramsResponse>(
+      `${this.apiUrl}/documentation/jobs/${jobId}/diagrams`
     );
   }
   

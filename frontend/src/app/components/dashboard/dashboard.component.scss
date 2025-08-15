@@ -217,7 +217,18 @@
   
   .section-controls {
     display: flex;
+    align-items: center;
     gap: 8px;
+    
+    .preview-badge {
+      background: var(--blue-100);
+      color: var(--blue-700);
+      padding: 4px 8px;
+      border-radius: var(--border-radius);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--blue-200);
+    }
   }
 }
 
@@ -421,6 +432,55 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+// Diagrams Section
+.diagrams-section {
+  padding: 24px;
+  margin-bottom: 24px;
+  
+  .diagram-preview-notice {
+    background: var(--blue-50);
+    border: 1px solid var(--blue-200);
+    border-radius: var(--border-radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .notice-icon {
+      color: var(--blue-600);
+      font-size: 14px;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--blue-700);
+      line-height: 1.4;
+    }
+  }
+  
+  .diagram-viewer-wrapper {
+    margin-top: 16px;
+    
+    // Override the DiagramViewer's min-height for dashboard integration
+    :host ::ng-deep app-diagram-viewer .diagram-viewer-container {
+      min-height: 500px;
+    }
+    
+    // Ensure proper spacing in dashboard context
+    :host ::ng-deep app-diagram-viewer .diagram-content {
+      background: transparent;
+    }
+    
+    // Adjust diagram toolbar for dashboard
+    :host ::ng-deep app-diagram-viewer .diagram-toolbar {
+      background: var(--gray-50);
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
   }
 }
 

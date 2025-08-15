@@ -1,0 +1,405 @@
+/* DiagramViewer Component Styles */
+
+.diagram-viewer-container {
+  background: var(--surface-0);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-base);
+  overflow: hidden;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.diagram-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  
+  .diagram-info {
+    flex: 1;
+    
+    .diagram-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      i {
+        color: var(--brand-blue);
+        font-size: 18px;
+      }
+    }
+    
+    .diagram-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+  
+  .diagram-controls {
+    flex-shrink: 0;
+    margin-left: 20px;
+    
+    .diagram-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      i {
+        color: var(--text-secondary);
+        min-width: 16px;
+      }
+    }
+  }
+}
+
+/* Toolbar */
+.diagram-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--surface-0);
+  flex-wrap: wrap;
+  
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .toolbar-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-right: 8px;
+    }
+    
+    .toolbar-btn {
+      min-width: auto;
+      padding: 6px 12px;
+      
+      &.p-button-sm {
+        font-size: 12px;
+      }
+    }
+    
+    .zoom-level {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 40px;
+      text-align: center;
+      background: var(--gray-100);
+      padding: 4px 8px;
+      border-radius: var(--border-radius);
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    }
+  }
+}
+
+/* Diagram content */
+.diagram-content {
+  flex: 1;
+  overflow: auto;
+  background: var(--surface-0);
+  position: relative;
+  
+  .diagram-wrapper {
+    min-height: 100%;
+    padding: 24px;
+    position: relative;
+    
+    &.loading {
+      pointer-events: none;
+    }
+  }
+}
+
+/* Mermaid diagram styling */
+:host ::ng-deep .mermaid-diagram {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 400px;
+  
+  svg {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+    background: var(--surface-0);
+    
+    /* Enhance mermaid diagram styling */
+    .node {
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      
+      &:hover {
+        opacity: 0.8;
+        /* Removed transform scale to prevent layout jumping */
+      }
+    }
+    
+    .edgePath path {
+      transition: stroke-width 0.2s ease;
+    }
+    
+    .edgeLabel {
+      background-color: var(--surface-0);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12px;
+    }
+  }
+}
+
+/* Loading states */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  
+  .loading-spinner {
+    text-align: center;
+    
+    .loading-icon {
+      font-size: 32px;
+      color: var(--brand-blue);
+      margin-bottom: 16px;
+    }
+    
+    p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+  }
+}
+
+.no-diagram-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  
+  .no-diagram-icon {
+    font-size: 48px;
+    color: var(--gray-400);
+    margin-bottom: 16px;
+  }
+  
+  h4 {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+/* Error states */
+:host ::ng-deep .diagram-error {
+  text-align: center;
+  padding: 60px 20px;
+  
+  .error-icon {
+    font-size: 48px;
+    color: var(--danger-color);
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  
+  p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+}
+
+/* Legend styles */
+.diagram-legend, .complexity-legend {
+  padding: 16px 24px;
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    i {
+      color: var(--brand-blue);
+      font-size: 12px;
+    }
+  }
+  
+  .legend-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      
+      .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid var(--gray-300);
+      }
+      
+      .legend-text {
+        color: var(--text-secondary);
+      }
+      
+      &.critical .legend-color {
+        background: #ffcccc;
+        border-color: #cc0000;
+      }
+      
+      &.high .legend-color {
+        background: #ffd9cc;
+        border-color: #ff6600;
+      }
+      
+      &.medium .legend-color {
+        background: #ffffcc;
+        border-color: #cccc00;
+      }
+      
+      &.low .legend-color {
+        background: #ccffcc;
+        border-color: #00cc00;
+      }
+      
+      &.frontend .legend-color {
+        background: #cce5ff;
+        border-color: #0066cc;
+      }
+      
+      &.backend .legend-color {
+        background: #ffffcc;
+        border-color: #cccc00;
+      }
+      
+      &.legacy .legend-color {
+        background: #ffcccc;
+        border-color: #ff6666;
+      }
+      
+      &.modern .legend-color {
+        background: #ccffcc;
+        border-color: #66ff66;
+      }
+    }
+  }
+  
+  .complexity-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    
+    .complexity-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--surface-0);
+      padding: 4px 8px;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--gray-300);
+    }
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .diagram-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    
+    .diagram-controls {
+      margin-left: 0;
+    }
+  }
+  
+  .diagram-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    
+    .toolbar-group {
+      justify-content: center;
+    }
+  }
+  
+  .diagram-content .diagram-wrapper {
+    padding: 16px;
+  }
+  
+  .legend-items {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagram-toolbar .toolbar-group {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .complexity-items {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Print styles */
+@media print {
+  .diagram-header,
+  .diagram-toolbar,
+  .diagram-legend,
+  .complexity-legend {
+    display: none;
+  }
+  
+  .diagram-content {
+    overflow: visible;
+  }
+  
+  :host ::ng-deep .mermaid-diagram svg {
+    max-width: none;
+    width: 100%;
+  }
+}
