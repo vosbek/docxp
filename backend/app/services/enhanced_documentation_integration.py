@@ -62,7 +62,7 @@ class EnhancedDocumentationIntegration:
                 await update_progress(25, status="Extracting enhanced business rules", 
                                     current_task="Analyzing business logic with full code context")
             
-            enhanced_business_rules = await self._extract_enhanced_business_rules(entities)
+            enhanced_business_rules = await self._extract_enhanced_business_rules(entities, update_progress)
             
             # Step 3: Generate Hierarchical Business Rules Documentation
             if update_progress:
@@ -136,18 +136,32 @@ class EnhancedDocumentationIntegration:
         stats = self.intelligence_graph.get_statistics()
         logger.info(f"Code intelligence graph built: {stats}")
     
-    async def _extract_enhanced_business_rules(self, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _extract_enhanced_business_rules(
+        self, 
+        entities: List[Dict[str, Any]], 
+        update_progress: Optional[Callable] = None
+    ) -> List[Dict[str, Any]]:
         """Extract business rules using enhanced AI service with full context"""
         logger.info("Extracting enhanced business rules with full code context")
         
         enhanced_rules = []
+        total_entities = len(entities)
         
         # Process entities in batches to manage memory and API calls
         batch_size = 10
         for i in range(0, len(entities), batch_size):
             batch = entities[i:i + batch_size]
             
-            for entity in batch:
+            # Update progress based on batch completion (25% to 40% range)
+            progress_percent = 25 + int((i / total_entities) * 15)
+            if update_progress:
+                await update_progress(
+                    progress_percent, 
+                    status="Extracting enhanced business rules", 
+                    current_task=f"Processing entities {i+1}-{min(i+batch_size, total_entities)} of {total_entities}"
+                )
+            
+            for entity_idx, entity in enumerate(batch):
                 try:
                     # Get entity from intelligence graph
                     entity_key = f"{entity.get('file_path', '')}:{entity.get('type', '')}:{entity.get('name', '')}"
@@ -178,9 +192,27 @@ class EnhancedDocumentationIntegration:
                             'entity': entity
                         })
                     
+                    # Update progress for individual entity completion
+                    entities_processed = i + entity_idx + 1
+                    if update_progress and entities_processed % 5 == 0:  # Update every 5 entities
+                        fine_progress = 25 + int((entities_processed / total_entities) * 15)
+                        await update_progress(
+                            fine_progress,
+                            status="Extracting enhanced business rules",
+                            current_task=f"Extracted rules from {entities_processed}/{total_entities} entities"
+                        )
+                    
                 except Exception as e:
                     logger.warning(f"Error extracting enhanced rules for entity {entity.get('name', 'unknown')}: {e}")
                     continue
+        
+        # Final progress update for business rule extraction completion
+        if update_progress:
+            await update_progress(
+                40,
+                status="Enhanced business rules extraction complete",
+                current_task=f"Successfully extracted {len(enhanced_rules)} enhanced business rules"
+            )
         
         logger.info(f"Extracted {len(enhanced_rules)} enhanced business rules")
         return enhanced_rules
