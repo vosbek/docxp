@@ -15,7 +15,7 @@ from app.core.logging_config import get_logger
 logger = get_logger(__name__)
 
 @dataclass
-class CodeEntity:
+class CodeEntityData:
     """Enhanced code entity with hierarchy and relationship information"""
     id: str
     name: str
@@ -73,7 +73,7 @@ class CodeIntelligenceGraph:
     """
     
     def __init__(self):
-        self.entities: Dict[str, CodeEntity] = {}
+        self.entities: Dict[str, CodeEntityData] = {}
         self.relationships: List[CodeRelationship] = []
         self.hierarchy: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
         self.business_rules: Dict[str, BusinessRuleContext] = {}
@@ -84,7 +84,7 @@ class CodeIntelligenceGraph:
         
         logger.info("Initialized CodeIntelligenceGraph")
     
-    def add_entity(self, entity: CodeEntity) -> None:
+    def add_entity(self, entity: CodeEntityData) -> None:
         """Add a code entity to the graph"""
         self.entities[entity.id] = entity
         
@@ -128,7 +128,7 @@ class CodeIntelligenceGraph:
         
         logger.debug(f"Added business rule: {rule.rule_id} for entity {rule.code_entity_id}")
     
-    def get_entity_hierarchy(self, entity_id: str) -> List[CodeEntity]:
+    def get_entity_hierarchy(self, entity_id: str) -> List[CodeEntityData]:
         """Get the complete hierarchy path for an entity (from root to entity)"""
         hierarchy_path = []
         current_entity = self.entities.get(entity_id)
@@ -208,7 +208,7 @@ class CodeIntelligenceGraph:
         
         return organized_rules
     
-    def find_related_entities(self, entity_id: str, max_depth: int = 2) -> List[CodeEntity]:
+    def find_related_entities(self, entity_id: str, max_depth: int = 2) -> List[CodeEntityData]:
         """Find entities related to the given entity within max_depth relationships"""
         visited = set()
         queue = deque([(entity_id, 0)])
@@ -286,7 +286,7 @@ class CodeIntelligenceGraph:
             'risk_level': self._calculate_risk_level(len(dependents), len(all_affected))
         }
     
-    def search_entities(self, query: str, entity_types: Optional[List[str]] = None) -> List[CodeEntity]:
+    def search_entities(self, query: str, entity_types: Optional[List[str]] = None) -> List[CodeEntityData]:
         """Search entities by name, docstring, or other criteria"""
         query_lower = query.lower()
         results = []
@@ -295,10 +295,10 @@ class CodeIntelligenceGraph:
             if entity_types and entity.type not in entity_types:
                 continue
             
-            # Search in name, docstring, and metadata
+            # Search in name, docstring, and entity_metadata
             if (query_lower in entity.name.lower() or
                 (entity.docstring and query_lower in entity.docstring.lower()) or
-                any(query_lower in str(value).lower() for value in entity.metadata.values())):
+                any(query_lower in str(value).lower() for value in entity.entity_metadata.values())):
                 results.append(entity)
         
         # Sort by relevance (exact name matches first)
@@ -334,7 +334,7 @@ class CodeIntelligenceGraph:
                 root_entities.append(entity)
         
         # Build tree structure
-        def build_tree(entity: CodeEntity) -> Dict[str, Any]:
+        def build_tree(entity: CodeEntityData) -> Dict[str, Any]:
             return {
                 'entity': entity,
                 'children': [build_tree(self.entities[child_id]) 

@@ -116,7 +116,7 @@ class CodeEntity(Base):
     visibility = Column(String, default='public')  # public, private, protected
     is_abstract = Column(Boolean, default=False)
     design_patterns = Column(JSON, default=list)
-    metadata = Column(JSON, default=dict)
+    entity_metadata = Column(JSON, default=dict)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

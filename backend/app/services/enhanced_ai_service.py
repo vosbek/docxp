@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 
 from app.services.ai_service import AIService
-from app.services.code_intelligence import CodeIntelligenceGraph, CodeEntity, BusinessRuleContext
+from app.services.code_intelligence import CodeIntelligenceGraph, CodeEntityData, BusinessRuleContext
 from app.models.schemas import BusinessRule, DocumentationDepth
 from app.core.logging_config import get_logger
 
@@ -29,7 +29,7 @@ class EnhancedAIService:
         self,
         entity_id: str,
         full_code: str,
-        related_entities: List[CodeEntity],
+        related_entities: List[CodeEntityData],
         keywords: Optional[List[str]] = None
     ) -> List[BusinessRuleContext]:
         """
@@ -134,10 +134,10 @@ class EnhancedAIService:
     
     def _create_enhanced_business_rule_prompt(
         self,
-        entity: CodeEntity,
+        entity: CodeEntityData,
         full_code: str,
-        hierarchy_path: List[CodeEntity],
-        related_entities: List[CodeEntity],
+        hierarchy_path: List[CodeEntityData],
+        related_entities: List[CodeEntityData],
         related_code_snippets: Dict[str, str],
         keywords: Optional[List[str]] = None
     ) -> str:
@@ -638,8 +638,8 @@ Generate a comprehensive migration analysis that provides clear, actionable guid
     
     async def _get_related_code_snippets(
         self,
-        entity: CodeEntity,
-        related_entities: List[CodeEntity]
+        entity: CodeEntityData,
+        related_entities: List[CodeEntityData]
     ) -> Dict[str, str]:
         """Get code snippets from related entities for context"""
         code_snippets = {}
@@ -666,8 +666,8 @@ Generate a comprehensive migration analysis that provides clear, actionable guid
     def _convert_to_enhanced_rule(
         self,
         raw_rule: BusinessRule,
-        entity: CodeEntity,
-        hierarchy_path: List[CodeEntity]
+        entity: CodeEntityData,
+        hierarchy_path: List[CodeEntityData]
     ) -> BusinessRuleContext:
         """Convert raw business rule to enhanced context"""
         
@@ -682,7 +682,7 @@ Generate a comprehensive migration analysis that provides clear, actionable guid
             confidence_score=raw_rule.confidence_score,
             category=raw_rule.category,
             code_entity_id=entity.id,
-            module_path=entity.metadata.get('module_path', ''),
+            module_path=entity.entity_metadata.get('module_path', ''),
             class_context=class_context,
             method_context=method_context,
             business_impact=getattr(raw_rule, 'business_impact', None),
@@ -692,7 +692,7 @@ Generate a comprehensive migration analysis that provides clear, actionable guid
     async def _generate_plain_english_explanation(
         self,
         rule: BusinessRuleContext,
-        entity: CodeEntity,
+        entity: CodeEntityData,
         code_context: str
     ) -> str:
         """Generate plain English explanation with precise code traceability"""

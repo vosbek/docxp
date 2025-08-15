@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 
 from app.services.code_intelligence import (
-    CodeIntelligenceGraph, CodeEntity, CodeRelationship, BusinessRuleContext,
+    CodeIntelligenceGraph, CodeEntityData, CodeRelationship, BusinessRuleContext,
     code_intelligence
 )
 from app.models.schemas import BusinessRule
@@ -131,12 +131,12 @@ class CodeIntelligenceBuilder:
             if code_entity:
                 self.graph.add_entity(code_entity)
     
-    def _create_module_entity(self, file_path: str) -> CodeEntity:
+    def _create_module_entity(self, file_path: str) -> CodeEntityData:
         """Create a module entity from a file path"""
         module_path = self._extract_module_path(file_path)
         module_id = f"module:{module_path}"
         
-        return CodeEntity(
+        return CodeEntityData(
             id=module_id,
             name=Path(file_path).stem,
             type='module',
@@ -148,8 +148,8 @@ class CodeIntelligenceBuilder:
             }
         )
     
-    def _convert_to_code_entity(self, entity: Dict[str, Any]) -> Optional[CodeEntity]:
-        """Convert a parsed entity to a CodeEntity"""
+    def _convert_to_code_entity(self, entity: Dict[str, Any]) -> Optional[CodeEntityData]:
+        """Convert a parsed entity to a CodeEntityData"""
         name = entity.get('name', 'unknown')
         entity_type = entity.get('type', 'unknown')
         file_path = entity.get('file_path', '')
@@ -166,7 +166,7 @@ class CodeIntelligenceBuilder:
         complexity = entity.get('complexity', 0)
         dependencies = entity.get('dependencies', [])
         
-        code_entity = CodeEntity(
+        code_entity = CodeEntityData(
             id=entity_id,
             name=name,
             type=entity_type,
