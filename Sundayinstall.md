@@ -217,9 +217,42 @@ python -m pip install --upgrade pip
 # Install all dependencies
 pip install -r requirements.txt
 
+# 🚨 FIX SENTENCE_TRANSFORMERS COMPATIBILITY ISSUE
+# Uninstall conflicting packages
+pip uninstall sentence_transformers huggingface_hub transformers tokenizers -y
+
+# Install compatible versions (CRITICAL FOR CHROMADB)
+pip install "huggingface_hub>=0.16.0,<0.20.0" 
+pip install "sentence_transformers>=2.2.0"
+pip install "transformers>=4.21.0"
+
+# Test sentence_transformers installation
+python -c "from sentence_transformers import SentenceTransformer; print('✅ sentence_transformers working')"
+
+# Test ChromaDB with SentenceTransformer
+python -c "
+import chromadb
+from chromadb.utils import embedding_functions
+ef = embedding_functions.SentenceTransformerEmbeddingFunction()
+print('✅ ChromaDB with SentenceTransformer working')
+"
+
 # Verify critical imports work
 python validate_imports.py
 # Should show: SUCCESS: ALL VALIDATION TESTS PASSED!
+```
+
+### 🛠️ Alternative Fix if Above Fails
+If you still get `ImportError: cannot import name 'cached_download'`, use these specific versions:
+
+```bash
+# Force install older compatible versions
+pip install "huggingface_hub==0.19.4"
+pip install "sentence_transformers==2.2.2"
+pip install "transformers==4.35.0"
+
+# Test again
+python -c "from sentence_transformers import SentenceTransformer; print('✅ sentence_transformers working')"
 ```
 
 ---
@@ -382,6 +415,28 @@ curl http://localhost:8001/api/v1/indexing/jobs/job_xxx/status
 ---
 
 ## 🔍 **Troubleshooting**
+
+### Python Package Compatibility Issues
+```bash
+# Issue: ImportError: cannot import name 'cached_download' from 'huggingface_hub'
+# Fix: Version compatibility between sentence_transformers and huggingface_hub
+
+# Uninstall conflicting packages
+pip uninstall sentence_transformers huggingface_hub transformers tokenizers -y
+
+# Install compatible versions
+pip install "huggingface_hub>=0.16.0,<0.20.0" 
+pip install "sentence_transformers>=2.2.0"
+pip install "transformers>=4.21.0"
+
+# Alternative: Use specific working versions
+pip install "huggingface_hub==0.19.4"
+pip install "sentence_transformers==2.2.2"
+pip install "transformers==4.35.0"
+
+# Test the fix
+python -c "from sentence_transformers import SentenceTransformer; print('✅ Working')"
+```
 
 ### PostgreSQL Issues
 ```bash
