@@ -59,6 +59,16 @@ export class AppComponent implements OnInit {
         routerLink: '/generate'
       },
       {
+        label: 'AI Chat',
+        icon: 'pi pi-comments',
+        routerLink: '/chat'
+      },
+      {
+        label: 'V1 Search',
+        icon: 'pi pi-search',
+        routerLink: '/v1-search'
+      },
+      {
         label: 'Repositories',
         icon: 'pi pi-folder',
         routerLink: '/repositories'

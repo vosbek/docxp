@@ -1,6 +1,6 @@
 .app-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffffff;
   position: relative;
 }
 
@@ -41,17 +41,13 @@
   
   .logo-icon {
     font-size: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #003087;
   }
   
   .logo-text {
     font-size: 20px;
+    color: #003087;
     font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
 }
 

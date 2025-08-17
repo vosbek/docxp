@@ -81,7 +81,7 @@ export interface JobDiagramsResponse {
   providedIn: 'root'
 })
 export class ApiService {
-  private apiUrl = 'http://localhost:8001/api';
+  private apiUrl = 'http://localhost:8000/api';
   private activeJobs = new BehaviorSubject<JobStatus[]>([]);
   
   constructor(private http: HttpClient) {}
