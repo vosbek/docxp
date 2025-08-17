@@ -13,6 +13,7 @@ import time
 import uuid
 
 from app.api import documentation, repositories, analytics, configuration, health, aws_configuration, semantic_search, repository_processing, strands_agents, hybrid_search, v1_indexing
+from app.api.v1 import enhanced_indexing, jqassistant, semgrep
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.opensearch_setup import initialize_opensearch
@@ -197,6 +198,27 @@ app.include_router(
     v1_indexing.router,
     prefix="/api",
     tags=["V1 Indexing"]
+)
+
+# V1 Enhanced Indexing API (with jQAssistant Integration)
+app.include_router(
+    enhanced_indexing.router,
+    prefix="/api/v1",
+    tags=["Enhanced V1 Indexing"]
+)
+
+# V1 jQAssistant Architecture Analysis API
+app.include_router(
+    jqassistant.router,
+    prefix="/api/v1",
+    tags=["Architecture Analysis"]
+)
+
+# V1 Semgrep Static Analysis API
+app.include_router(
+    semgrep.router,
+    prefix="/api/v1",
+    tags=["Static Analysis"]
 )
 
 # Serve static files (generated documentation)
