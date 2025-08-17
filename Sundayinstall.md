@@ -6,6 +6,15 @@
 
 ---
 
+## 🚀 **CURRENT PROGRESS STATUS**
+- ✅ **Step 1: PostgreSQL Installed** (Password needs fixing)
+- ✅ **Step 2: Redis/Memurai Installed** (Service needs starting)
+- ⏳ **NEXT: Fix PostgreSQL password and start services**
+
+---
+
+---
+
 ## 🎯 **Prerequisites Confirmed**
 - ✅ Python 3.10+
 - ✅ Node.js 18+
@@ -17,33 +26,38 @@
 
 ---
 
-## 📦 **Step 1: Install PostgreSQL**
+## 📦 **Step 1: Install PostgreSQL** ✅
 
-### Windows (Using Chocolatey - Recommended)
+### Windows (Using Chocolatey - COMPLETED)
 ```bash
-# Install PostgreSQL 15
+# ALREADY COMPLETED ✅
 choco install postgresql --version=15.8.0 --params '/Password:docxp2024'
-
-# Or download directly from:
-# https://www.postgresql.org/download/windows/
-# Use password: docxp2024
+# Note: Chocolatey ignored the password parameter and generated: c37e562786d949539dacd487616779ad
 ```
 
-### Manual Installation
-1. Download PostgreSQL 15+ from https://www.postgresql.org/download/windows/
-2. Run installer with these settings:
-   - **Port:** 5432
-   - **Password:** `docxp2024`
-   - **Locale:** Default
-3. Add to PATH: `C:\Program Files\PostgreSQL\15\bin`
+### 🔧 **Fix PostgreSQL Password**
+```bash
+# Refresh environment variables first
+refreshenv
 
-### Verify Installation
+# Reset postgres user password to our desired password
+psql -U postgres -h localhost
+# When prompted, enter the generated password: c37e562786d949539dacd487616779ad
+
+# Once connected, run this SQL command:
+ALTER USER postgres PASSWORD 'docxp2024';
+
+# Exit psql
+\q
+```
+
+### Verify Fixed Installation
 ```bash
 # Test PostgreSQL is running
 psql --version
 # Should show: psql (PostgreSQL) 15.x
 
-# Test connection
+# Test connection with new password
 psql -U postgres -h localhost
 # Enter password: docxp2024
 # Type \q to exit
@@ -51,32 +65,35 @@ psql -U postgres -h localhost
 
 ---
 
-## 🔴 **Step 2: Install Redis**
+## 🔴 **Step 2: Install Redis** ✅
 
-### Option A: Using Podman (Recommended)
+### Windows Installation (COMPLETED)
 ```bash
-# Start Redis container
-podman run -d --name docxp-redis -p 6379:6379 redis:7-alpine
-
-# Verify Redis is running
-podman ps
-# Should show redis container running on port 6379
-```
-
-### Option B: Native Windows Installation
-```bash
-# Using Chocolatey
+# ALREADY COMPLETED ✅
 choco install redis-64
-
-# Or download from:
-# https://github.com/microsoftarchive/redis/releases
+# Note: This installed Memurai Developer (Redis-compatible) instead of native Redis
+# Memurai is Redis-compatible and works perfectly with DocXP
 ```
 
-### Verify Redis Installation
+### 🔧 **Start Memurai Service**
 ```bash
-# Test Redis connection
+# Refresh environment variables
+refreshenv
+
+# Start Memurai service (Redis-compatible)
+net start Memurai
+
+# Alternative: Use Services.msc and start "Memurai" service manually
+```
+
+### Verify Redis/Memurai Installation
+```bash
+# Test Redis connection (Memurai uses same commands)
 redis-cli ping
 # Should return: PONG
+
+# If redis-cli is not found, try:
+"C:\Program Files\Memurai\redis-cli.exe" ping
 ```
 
 ---
