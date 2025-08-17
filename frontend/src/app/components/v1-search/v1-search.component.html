@@ -1,0 +1,255 @@
+<div class="v1-search-container">
+  <!-- Header with system status -->
+  <div class="search-header">
+    <div class="header-content">
+      <h1>
+        <mat-icon>search</mat-icon>
+        DocXP V1 Hybrid Search
+      </h1>
+      <div class="system-status" [ngClass]="getHealthStatusClass()">
+        <mat-icon *ngIf="healthStatus?.success; else unhealthyIcon">check_circle</mat-icon>
+        <ng-template #unhealthyIcon>
+          <mat-icon>error</mat-icon>
+        </ng-template>
+        <span>{{ healthStatus?.status || 'checking...' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search tabs -->
+  <mat-tab-group (selectedTabChange)="selectTab($event.index)">
+    
+    <!-- Hybrid Search Tab -->
+    <mat-tab label="Hybrid Search">
+      <div class="tab-content">
+        <form [formGroup]="searchForm" (ngSubmit)="performSearch()" class="search-form">
+          
+          <!-- Main search input -->
+          <mat-form-field appearance="outline" class="search-input">
+            <mat-label>Search Query</mat-label>
+            <input matInput 
+                   formControlName="query" 
+                   placeholder="Enter your search query..."
+                   autocomplete="off">
+            <mat-icon matSuffix>search</mat-icon>
+            <mat-error *ngIf="hasFieldError('query')">
+              {{ getFieldError('query') }}
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Advanced filters -->
+          <div class="advanced-filters">
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>tune</mat-icon>
+                  Advanced Filters
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+
+              <div class="filter-grid">
+                <!-- File types -->
+                <mat-form-field appearance="outline">
+                  <mat-label>File Types</mat-label>
+                  <mat-select formControlName="fileTypes" multiple>
+                    <mat-option *ngFor="let type of fileTypeOptions" [value]="type.value">
+                      {{ type.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Max results -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Max Results</mat-label>
+                  <input matInput type="number" formControlName="maxResults" min="1" max="100">
+                </mat-form-field>
+
+                <!-- Search preferences -->
+                <div class="search-preferences">
+                  <mat-checkbox formControlName="preferText">
+                    Prefer Text Matching (BM25 boost)
+                  </mat-checkbox>
+                  <mat-checkbox formControlName="preferSemantic">
+                    Prefer Semantic Matching (k-NN boost)
+                  </mat-checkbox>
+                </div>
+              </div>
+            </mat-expansion-panel>
+          </div>
+
+          <!-- Search button -->
+          <button mat-raised-button 
+                  color="primary" 
+                  type="submit" 
+                  [disabled]="isSearching || searchForm.invalid"
+                  class="search-button">
+            <mat-icon *ngIf="!isSearching">search</mat-icon>
+            <mat-spinner *ngIf="isSearching" diameter="20"></mat-spinner>
+            <span>{{ isSearching ? 'Searching...' : 'Search' }}</span>
+          </button>
+        </form>
+      </div>
+    </mat-tab>
+
+    <!-- Golden Questions Tab -->
+    <mat-tab label="Golden Questions">
+      <div class="tab-content">
+        <div class="golden-questions-info">
+          <mat-icon>quiz</mat-icon>
+          <p>Test the V1 search engine with predefined demo questions designed to showcase grounded citations.</p>
+        </div>
+
+        <div class="demo-questions" *ngIf="demoQuestions.length > 0">
+          <mat-card *ngFor="let question of demoQuestions" class="question-card">
+            <mat-card-header>
+              <mat-card-title>{{ question.question }}</mat-card-title>
+              <mat-card-subtitle>{{ question.category }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <p>{{ question.description }}</p>
+              <div class="expected-files">
+                <strong>Expected files:</strong>
+                <mat-chip-listbox>
+                  <mat-chip *ngFor="let file of question.expected_files">{{ file }}</mat-chip>
+                </mat-chip-listbox>
+              </div>
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-button 
+                      color="primary" 
+                      [disabled]="isSearching"
+                      (click)="performGoldenQuestionSearch(question.question)">
+                <mat-icon>play_arrow</mat-icon>
+                Test Question
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+
+        <div *ngIf="demoQuestions.length === 0" class="no-questions">
+          <mat-icon>help_outline</mat-icon>
+          <p>No demo questions available. Check backend connection.</p>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Quick Search Tab -->
+    <mat-tab label="Quick Search">
+      <div class="tab-content">
+        <div class="quick-search-info">
+          <mat-icon>flash_on</mat-icon>
+          <p>Type to search immediately. Results appear as you type with a 500ms debounce.</p>
+        </div>
+
+        <mat-form-field appearance="outline" class="quick-search-input">
+          <mat-label>Quick Search</mat-label>
+          <input matInput 
+                 formControlName="query" 
+                 placeholder="Start typing to search..."
+                 autocomplete="off">
+          <mat-icon matSuffix>flash_on</mat-icon>
+        </mat-form-field>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <!-- Search results -->
+  <div class="search-results" *ngIf="searchResults.length > 0 || searchError">
+    
+    <!-- Performance indicator -->
+    <div class="performance-header" *ngIf="searchResponse" [ngClass]="getPerformanceClass()">
+      <div class="performance-info">
+        <mat-icon>speed</mat-icon>
+        <span>{{ formatSearchTime() }} | {{ searchResults.length }} results | {{ getFusionDetails() }}</span>
+      </div>
+      
+      <div class="performance-slo" 
+           [ngClass]="{ 'meets-slo': searchResponse.data.performance.meets_slo }">
+        <mat-icon>{{ searchResponse.data.performance.meets_slo ? 'check' : 'warning' }}</mat-icon>
+        <span>{{ searchResponse.data.performance.meets_slo ? 'Meets SLO' : 'Exceeds SLO' }}</span>
+      </div>
+    </div>
+
+    <!-- Error display -->
+    <mat-card *ngIf="searchError" class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon color="warn">error</mat-icon>
+          <div>
+            <h3>Search Error</h3>
+            <p>{{ searchError }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Results list -->
+    <div class="results-list" *ngIf="searchResults.length > 0">
+      <mat-card *ngFor="let result of searchResults; trackBy: trackByResultId" class="result-card">
+        
+        <!-- Result header with citation -->
+        <mat-card-header>
+          <mat-card-title>
+            <div class="result-title">
+              <mat-icon>{{ getFileIcon(result.citation.path) }}</mat-icon>
+              <span>{{ formatCitation(result) }}</span>
+            </div>
+          </mat-card-title>
+          <mat-card-subtitle>
+            <div class="result-metadata">
+              <span class="language">{{ result.metadata.language }}</span>
+              <span class="kind">{{ result.metadata.kind }}</span>
+              <span class="repo" *ngIf="result.metadata.repo_id">{{ result.metadata.repo_id }}</span>
+            </div>
+          </mat-card-subtitle>
+        </mat-card-header>
+
+        <!-- Code content -->
+        <mat-card-content>
+          <div class="code-snippet">
+            <pre><code>{{ getCodeSnippet(result) }}</code></pre>
+          </div>
+          
+          <!-- Highlights -->
+          <div class="highlights" *ngIf="result.highlight?.content">
+            <strong>Matches:</strong>
+            <div [innerHTML]="result.highlight.content[0]"></div>
+          </div>
+        </mat-card-content>
+
+        <!-- Result footer with scores -->
+        <mat-card-actions>
+          <div class="result-scores">
+            <mat-chip-listbox>
+              <mat-chip [ngClass]="'score-' + result.citation.search_type">
+                {{ result.citation.search_type.toUpperCase() }}
+              </mat-chip>
+              <mat-chip>RRF: {{ result.scores.rrf_score.toFixed(3) }}</mat-chip>
+              <mat-chip *ngIf="result.scores.bm25_rank">BM25: #{{ result.scores.bm25_rank }}</mat-chip>
+              <mat-chip *ngIf="result.scores.knn_rank">k-NN: #{{ result.scores.knn_rank }}</mat-chip>
+            </mat-chip-listbox>
+          </div>
+          
+          <button mat-icon-button 
+                  matTooltip="Copy citation" 
+                  (click)="copyCitation(result)">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- No results -->
+    <div *ngIf="searchResults.length === 0 && !searchError && !isSearching" class="no-results">
+      <mat-icon>search_off</mat-icon>
+      <h3>No results found</h3>
+      <p>Try adjusting your search query or filters</p>
+    </div>
+  </div>
+
+  <!-- Loading indicator -->
+  <div class="loading-container" *ngIf="isSearching">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Searching with RRF hybrid engine...</p>
+  </div>
+</div>

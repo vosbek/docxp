@@ -10,6 +10,9 @@ from pathlib import Path
 class Settings(BaseSettings):
     """Application settings"""
     
+    # Base directory
+    BASE_DIR: Path = Path(__file__).parent.parent
+    
     # Application
     APP_NAME: str = "DocXP"
     APP_VERSION: str = "1.0.0"
@@ -21,6 +24,11 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./docxp.db"
+    
+    # Vector Database (ChromaDB)
+    VECTOR_DB_PATH: str = "./data/vector_db"
+    EMBEDDING_MODEL: str = "microsoft/codebert-base"  # Optimized for code understanding
+    VECTOR_DB_ENABLED: bool = True
     
     # External Database Analysis (Optional - graceful degradation if not available)
     # Oracle Database
@@ -82,6 +90,10 @@ class Settings(BaseSettings):
     MAX_WORKERS: int = 4
     CHUNK_SIZE: int = 1000  # Lines per chunk for large files
     PROCESSING_TIMEOUT: int = 600  # 10 minutes
+    
+    # Repository Processing
+    MAX_CONCURRENT_REPOS: int = 4  # Maximum repositories to process in parallel
+    BATCH_SIZE: int = 50  # Files processed per batch
     
     # Documentation Generation
     DEFAULT_DOC_DEPTH: str = "standard"

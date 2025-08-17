@@ -1,0 +1,345 @@
+<div class="dependency-graph-wrapper">
+  <!-- Graph Controls -->
+  <mat-card class="controls-card">
+    <mat-card-content>
+      <div class="controls-grid">
+        
+        <!-- Layout Controls -->
+        <div class="control-group">
+          <h4>Layout</h4>
+          <mat-form-field appearance="fill">
+            <mat-label>Algorithm</mat-label>
+            <mat-select [(value)]="config.layoutAlgorithm" (selectionChange)="onConfigChange()">
+              <mat-option value="force">Force-directed</mat-option>
+              <mat-option value="hierarchical">Hierarchical</mat-option>
+              <mat-option value="circular">Circular</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-checkbox [(ngModel)]="config.groupByLayer" (change)="onConfigChange()">
+            Group by Layer
+          </mat-checkbox>
+        </div>
+
+        <!-- Visual Controls -->
+        <div class="control-group">
+          <h4>Visual</h4>
+          <mat-form-field appearance="fill">
+            <mat-label>Node Size</mat-label>
+            <mat-select [(value)]="config.nodeSize" (selectionChange)="onConfigChange()">
+              <mat-option value="uniform">Uniform</mat-option>
+              <mat-option value="weighted">By Degree</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Edge Thickness</mat-label>
+            <mat-select [(value)]="config.edgeThickness" (selectionChange)="onConfigChange()">
+              <mat-option value="uniform">Uniform</mat-option>
+              <mat-option value="weighted">By Weight</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Display Options -->
+        <div class="control-group">
+          <h4>Display</h4>
+          <mat-checkbox [(ngModel)]="config.showCycles" (change)="onConfigChange()">
+            Show Cycles
+          </mat-checkbox>
+
+          <mat-checkbox [(ngModel)]="config.showWeights" (change)="onConfigChange()">
+            Show Weights
+          </mat-checkbox>
+
+          <mat-checkbox [(ngModel)]="showNodeLabels" (change)="onConfigChange()">
+            Show Labels
+          </mat-checkbox>
+
+          <mat-checkbox [(ngModel)]="config.highlightCycles">
+            Highlight Cycles
+          </mat-checkbox>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="control-group">
+          <h4>Filter</h4>
+          <mat-form-field appearance="fill" class="filter-field">
+            <mat-label>Package Filter</mat-label>
+            <input matInput 
+                   [(ngModel)]="config.packageFilter" 
+                   (ngModelChange)="onConfigChange()"
+                   placeholder="com.example.*">
+            <mat-icon matSuffix>filter_list</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <!-- Graph Actions -->
+        <div class="control-group">
+          <h4>Actions</h4>
+          <div class="action-buttons">
+            <button mat-stroked-button (click)="resetZoom()">
+              <mat-icon>zoom_out_map</mat-icon>
+              Reset Zoom
+            </button>
+
+            <button mat-stroked-button (click)="fitToView()">
+              <mat-icon>fit_screen</mat-icon>
+              Fit to View
+            </button>
+
+            <button mat-stroked-button (click)="clearSelection()">
+              <mat-icon>clear</mat-icon>
+              Clear Selection
+            </button>
+
+            <button mat-stroked-button [matMenuTriggerFor]="exportMenu">
+              <mat-icon>download</mat-icon>
+              Export
+            </button>
+            <mat-menu #exportMenu="matMenu">
+              <button mat-menu-item (click)="exportGraph('svg')">
+                <mat-icon>image</mat-icon>
+                Export as SVG
+              </button>
+              <button mat-menu-item (click)="exportGraph('png')">
+                <mat-icon>photo</mat-icon>
+                Export as PNG
+              </button>
+            </mat-menu>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Main Graph Container -->
+  <div class="graph-main-container">
+    
+    <!-- Graph Visualization -->
+    <mat-card class="graph-card">
+      <mat-card-content>
+        <div class="graph-header">
+          <h3>
+            <mat-icon>device_hub</mat-icon>
+            Package Dependency Graph
+          </h3>
+          
+          <div class="zoom-info" *ngIf="zoomLevel !== 1">
+            Zoom: {{ (zoomLevel * 100) | number:'1.0-0' }}%
+          </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading-container" *ngIf="isLoading">
+          <mat-progress-spinner diameter="50" mode="indeterminate"></mat-progress-spinner>
+          <p>Loading dependency graph...</p>
+        </div>
+
+        <!-- Graph Container -->
+        <div class="graph-container" [style.height.px]="height" *ngIf="!isLoading">
+          <div #graphContainer class="graph-svg-container"></div>
+          
+          <!-- Minimap -->
+          <div class="minimap-container" *ngIf="showMinimap">
+            <div #minimap class="minimap"></div>
+          </div>
+        </div>
+
+        <!-- No Data Message -->
+        <div class="no-data-message" *ngIf="!isLoading && !dependencyGraph">
+          <mat-icon>info</mat-icon>
+          <p>No dependency data available</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Graph Statistics and Legend -->
+    <div class="sidebar">
+      
+      <!-- Statistics Panel -->
+      <mat-card class="stats-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>bar_chart</mat-icon>
+            Statistics
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="stat-item">
+            <span class="stat-label">Nodes:</span>
+            <span class="stat-value">{{ stats.totalNodes }}</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-label">Edges:</span>
+            <span class="stat-value">{{ stats.totalEdges }}</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-label">Cyclic Edges:</span>
+            <span class="stat-value cyclic">{{ stats.cyclicEdges }}</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-label">Max Weight:</span>
+            <span class="stat-value">{{ stats.maxWeight }}</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-label">Layers:</span>
+            <span class="stat-value">{{ stats.layers.length }}</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-label">SCCs:</span>
+            <span class="stat-value">{{ stats.stronglyConnectedComponents }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Legend Panel -->
+      <mat-card class="legend-card" *ngIf="showLegend">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>palette</mat-icon>
+            Legend
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="legend-section">
+            <h4>Layers</h4>
+            <div class="legend-item" *ngFor="let layer of stats.layers">
+              <div class="legend-color" [style.background-color]="getLayerColor(layer)"></div>
+              <span class="legend-label">{{ layer | titlecase }}</span>
+            </div>
+          </div>
+          
+          <div class="legend-section">
+            <h4>Edge Types</h4>
+            <div class="legend-item">
+              <div class="legend-line normal"></div>
+              <span class="legend-label">Normal Dependency</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-line cyclic"></div>
+              <span class="legend-label">Cyclic Dependency</span>
+            </div>
+          </div>
+          
+          <div class="legend-section">
+            <h4>Node States</h4>
+            <div class="legend-item">
+              <div class="legend-node normal"></div>
+              <span class="legend-label">Normal</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-node selected"></div>
+              <span class="legend-label">Selected</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-node highlighted"></div>
+              <span class="legend-label">Connected</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Selection Details -->
+      <mat-card class="selection-card" *ngIf="selectedNode || selectedEdge">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>info</mat-icon>
+            Selection Details
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <!-- Node Details -->
+          <div *ngIf="selectedNode" class="selection-details">
+            <h4>Node: {{ selectedNode.label }}</h4>
+            <div class="detail-item">
+              <strong>ID:</strong> {{ selectedNode.id }}
+            </div>
+            <div class="detail-item">
+              <strong>Type:</strong> {{ selectedNode.type }}
+            </div>
+            <div class="detail-item" *ngIf="selectedNode.layer">
+              <strong>Layer:</strong> {{ selectedNode.layer }}
+            </div>
+            <div class="detail-item">
+              <strong>Size:</strong> {{ selectedNode.size }}
+            </div>
+            
+            <!-- Connected Nodes -->
+            <div class="connected-nodes" *ngIf="getConnectedNodes(selectedNode).length > 0">
+              <h5>Connected Nodes ({{ getConnectedNodes(selectedNode).length }})</h5>
+              <div class="connected-list">
+                <div *ngFor="let connectedNode of getConnectedNodes(selectedNode)" 
+                     class="connected-item"
+                     (click)="onNodeClick(connectedNode)">
+                  {{ connectedNode.label }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edge Details -->
+          <div *ngIf="selectedEdge" class="selection-details">
+            <h4>Dependency</h4>
+            <div class="detail-item">
+              <strong>From:</strong> {{ selectedEdge.source }}
+            </div>
+            <div class="detail-item">
+              <strong>To:</strong> {{ selectedEdge.target }}
+            </div>
+            <div class="detail-item">
+              <strong>Type:</strong> {{ selectedEdge.type }}
+            </div>
+            <div class="detail-item">
+              <strong>Weight:</strong> {{ selectedEdge.weight }}
+            </div>
+            <div class="detail-item" *ngIf="selectedEdge.is_cyclic">
+              <strong>Cyclic:</strong> 
+              <mat-icon class="cyclic-icon">warning</mat-icon>
+              Yes
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Layer Analysis -->
+      <mat-card class="layer-analysis-card" *ngIf="stats.layers.length > 0">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>layers</mat-icon>
+            Layer Analysis
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="layer-item" *ngFor="let layer of stats.layers">
+            <div class="layer-header">
+              <div class="layer-color" [style.background-color]="getLayerColor(layer)"></div>
+              <span class="layer-name">{{ layer | titlecase }}</span>
+              <span class="layer-count">({{ getLayerNodeCount(layer) }})</span>
+            </div>
+            
+            <div class="layer-metrics">
+              <div class="metric">
+                <span class="metric-label">Incoming:</span>
+                <span class="metric-value">{{ getLayerIncomingEdges(layer) }}</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Outgoing:</span>
+                <span class="metric-value">{{ getLayerOutgoingEdges(layer) }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

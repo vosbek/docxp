@@ -1,0 +1,28 @@
+{
+  "size": 50,
+  "query": {
+    "bool": {
+      "must": {
+        "multi_match": {
+          "query": "<QUERY>",
+          "fields": [
+            "content"
+          ],
+          "type": "best_fields"
+        }
+      },
+      "filter": [
+        {
+          "term": {
+            "repo_id": "<REPO>"
+          }
+        },
+        {
+          "term": {
+            "commit": "<COMMIT>"
+          }
+        }
+      ]
+    }
+  }
+}

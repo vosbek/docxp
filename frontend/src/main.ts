@@ -15,6 +15,14 @@ const routes: Routes = [
     loadComponent: () => import('./app/components/generation-wizard/generation-wizard.component').then(m => m.GenerationWizardComponent) 
   },
   { 
+    path: 'chat', 
+    loadComponent: () => import('./app/components/chat/chat-interface.component').then(m => m.ChatInterfaceComponent) 
+  },
+  { 
+    path: 'v1-search', 
+    loadComponent: () => import('./app/components/v1-search/v1-search.component').then(m => m.V1SearchComponent) 
+  },
+  { 
     path: 'repositories', 
     loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
   },

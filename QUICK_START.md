@@ -1,232 +1,223 @@
 # DocXP Quick Start Guide
 
-## 🚀 Get Started in 60 Seconds
+## ⚡ Get Running in 5 Minutes
 
-### Step 1: System Check (10 seconds)
-```batch
-test-system.bat
+### Prerequisites Check
+- ✅ Python 3.10+ installed
+- ✅ Node.js 18+ installed  
+- ✅ Git installed
+- ✅ AWS account with Bedrock access (**REQUIRED**)
+
+### Step 1: AWS Setup (2 minutes)
+```bash
+# Install AWS CLI if needed
+# Windows: Download from https://aws.amazon.com/cli/
+# Mac: brew install awscli
+# Linux: pip install awscli
+
+# Configure credentials (choose one):
+
+# Option A: Access Keys
+aws configure
+# Enter: Access Key ID, Secret Access Key, Region (us-east-1), Format (json)
+
+# Option B: SSO (Enterprise)
+aws configure sso
+
+# Verify it works
+aws sts get-caller-identity
 ```
-This verifies all prerequisites are met.
 
-### Step 2: Start DocXP (30 seconds)
-```batch
+### Step 2: Clone and Start (3 minutes)
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd docxp
+
+# Start everything (Windows)
 enhanced-start.bat
+
+# Start everything (Mac/Linux)
+chmod +x start.sh
+./start.sh
 ```
-This will:
-- ✅ Validate environment
-- ✅ Install dependencies
-- ✅ Start all services
-- ✅ Open browser automatically
 
-### Step 3: Generate Your First Documentation (20 seconds)
-1. Click **"Generate Documentation"** button
-2. Enter your repository path (e.g., `C:\projects\my-app`)
-3. Click **Generate**
-4. Watch the real-time progress
+### Step 3: Verify It's Working
+1. **Backend API**: http://localhost:8001/health
+2. **Frontend**: http://localhost:4200 (opens automatically)
+3. **API Docs**: http://localhost:8001/docs
 
-That's it! Your documentation will be ready in minutes.
+## 🎯 First Analysis
 
-## 🎯 Quick Actions
+### Analyze Your First Repository
 
-### Generate Documentation
+1. **Open DocXP**: http://localhost:4200
+2. **Navigate to "Enhanced Indexing" tab**
+3. **Enter repository path**: `/path/to/your/code`
+4. **Click "Start Enhanced Indexing"**
+5. **Watch progress in real-time**
+
+### What DocXP Will Do
+- 📁 **Scan files** (Python, Java, JS, TS, etc.)
+- 🔍 **Generate embeddings** for semantic search
+- 🏗️ **Analyze architecture** (for Java projects)
+- 🛡️ **Run security analysis** (if Semgrep installed)
+- 💬 **Enable AI chat** with your codebase
+
+## 🚀 Key Features to Try
+
+### 1. Semantic Search
+- Search: "find user authentication logic"
+- Search: "database connection setup"
+- Search: "error handling patterns"
+
+### 2. AI Chat
+- Ask: "How does user login work?"
+- Ask: "Show me the main entry points"
+- Ask: "What are the security vulnerabilities?"
+
+### 3. Architecture Analysis (Java)
+- View dependency graphs
+- Check architectural violations
+- Get quality metrics and recommendations
+
+### 4. Code Flow Analysis
+- Trace JSP → Struts → Service flows
+- Find Angular component dependencies
+- Analyze CORBA interface usage
+
+## 🔧 Troubleshooting
+
+### "AWS credentials not found"
 ```bash
-# Via UI
-1. Navigate to http://localhost:4200
-2. Click "Generate Documentation"
-3. Follow the wizard
+# Check if credentials are configured
+aws sts get-caller-identity
 
-# Via API
-curl -X POST http://localhost:8001/api/documentation/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "repository_path": "C:/path/to/repo",
-    "depth": "standard",
-    "include_diagrams": true,
-    "include_business_rules": true
-  }'
+# If not working, reconfigure
+aws configure
 ```
 
-### Check Job Status
+### "Bedrock access denied"
 ```bash
-# Via UI
-Look at the dashboard's "Recent Jobs" table
+# Check Bedrock access (should list models)
+aws bedrock list-foundation-models --region us-east-1
 
-# Via API
-curl http://localhost:8001/api/documentation/status/{job_id}
+# If fails: Enable Bedrock in AWS Console → Bedrock → Model access
 ```
 
-### Download Documentation
+### "Port 8001 already in use"
 ```bash
-# Via UI
-Click the download icon in the Recent Jobs table
+# Windows
+netstat -ano | findstr :8001
+taskkill /F /PID <PID>
 
-# Via API
-curl http://localhost:8001/api/documentation/download/{job_id} -o docs.zip
+# Mac/Linux
+lsof -i :8001
+kill -9 <PID>
 ```
 
-### Sync Repository (Incremental Updates)
+### Application won't start
 ```bash
-# Via UI
-Click "Sync Repository" in Quick Actions
+# Check logs
+tail -f backend/logs/docxp.log
 
-# Via API
-curl -X POST "http://localhost:8001/api/documentation/sync?repo_path=C:/path/to/repo"
-```
-
-## 🔍 Health Monitoring
-
-### Quick Health Check
-```bash
-curl http://localhost:8001/health
-```
-
-### Detailed System Status
-```bash
-curl http://localhost:8001/health/detailed | python -m json.tool
-```
-
-### Dashboard Indicators
-- 🟢 Green = Service healthy
-- 🟡 Yellow = Service degraded
-- 🔴 Red = Service down
-
-## 🛠️ Configuration Options
-
-### Documentation Depth Levels
-- **Minimal**: Basic structure only (fastest)
-- **Standard**: Recommended for most projects
-- **Comprehensive**: Detailed analysis
-- **Exhaustive**: Complete documentation (slowest)
-
-### Focus Areas
-- ✅ Classes and Objects
-- ✅ Functions and Methods
-- ✅ APIs and Endpoints
-- ✅ Database Schemas
-- ✅ Security Patterns
-- ✅ Configuration Files
-
-### Output Options
-- 📊 Mermaid Diagrams
-- 📋 Business Rules
-- 📚 API Documentation
-- 🔄 Incremental Updates
-
-## 📁 Output Location
-
-Generated documentation is saved to:
-```
-backend/output/{job_id}/
-├── README.md           # Main documentation
-├── architecture.md     # System architecture
-├── business_rules.md   # Extracted rules
-├── api_docs.md        # API documentation
-└── diagrams/          # Mermaid diagrams
-```
-
-## ⚡ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl + G` | Generate new documentation |
-| `Ctrl + R` | Refresh dashboard |
-| `Ctrl + H` | Show help |
-| `F5` | Reload metrics |
-
-## 🔧 Troubleshooting Quick Fixes
-
-### Application Won't Start
-```batch
 # Run diagnostics
 cd backend
-python diagnose.py
-
-# Follow the suggested fixes
+python -m app.core.validator
 ```
 
-### Port Already in Use
-```batch
-# Kill processes on ports
-taskkill /F /IM node.exe
-taskkill /F /IM python.exe
+## ⚙️ Quick Configuration
 
-# Restart
-enhanced-start.bat
+### For Large Repositories (>10k files)
+Create `backend/.env`:
+```env
+INDEXING_MAX_FILES_PER_CHUNK=25
+V1_MAX_CONCURRENT_JOBS=1
+JQA_ANALYSIS_TIMEOUT_HOURS=8
 ```
 
-### AWS Not Working
-No problem! The app automatically uses mock mode for AI features.
+### For Development/Testing
+```env
+INDEXING_MAX_FILES_PER_CHUNK=100
+V1_MAX_CONCURRENT_JOBS=4
+ENABLE_JQASSISTANT=false
+ENABLE_SEMGREP=false
+```
 
-### Database Locked
-```batch
+### Skip Optional Features
+```env
+# Skip Java architecture analysis
+ENABLE_JQASSISTANT=false
+
+# Skip static code analysis
+ENABLE_SEMGREP=false
+
+# Lightweight mode
+INDEXING_MODE=lightweight
+```
+
+## 📊 Performance Expectations
+
+| Repository Size | Expected Time | Memory Usage |
+|-----------------|---------------|--------------|
+| Small (<1k files) | 2-5 minutes | 2-4 GB |
+| Medium (1-10k files) | 10-30 minutes | 4-8 GB |
+| Large (10-50k files) | 1-3 hours | 8-16 GB |
+
+## 🆘 Getting Help
+
+### Health Checks
+```bash
+# Overall health
+curl http://localhost:8001/health/detailed
+
+# Component health
+curl http://localhost:8001/health/aws
+curl http://localhost:8001/health/database
+curl http://localhost:8001/health/search
+```
+
+### View Logs
+```bash
+# Real-time logs
+tail -f backend/logs/docxp.log
+
+# Error logs only
+grep ERROR backend/logs/docxp.log
+
+# Last 100 lines
+tail -100 backend/logs/docxp.log
+```
+
+### Common Solutions
+```bash
+# Reset everything (nuclear option)
 cd backend
-del docxp.db
-python -c "from app.core.database import init_db; import asyncio; asyncio.run(init_db())"
+python -c "from app.core.database import reset_database; import asyncio; asyncio.run(reset_database())"
+curl -X DELETE http://localhost:9200/docxp-*
+redis-cli flushall
+
+# Then restart
+enhanced-start.bat  # Windows
+./start.sh          # Mac/Linux
 ```
 
-## 📊 Performance Tips
+## 🎉 Success Indicators
 
-1. **Start Small**: Test with a small repository first
-2. **Use Standard Depth**: Comprehensive is rarely needed
-3. **Exclude Patterns**: Add `node_modules`, `.git`, etc.
-4. **Incremental Sync**: Use sync for updates instead of regenerating
+You'll know DocXP is working when:
+- ✅ Backend health check returns `{"status": "healthy"}`
+- ✅ Frontend loads at http://localhost:4200
+- ✅ You can start an indexing job
+- ✅ Search returns results
+- ✅ Chat interface responds
 
-## 🎨 UI Features
+## 📚 Next Steps
 
-### Dashboard
-- **Real-time metrics** - Live updates every 30 seconds
-- **Job tracking** - See all documentation jobs
-- **Quick actions** - One-click common tasks
-- **System status** - Health indicators
-
-### Generation Wizard
-1. **Repository Selection** - Browse or paste path
-2. **Configuration** - Choose depth and options
-3. **Review** - Confirm settings
-4. **Progress** - Real-time updates
-5. **Results** - Download or view
-
-## 📝 Sample Repository Paths
-
-```batch
-# Python project
-C:\projects\my-python-app
-
-# Angular project
-C:\workspaces\angular-frontend
-
-# Mixed technology
-C:\repos\enterprise-system
-
-# Current directory
-.
-```
-
-## 🚦 Status Indicators
-
-| Status | Meaning | Action |
-|--------|---------|--------|
-| 🟢 Completed | Documentation ready | Download available |
-| 🟡 Processing | Generation in progress | Wait or check status |
-| 🔵 Pending | Queued for processing | Will start soon |
-| 🔴 Failed | Error occurred | Check logs |
-
-## 💡 Pro Tips
-
-1. **Use the diagnostic tool** before reporting issues
-2. **Check logs** for detailed error messages
-3. **Monitor health endpoint** for system status
-4. **Use Request-ID** from headers to trace issues
-5. **Enable AWS** for better AI analysis (optional)
-
-## 📞 Getting Help
-
-1. **Built-in diagnostics**: `python backend/diagnose.py`
-2. **System test**: `test-system.bat`
-3. **API docs**: http://localhost:8001/docs
-4. **Logs**: `backend/logs/docxp.log`
-5. **Health check**: http://localhost:8001/health/detailed
+1. **Read Full Documentation**: [README.md](README.md)
+2. **Explore API**: http://localhost:8001/docs
+3. **Configure Advanced Features**: [jQAssistant Guide](JQASSISTANT_INTEGRATION_GUIDE.md)
+4. **Production Setup**: [Deployment Guide](DEPLOYMENT_GUIDE.md)
 
 ---
 
-**Ready to document your codebase? Start with `enhanced-start.bat`!** 🚀
+**Need Help?** Check http://localhost:8001/health/detailed and backend/logs/docxp.log for diagnostic information.

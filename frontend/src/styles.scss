@@ -1,18 +1,48 @@
-/* DocXP Global Styles - Premium Enterprise Theme */
+// Import Angular Material Theme - Must be first for @use rules
+@use '@angular/material' as mat;
+
+/* DocXP Global Styles - Premium Enterprise Theme with DeepWiki-style UX */
+
+// Import Inter from Google Fonts - Professional Typography
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// Define the premium theme
+@include mat.core();
+
+// Define custom palettes inspired by DeepWiki
+$docxp-primary: mat.define-palette(mat.$blue-palette, 600, 500, 700);
+$docxp-accent: mat.define-palette(mat.$indigo-palette, 600, 500, 700);
+$docxp-warn: mat.define-palette(mat.$red-palette);
+
+// Create the theme object
+$docxp-theme: mat.define-light-theme((
+  color: (
+    primary: $docxp-primary,
+    accent: $docxp-accent,
+    warn: $docxp-warn,
+  ),
+  typography: mat.define-typography-config(
+    $font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  ),
+  density: 0,
+));
+
+// Include theme styles for all components
+@include mat.all-component-themes($docxp-theme);
 
 :root {
-  // Primary Corporate Colors
-  --brand-navy: #1E293B;
-  --brand-blue: #3B82F6;
-  --brand-blue-dark: #2563EB;
-  --brand-blue-light: #60A5FA;
-  --brand-accent: #8B5CF6;
+  // Nationwide Insurance Corporate Colors
+  --brand-navy: #003087;          // Nationwide Navy Primary
+  --brand-blue: #0066CC;          // Nationwide Blue Secondary
+  --brand-blue-dark: #002966;     // Darker Nationwide Navy
+  --brand-blue-light: #4D9FFF;    // Light Nationwide Blue
+  --brand-accent: #E6F2FF;        // Light Nationwide Accent
   
-  // Legacy support
-  --primary-color: #3B82F6;
-  --primary-dark: #2563EB;
-  --primary-light: #60A5FA;
-  --secondary-color: #8B5CF6;
+  // Legacy support - Updated to Nationwide colors
+  --primary-color: #003087;       // Nationwide Navy
+  --primary-dark: #002966;        // Darker Nationwide Navy
+  --primary-light: #4D9FFF;       // Light Nationwide Blue
+  --secondary-color: #0066CC;     // Nationwide Blue
   
   // Professional Status Colors
   --success-color: #10B981;
@@ -60,12 +90,20 @@
   --text-color-secondary: #64748B;
   --border-color: #E2E8F0;
   
-  // Design System
+  // Design System - DeepWiki Inspired
   --border-radius: 0.5rem;
   --border-radius-lg: 0.75rem;
   --border-radius-xl: 1rem;
   --transition-duration: 0.2s;
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  // DeepWiki-style spacing
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
   
   // Shadows
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -85,7 +123,7 @@ body {
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-primary);
-  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-accent) 100%);
+  background: #ffffff;
   min-height: 100vh;
   font-weight: 400;
   line-height: 1.6;
@@ -169,11 +207,11 @@ body {
     
     &:hover {
       background: linear-gradient(135deg, var(--brand-blue-dark) 0%, var(--brand-navy) 100%);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 48, 135, 0.3); // Nationwide Navy shadow
     }
     
     &:active {
-      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 2px 6px rgba(0, 48, 135, 0.4); // Nationwide Navy shadow
     }
   }
   
@@ -195,9 +233,9 @@ body {
     color: var(--brand-blue);
     
     &:hover {
-      background: var(--brand-blue);
+      background: var(--brand-navy); // Nationwide Navy
       color: var(--text-inverse);
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+      box-shadow: 0 2px 8px rgba(0, 48, 135, 0.2); // Nationwide Navy shadow
     }
   }
 }
@@ -266,15 +304,15 @@ body {
   }
   
   &:enabled:hover {
-    border-color: var(--brand-blue) !important;
+    border-color: var(--brand-navy) !important; // Nationwide Navy
     background: var(--gray-50) !important;
   }
   
   &:enabled:focus {
     outline: 0 none !important;
     outline-offset: 0 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-    border-color: var(--brand-blue) !important;
+    box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.15) !important; // Nationwide Navy shadow
+    border-color: var(--brand-navy) !important; // Nationwide Navy
     background: var(--surface-0) !important;
   }
   
@@ -315,19 +353,19 @@ body {
   }
   
   &:not(.p-disabled):hover {
-    border-color: var(--brand-blue) !important;
+    border-color: var(--brand-navy) !important; // Nationwide Navy
     background: var(--gray-50) !important;
     
     .p-dropdown-trigger-icon {
-      color: var(--brand-blue) !important;
+      color: var(--brand-navy) !important; // Nationwide Navy
     }
   }
   
   &:not(.p-disabled).p-focus {
     outline: 0 none !important;
     outline-offset: 0 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-    border-color: var(--brand-blue) !important;
+    box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.15) !important; // Nationwide Navy shadow
+    border-color: var(--brand-navy) !important; // Nationwide Navy
     background: var(--surface-0) !important;
   }
   
@@ -359,7 +397,7 @@ body {
       
       &:not(.p-highlight):hover {
         background: var(--gray-100) !important;
-        color: var(--brand-blue) !important;
+        color: var(--brand-navy) !important; // Nationwide Navy
       }
     }
     
@@ -396,7 +434,7 @@ body {
         }
         
         &:hover {
-          color: var(--brand-blue) !important;
+          color: var(--brand-navy) !important; // Nationwide Navy
           background: var(--gray-50) !important;
           border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
         }
@@ -405,7 +443,7 @@ body {
       &.p-highlight {
         .p-tabview-nav-link {
           border-bottom-color: var(--brand-blue) !important;
-          color: var(--brand-blue) !important;
+          color: var(--brand-navy) !important; // Nationwide Navy
           background: var(--surface-0) !important;
         }
       }
