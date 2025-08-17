@@ -3,8 +3,8 @@
 # Import indexing models for V1 system
 from .indexing_models import (
     IndexingJob,
-    IndexingJobStatus,
-    IndexingJobType,
+    JobStatus as IndexingJobStatus,
+    JobType as IndexingJobType,
     FileProcessingRecord,
     FileProcessingStatus,
     RepositorySnapshot,
