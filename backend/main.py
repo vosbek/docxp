@@ -12,9 +12,10 @@ from pathlib import Path
 import time
 import uuid
 
-from app.api import documentation, repositories, analytics, configuration, health, aws_configuration
+from app.api import documentation, repositories, analytics, configuration, health, aws_configuration, semantic_search, repository_processing, strands_agents, hybrid_search, v1_indexing
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.opensearch_setup import initialize_opensearch
 from app.core.logging_config import setup_logging, get_logger, force_sqlalchemy_silence
 from app.core.error_handlers import register_exception_handlers
 
@@ -32,6 +33,13 @@ async def lifespan(app: FastAPI):
     logger.info("Starting DocXP Backend...")
     await init_db()
     logger.info("Database initialized")
+    
+    # Initialize OpenSearch with auto-detected embedding dimensions
+    opensearch_success = await initialize_opensearch()
+    if opensearch_success:
+        logger.info("✅ OpenSearch V1 search engine initialized")
+    else:
+        logger.warning("⚠️  OpenSearch initialization failed - search functionality may be limited")
     
     # Force SQLAlchemy to be quiet after database initialization
     force_sqlalchemy_silence()
@@ -154,6 +162,41 @@ app.include_router(
     aws_configuration.router,
     prefix="/api/configuration/aws",
     tags=["AWS Configuration"]
+)
+
+# Semantic Search API
+app.include_router(
+    semantic_search.router,
+    prefix="/api/semantic",
+    tags=["Semantic Search & AI"]
+)
+
+# Repository Processing API
+app.include_router(
+    repository_processing.router,
+    prefix="/api/repositories",
+    tags=["Repository Processing"]
+)
+
+# Strands Agents API
+app.include_router(
+    strands_agents.router,
+    prefix="/api/strands",
+    tags=["Strands Agents"]
+)
+
+# V1 Hybrid Search API (RRF BM25 + k-NN)
+app.include_router(
+    hybrid_search.router,
+    prefix="/api",
+    tags=["V1 Hybrid Search"]
+)
+
+# V1 Indexing API (Enterprise-Grade Fault-Tolerant)
+app.include_router(
+    v1_indexing.router,
+    prefix="/api",
+    tags=["V1 Indexing"]
 )
 
 # Serve static files (generated documentation)

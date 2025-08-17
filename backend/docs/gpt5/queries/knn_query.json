@@ -1,0 +1,27 @@
+{
+  "size": 50,
+  "query": {
+    "knn": {
+      "field": "embedding",
+      "query_vector": "<QUERY_VECTOR>",
+      "k": 100,
+      "num_candidates": 200,
+      "filter": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "repo_id": "<REPO>"
+              }
+            },
+            {
+              "term": {
+                "commit": "<COMMIT>"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
