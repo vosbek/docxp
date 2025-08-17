@@ -278,3 +278,7 @@ async def get_session() -> AsyncSession:
     """Get database session"""
     async with AsyncSessionLocal() as session:
         yield session
+
+def get_async_session():
+    """Get async database session - returns context manager"""
+    return AsyncSessionLocal()

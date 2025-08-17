@@ -6,7 +6,7 @@ from .indexing_models import (
     JobStatus as IndexingJobStatus,
     JobType as IndexingJobType,
     FileProcessingRecord,
-    FileProcessingStatus,
+    FileStatus as FileProcessingStatus,
     RepositorySnapshot,
     EmbeddingCache,
     CodeEntityData,
