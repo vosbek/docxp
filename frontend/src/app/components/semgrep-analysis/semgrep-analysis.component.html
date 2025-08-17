@@ -1,0 +1,517 @@
+<div class="semgrep-analysis-container">
+  <!-- Header Section -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <mat-icon class="header-icon">security</mat-icon>
+      <div class="header-text">
+        <h1>Static Code Analysis</h1>
+        <p>Security vulnerabilities, code quality, and compliance analysis</p>
+      </div>
+    </div>
+    
+    <!-- Health Status -->
+    <div class="health-status" *ngIf="semgrepHealth">
+      <mat-chip-set>
+        <mat-chip [class]="semgrepHealth.semgrep_installed ? 'status-good' : 'status-error'">
+          <mat-icon matChipAvatar>{{semgrepHealth.semgrep_installed ? 'check_circle' : 'error'}}</mat-icon>
+          Semgrep {{semgrepHealth.semgrep_installed ? 'Ready' : 'Not Installed'}}
+        </mat-chip>
+        <mat-chip [class]="semgrepHealth.rules_available ? 'status-good' : 'status-warning'" *ngIf="semgrepHealth.semgrep_installed">
+          <mat-icon matChipAvatar>{{semgrepHealth.rules_available ? 'rule' : 'warning'}}</mat-icon>
+          Rules {{semgrepHealth.rules_available ? 'Available' : 'Missing'}}
+        </mat-chip>
+      </mat-chip-set>
+    </div>
+  </div>
+
+  <!-- Analysis Form -->
+  <mat-card class="analysis-form-card" *ngIf="!currentAnalysis">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>search</mat-icon>
+        Start Analysis
+      </mat-card-title>
+      <mat-card-subtitle>Configure repository analysis parameters</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <form [formGroup]="analysisForm" (ngSubmit)="analyzeRepository()">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Repository Path</mat-label>
+            <input matInput formControlName="repoPath" placeholder="/path/to/repository">
+            <mat-icon matSuffix>folder</mat-icon>
+            <mat-error *ngIf="hasFieldError('repoPath')">{{getFieldError('repoPath')}}</mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Repository ID</mat-label>
+            <input matInput formControlName="repoId" placeholder="my-project">
+            <mat-icon matSuffix>tag</mat-icon>
+            <mat-error *ngIf="hasFieldError('repoId')">{{getFieldError('repoId')}}</mat-error>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Commit Hash</mat-label>
+            <input matInput formControlName="commitHash" placeholder="abc123...">
+            <mat-icon matSuffix>commit</mat-icon>
+            <mat-error *ngIf="hasFieldError('commitHash')">{{getFieldError('commitHash')}}</mat-error>
+          </mat-form-field>
+        </div>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Rule Sets</mat-label>
+            <mat-select formControlName="ruleSets" multiple>
+              <mat-option value="security">Security</mat-option>
+              <mat-option value="quality">Code Quality</mat-option>
+              <mat-option value="performance">Performance</mat-option>
+              <mat-option value="enterprise">Enterprise Rules</mat-option>
+            </mat-select>
+            <mat-icon matSuffix>rule</mat-icon>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Custom Rules</mat-label>
+            <mat-select formControlName="customRules" multiple>
+              <mat-option value="java-security">Java Security</mat-option>
+              <mat-option value="angular-patterns">Angular Patterns</mat-option>
+              <mat-option value="sql-injection">SQL Injection</mat-option>
+            </mat-select>
+            <mat-icon matSuffix>extension</mat-icon>
+          </mat-form-field>
+        </div>
+      </form>
+    </mat-card-content>
+    
+    <mat-card-actions>
+      <button mat-raised-button color="primary" 
+              (click)="analyzeRepository()" 
+              [disabled]="analysisForm.invalid || isAnalyzing">
+        <mat-icon>{{isAnalyzing ? 'hourglass_empty' : 'play_arrow'}}</mat-icon>
+        {{isAnalyzing ? 'Analyzing...' : 'Start Analysis'}}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  <!-- Analysis Progress -->
+  <mat-card class="progress-card" *ngIf="isAnalyzing">
+    <mat-card-content>
+      <div class="progress-content">
+        <div class="progress-text">
+          <h3>Running Semgrep Analysis</h3>
+          <p>Scanning repository for security vulnerabilities and code quality issues...</p>
+        </div>
+        <mat-progress-bar mode="determinate" [value]="analysisProgress"></mat-progress-bar>
+        <div class="progress-percentage">{{analysisProgress}}%</div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Analysis Results -->
+  <div class="analysis-results" *ngIf="currentAnalysis && !isAnalyzing">
+    
+    <!-- Results Header -->
+    <div class="results-header">
+      <div class="results-title">
+        <h2>Analysis Results</h2>
+        <p>{{currentAnalysis.repo_id}} @ {{currentAnalysis.commit_hash.substring(0, 8)}}</p>
+      </div>
+      <div class="results-actions">
+        <button mat-stroked-button (click)="exportFindings()">
+          <mat-icon>download</mat-icon>
+          Export CSV
+        </button>
+        <button mat-raised-button color="primary" (click)="analyzeRepository()">
+          <mat-icon>refresh</mat-icon>
+          Re-analyze
+        </button>
+      </div>
+    </div>
+
+    <!-- Security Metrics Cards -->
+    <div class="metrics-grid">
+      <mat-card class="metric-card" *ngFor="let metric of securityMetrics">
+        <mat-card-content>
+          <div class="metric-header">
+            <span class="metric-label">{{metric.label}}</span>
+            <mat-icon [style.color]="getMetricStatusColor(metric.status)">
+              {{metric.status === 'good' ? 'check_circle' : metric.status === 'warning' ? 'warning' : 'error'}}
+            </mat-icon>
+          </div>
+          <div class="metric-value">{{metric.value}}</div>
+          <div class="metric-progress">
+            <mat-progress-bar 
+              mode="determinate" 
+              [value]="metric.percentage"
+              [color]="metric.status === 'good' ? 'primary' : metric.status === 'warning' ? 'accent' : 'warn'">
+            </mat-progress-bar>
+            <span class="metric-percentage">{{metric.percentage.toFixed(1)}}%</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Analysis Tabs -->
+    <mat-tab-group class="analysis-tabs" animationDuration="200ms">
+      
+      <!-- Overview Tab -->
+      <mat-tab label="Overview">
+        <div class="tab-content">
+          <div class="overview-grid">
+            
+            <!-- Summary Stats -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>assessment</mat-icon>
+                  Analysis Summary
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="summary-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Total Findings</span>
+                    <span class="stat-value">{{currentAnalysis.total_findings}}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Critical Issues</span>
+                    <span class="stat-value critical">{{currentAnalysis.findings_by_severity['ERROR'] || 0}}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Security Issues</span>
+                    <span class="stat-value">{{currentAnalysis.critical_security_issues}}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Maintainability Score</span>
+                    <span class="stat-value">{{currentAnalysis.maintainability_score}}/100</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Category Breakdown -->
+            <mat-card class="category-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>category</mat-icon>
+                  Findings by Category
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="category-list">
+                  <div class="category-item" *ngFor="let group of findingGroups">
+                    <div class="category-header">
+                      <mat-icon [class]="getCategoryColorClass(group.category)">
+                        {{getCategoryIcon(group.category)}}
+                      </mat-icon>
+                      <span class="category-name">{{group.category | titlecase}}</span>
+                      <mat-chip class="category-count">{{group.count}}</mat-chip>
+                    </div>
+                    <div class="category-details" *ngIf="group.criticalCount > 0">
+                      <mat-icon class="critical-icon">error</mat-icon>
+                      <span class="critical-count">{{group.criticalCount}} critical</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Findings Tab -->
+      <mat-tab label="All Findings">
+        <div class="tab-content">
+          
+          <!-- Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Severity</mat-label>
+                  <mat-select [value]="selectedSeverityFilter" (selectionChange)="onSeverityFilterChange($event.value)">
+                    <mat-option *ngFor="let option of severityOptions" [value]="option.value">
+                      <mat-icon [class]="getSeverityColorClass(option.value)" *ngIf="option.value !== 'ALL'">
+                        {{getSeverityIcon(option.value)}}
+                      </mat-icon>
+                      {{option.label}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Category</mat-label>
+                  <mat-select [value]="selectedCategoryFilter" (selectionChange)="onCategoryFilterChange($event.value)">
+                    <mat-option *ngFor="let option of categoryOptions" [value]="option.value">
+                      <mat-icon [class]="getCategoryColorClass(option.value)" *ngIf="option.value !== 'ALL'">
+                        {{getCategoryIcon(option.value)}}
+                      </mat-icon>
+                      {{option.label}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                
+                <div class="filter-summary">
+                  <mat-chip-set>
+                    <mat-chip>{{filteredFindings.length}} findings</mat-chip>
+                  </mat-chip-set>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Findings Table -->
+          <mat-card class="findings-table-card">
+            <mat-card-content>
+              <table mat-table [dataSource]="filteredFindings" class="findings-table" matSort>
+                
+                <!-- Severity Column -->
+                <ng-container matColumnDef="severity">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Severity</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <mat-chip [class]="getSeverityColorClass(finding.severity)">
+                      <mat-icon matChipAvatar>{{getSeverityIcon(finding.severity)}}</mat-icon>
+                      {{finding.severity}}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Category Column -->
+                <ng-container matColumnDef="category">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <mat-chip [class]="getCategoryColorClass(finding.category)">
+                      <mat-icon matChipAvatar>{{getCategoryIcon(finding.category)}}</mat-icon>
+                      {{finding.category | titlecase}}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Rule ID Column -->
+                <ng-container matColumnDef="rule_id">
+                  <th mat-header-cell *matHeaderCellDef>Rule</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <div class="rule-info">
+                      <span class="rule-id">{{finding.rule_id}}</span>
+                      <mat-chip class="confidence-chip" [class]="'confidence-' + finding.confidence.toLowerCase()">
+                        <mat-icon matChipAvatar>{{getConfidenceIcon(finding.confidence)}}</mat-icon>
+                        {{finding.confidence}}
+                      </mat-chip>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Message Column -->
+                <ng-container matColumnDef="message">
+                  <th mat-header-cell *matHeaderCellDef>Description</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <div class="finding-message">
+                      <p>{{finding.message}}</p>
+                      <div class="finding-metadata" *ngIf="finding.cwe_ids.length > 0 || finding.owasp_categories.length > 0">
+                        <mat-chip-set>
+                          <mat-chip class="cwe-chip" *ngFor="let cwe of finding.cwe_ids.slice(0, 2)">
+                            {{cwe}}
+                          </mat-chip>
+                          <mat-chip class="owasp-chip" *ngFor="let owasp of finding.owasp_categories.slice(0, 2)">
+                            {{getOwaspCategoryName(owasp)}}
+                          </mat-chip>
+                        </mat-chip-set>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- File Path Column -->
+                <ng-container matColumnDef="file_path">
+                  <th mat-header-cell *matHeaderCellDef>Location</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <div class="file-location">
+                      <mat-icon>description</mat-icon>
+                      <span class="file-path">{{finding.file_path}}</span>
+                      <span class="line-info">:{{finding.start_line}}</span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Line Column -->
+                <ng-container matColumnDef="line">
+                  <th mat-header-cell *matHeaderCellDef>Line</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <span class="line-number">{{finding.start_line}}</span>
+                    <span class="line-range" *ngIf="finding.end_line !== finding.start_line">
+                      -{{finding.end_line}}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let finding">
+                    <div class="finding-actions">
+                      <button mat-icon-button 
+                              matTooltip="View Details" 
+                              (click)="viewFindingDetails(finding)">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              matTooltip="Apply Fix" 
+                              *ngIf="finding.fix_suggestion"
+                              (click)="applySuggestedFix(finding)">
+                        <mat-icon>build</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              [matMenuTriggerFor]="findingMenu"
+                              matTooltip="More Options">
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
+                      
+                      <mat-menu #findingMenu="matMenu">
+                        <button mat-menu-item (click)="viewFindingDetails(finding)">
+                          <mat-icon>visibility</mat-icon>
+                          <span>View Details</span>
+                        </button>
+                        <button mat-menu-item *ngIf="finding.fix_suggestion" (click)="applySuggestedFix(finding)">
+                          <mat-icon>build</mat-icon>
+                          <span>Apply Fix</span>
+                        </button>
+                        <mat-divider></mat-divider>
+                        <button mat-menu-item disabled>
+                          <mat-icon>flag</mat-icon>
+                          <span>Mark as False Positive</span>
+                        </button>
+                      </mat-menu>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+                    [class.high-priority-row]="isHighPriorityFinding(row)"></tr>
+              </table>
+
+              <!-- No Results -->
+              <div class="no-results" *ngIf="filteredFindings.length === 0">
+                <mat-icon>search_off</mat-icon>
+                <h3>No findings match your filters</h3>
+                <p>Try adjusting your severity or category filters</p>
+              </div>
+
+              <!-- Paginator -->
+              <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" 
+                           showFirstLastButtons
+                           *ngIf="filteredFindings.length > 10">
+              </mat-paginator>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Security Tab -->
+      <mat-tab label="Security Analysis" *ngIf="securitySummary">
+        <div class="tab-content">
+          <div class="security-analysis">
+            
+            <!-- Risk Assessment -->
+            <mat-card class="risk-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>security</mat-icon>
+                  Security Risk Assessment
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="risk-overview">
+                  <div class="risk-score">
+                    <span class="risk-value" [style.color]="getRiskLevelColor(securitySummary.risk_level)">
+                      {{securitySummary.risk_score}}/100
+                    </span>
+                    <span class="risk-level">{{securitySummary.risk_level}} RISK</span>
+                  </div>
+                  <div class="risk-details">
+                    <div class="risk-stat">
+                      <span class="stat-label">Security Findings</span>
+                      <span class="stat-value">{{securitySummary.total_security_findings}}</span>
+                    </div>
+                    <div class="risk-stat">
+                      <span class="stat-label">Critical Vulnerabilities</span>
+                      <span class="stat-value critical">{{securitySummary.critical_vulnerabilities}}</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Remediation Priorities -->
+            <mat-card class="remediation-card" *ngIf="securitySummary.remediation_priority.length > 0">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>priority_high</mat-icon>
+                  Remediation Priorities
+                </mat-card-title>
+                <mat-card-subtitle>Top security issues requiring immediate attention</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <mat-expansion-panel-group>
+                  <mat-expansion-panel *ngFor="let priority of securitySummary.remediation_priority.slice(0, 5)">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon [class]="getCategoryColorClass(priority.category)">
+                          {{getCategoryIcon(priority.category)}}
+                        </mat-icon>
+                        {{priority.rule_id}}
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        <mat-chip class="priority-score">Priority: {{priority.priority_score}}</mat-chip>
+                        <mat-chip class="occurrence-count">{{priority.total_occurrences}} occurrences</mat-chip>
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    
+                    <div class="priority-details">
+                      <div class="priority-stats">
+                        <div class="stat-item">
+                          <span class="stat-label">Critical Instances</span>
+                          <span class="stat-value critical">{{priority.critical_occurrences}}</span>
+                        </div>
+                        <div class="stat-item">
+                          <span class="stat-label">Affected Files</span>
+                          <span class="stat-value">{{priority.affected_files.length}}</span>
+                        </div>
+                      </div>
+                      
+                      <div class="fix-suggestion" *ngIf="priority.fix_suggestion">
+                        <h4>
+                          <mat-icon>lightbulb</mat-icon>
+                          Recommended Fix
+                        </h4>
+                        <p>{{priority.fix_suggestion}}</p>
+                      </div>
+                      
+                      <div class="affected-files">
+                        <h4>
+                          <mat-icon>description</mat-icon>
+                          Affected Files
+                        </h4>
+                        <mat-chip-set>
+                          <mat-chip *ngFor="let file of priority.affected_files.slice(0, 5)">
+                            {{file}}
+                          </mat-chip>
+                          <mat-chip *ngIf="priority.affected_files.length > 5" class="more-files">
+                            +{{priority.affected_files.length - 5}} more
+                          </mat-chip>
+                        </mat-chip-set>
+                      </div>
+                    </div>
+                  </mat-expansion-panel>
+                </mat-expansion-panel-group>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

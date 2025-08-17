@@ -1,0 +1,496 @@
+<div class="architecture-analysis-container">
+  <!-- Header -->
+  <div class="analysis-header">
+    <h1>
+      <mat-icon>account_tree</mat-icon>
+      Java Architecture Analysis
+    </h1>
+    <p class="subtitle">Comprehensive architectural analysis with jQAssistant</p>
+  </div>
+
+  <!-- Analysis Configuration Form -->
+  <mat-card class="config-card" *ngIf="!currentJobId || analysisStatus?.status === 'failed'">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>settings</mat-icon>
+        Analysis Configuration
+      </mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <form [formGroup]="analysisForm" (ngSubmit)="startAnalysis()">
+        <div class="form-row">
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Repository Path</mat-label>
+            <input matInput formControlName="repositoryPath" placeholder="/path/to/java/repository">
+            <mat-icon matSuffix>folder</mat-icon>
+            <mat-error *ngIf="analysisForm.get('repositoryPath')?.hasError('required')">
+              Repository path is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="fill" class="half-width">
+            <mat-label>Repository ID</mat-label>
+            <input matInput formControlName="repositoryId" placeholder="my-java-project">
+            <mat-icon matSuffix>label</mat-icon>
+            <mat-error *ngIf="analysisForm.get('repositoryId')?.hasError('required')">
+              Repository ID is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="half-width">
+            <mat-label>Commit Hash</mat-label>
+            <input matInput formControlName="commitHash" placeholder="HEAD">
+            <mat-icon matSuffix>commit</mat-icon>
+            <mat-error *ngIf="analysisForm.get('commitHash')?.hasError('required')">
+              Commit hash is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Advanced Options -->
+        <div class="advanced-options-toggle">
+          <button type="button" mat-button (click)="toggleAdvancedOptions()">
+            <mat-icon>{{ showAdvancedOptions ? 'expand_less' : 'expand_more' }}</mat-icon>
+            Advanced Options
+          </button>
+        </div>
+
+        <div class="advanced-options" *ngIf="showAdvancedOptions">
+          <div class="form-row">
+            <mat-form-field appearance="fill" class="full-width">
+              <mat-label>Linked Indexing Job ID (Optional)</mat-label>
+              <input matInput formControlName="indexingJobId" placeholder="Leave empty for standalone analysis">
+              <mat-icon matSuffix>link</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-checkbox formControlName="includeTestCode">
+              Include test code in analysis
+            </mat-checkbox>
+          </div>
+
+          <!-- Custom Architectural Layers -->
+          <div class="custom-layers-section">
+            <h4>Custom Architectural Layers</h4>
+            <div class="custom-layer" *ngFor="let layer of analysisForm.get('customLayers')?.value; let i = index">
+              <mat-form-field appearance="fill" class="layer-field">
+                <mat-label>Layer Name</mat-label>
+                <input matInput [(ngModel)]="layer.name" [ngModelOptions]="{standalone: true}">
+              </mat-form-field>
+              
+              <mat-form-field appearance="fill" class="layer-field">
+                <mat-label>Package Pattern</mat-label>
+                <input matInput [(ngModel)]="layer.pattern" [ngModelOptions]="{standalone: true}" 
+                       placeholder=".*\.controller\..*">
+              </mat-form-field>
+              
+              <button type="button" mat-icon-button color="warn" (click)="removeCustomLayer(i)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            
+            <button type="button" mat-stroked-button (click)="addCustomLayer()">
+              <mat-icon>add</mat-icon>
+              Add Layer
+            </button>
+          </div>
+
+          <!-- Custom Constraints -->
+          <div class="custom-constraints-section">
+            <h4>Custom Constraints</h4>
+            <div class="custom-constraint" *ngFor="let constraint of analysisForm.get('customConstraints')?.value; let i = index">
+              <mat-form-field appearance="fill" class="constraint-field">
+                <mat-label>Constraint Rule</mat-label>
+                <input matInput [(ngModel)]="analysisForm.get('customConstraints')?.value[i]" 
+                       [ngModelOptions]="{standalone: true}">
+              </mat-form-field>
+              
+              <button type="button" mat-icon-button color="warn" (click)="removeCustomConstraint(i)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            
+            <button type="button" mat-stroked-button (click)="addCustomConstraint()">
+              <mat-icon>add</mat-icon>
+              Add Constraint
+            </button>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" mat-raised-button color="primary" [disabled]="isAnalyzing || analysisForm.invalid">
+            <mat-icon>play_arrow</mat-icon>
+            {{ isAnalyzing ? 'Analyzing...' : 'Start Analysis' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Recent Jobs Quick Access -->
+  <mat-card class="recent-jobs-card" *ngIf="recentJobs.length > 0 && !currentJobId">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>history</mat-icon>
+        Recent Analysis Jobs
+      </mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="recent-job" *ngFor="let job of recentJobs" (click)="loadJob(job.job_id)">
+        <div class="job-info">
+          <strong>{{ job.repository_id }}</strong>
+          <span class="job-status" [class]="'status-' + job.status">{{ job.status }}</span>
+        </div>
+        <div class="job-meta">
+          {{ job.created_at | date:'short' }} • 
+          Quality: {{ job.overall_quality_score || 'N/A' }}
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Analysis Progress -->
+  <mat-card class="progress-card" *ngIf="isAnalyzing && analysisStatus">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>hourglass_top</mat-icon>
+        Analysis in Progress
+      </mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="progress-info">
+        <p><strong>Repository:</strong> {{ analysisStatus.repository_id }}</p>
+        <p><strong>Status:</strong> {{ analysisStatus.status }}</p>
+        <p><strong>Started:</strong> {{ analysisStatus.timing.started_at | date:'short' }}</p>
+      </div>
+      
+      <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
+      
+      <div class="progress-stats" *ngIf="analysisStatus.progress">
+        <div class="stat">
+          <span class="label">Packages:</span>
+          <span class="value">{{ analysisStatus.progress.total_packages }}</span>
+        </div>
+        <div class="stat">
+          <span class="label">Classes:</span>
+          <span class="value">{{ analysisStatus.progress.total_classes }}</span>
+        </div>
+        <div class="stat">
+          <span class="label">Methods:</span>
+          <span class="value">{{ analysisStatus.progress.total_methods }}</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Analysis Results -->
+  <div class="results-container" *ngIf="analysisStatus && analysisStatus.status === 'completed'">
+    <!-- Quality Overview -->
+    <mat-card class="quality-overview-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>assessment</mat-icon>
+          Quality Overview
+        </mat-card-title>
+        <div class="card-actions">
+          <button mat-icon-button (click)="exportResults()" matTooltip="Export Results">
+            <mat-icon>download</mat-icon>
+          </button>
+        </div>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="quality-metrics">
+          <div class="metric">
+            <div class="metric-value" [style.color]="getQualityScoreColor(analysisStatus.quality_scores.overall_quality_score)">
+              {{ analysisStatus.quality_scores.overall_quality_score | number:'1.1-1' }}
+            </div>
+            <div class="metric-label">Overall Quality</div>
+          </div>
+          
+          <div class="metric">
+            <div class="metric-value" [style.color]="getQualityScoreColor(analysisStatus.quality_scores.layer_compliance_score)">
+              {{ analysisStatus.quality_scores.layer_compliance_score | number:'1.1-1' }}
+            </div>
+            <div class="metric-label">Layer Compliance</div>
+          </div>
+          
+          <div class="metric">
+            <div class="metric-value" [style.color]="getQualityScoreColor(100 - analysisStatus.quality_scores.architectural_debt_score)">
+              {{ 100 - analysisStatus.quality_scores.architectural_debt_score | number:'1.1-1' }}
+            </div>
+            <div class="metric-label">Debt Score</div>
+          </div>
+        </div>
+
+        <!-- Repository Health Score -->
+        <div class="health-score" *ngIf="repositoryHealth && repositoryHealth.health_score">
+          <h4>Repository Health: <span [style.color]="getQualityScoreColor(repositoryHealth.health_score)">
+            {{ repositoryHealth.health_grade }} ({{ repositoryHealth.health_score | number:'1.1-1' }})
+          </span></h4>
+          
+          <div class="health-recommendations" *ngIf="repositoryHealth.recommendations">
+            <strong>Recommendations:</strong>
+            <ul>
+              <li *ngFor="let rec of repositoryHealth.recommendations">{{ rec }}</li>
+            </ul>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Detailed Analysis Tabs -->
+    <mat-card class="results-tabs-card">
+      <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabChange($event)">
+        
+        <!-- Overview Tab -->
+        <mat-tab label="Overview">
+          <div class="tab-content">
+            <div class="overview-grid">
+              <div class="overview-stat">
+                <mat-icon>folder</mat-icon>
+                <div class="stat-info">
+                  <div class="stat-value">{{ analysisStatus.progress.total_packages }}</div>
+                  <div class="stat-label">Packages</div>
+                </div>
+              </div>
+              
+              <div class="overview-stat">
+                <mat-icon>class</mat-icon>
+                <div class="stat-info">
+                  <div class="stat-value">{{ analysisStatus.progress.total_classes }}</div>
+                  <div class="stat-label">Classes</div>
+                </div>
+              </div>
+              
+              <div class="overview-stat">
+                <mat-icon>functions</mat-icon>
+                <div class="stat-info">
+                  <div class="stat-value">{{ analysisStatus.progress.total_methods }}</div>
+                  <div class="stat-label">Methods</div>
+                </div>
+              </div>
+              
+              <div class="overview-stat">
+                <mat-icon>device_hub</mat-icon>
+                <div class="stat-info">
+                  <div class="stat-value">{{ analysisStatus.progress.total_dependencies }}</div>
+                  <div class="stat-label">Dependencies</div>
+                </div>
+              </div>
+              
+              <div class="overview-stat warning" *ngIf="analysisStatus.progress.cyclic_dependencies_count > 0">
+                <mat-icon>loop</mat-icon>
+                <div class="stat-info">
+                  <div class="stat-value">{{ analysisStatus.progress.cyclic_dependencies_count }}</div>
+                  <div class="stat-label">Cyclic Dependencies</div>
+                </div>
+              </div>
+              
+              <div class="overview-stat error" *ngIf="analysisStatus.progress.architectural_violations_count > 0">
+                <mat-icon>error</mat-icon>
+                <div class="stat-info">
+                  <div class="stat-value">{{ analysisStatus.progress.architectural_violations_count }}</div>
+                  <div class="stat-label">Violations</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quality Charts -->
+            <div class="charts-section">
+              <h3>Quality Metrics</h3>
+              <!-- Chart implementation would go here -->
+              <div class="chart-placeholder">
+                Quality metrics charts would be rendered here using ng2-charts or similar
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Dependency Graph Tab -->
+        <mat-tab label="Dependencies">
+          <div class="tab-content">
+            <div class="graph-controls">
+              <mat-form-field appearance="fill">
+                <mat-label>Package Filter</mat-label>
+                <input matInput placeholder="com.example.*">
+                <mat-icon matSuffix>filter_list</mat-icon>
+              </mat-form-field>
+              
+              <mat-checkbox>Show Cycles</mat-checkbox>
+              <mat-checkbox>Show Weights</mat-checkbox>
+            </div>
+            
+            <div class="dependency-graph-container" #dependencyGraphContainer>
+              <!-- D3.js or Cytoscape.js dependency graph would be rendered here -->
+              <div class="graph-placeholder">
+                Interactive dependency graph visualization would be rendered here
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Violations Tab -->
+        <mat-tab label="Violations" [badge]="violations.length" [badgeColor]="violations.length > 0 ? 'warn' : 'primary'">
+          <div class="tab-content">
+            <!-- Violation Filters -->
+            <div class="violation-filters">
+              <mat-form-field appearance="fill">
+                <mat-label>Severity</mat-label>
+                <mat-select [(value)]="violationFilters.severity" (selectionChange)="applyViolationFilters()">
+                  <mat-option value="">All</mat-option>
+                  <mat-option value="CRITICAL">Critical</mat-option>
+                  <mat-option value="HIGH">High</mat-option>
+                  <mat-option value="MEDIUM">Medium</mat-option>
+                  <mat-option value="LOW">Low</mat-option>
+                </mat-select>
+              </mat-form-field>
+              
+              <mat-form-field appearance="fill">
+                <mat-label>Type</mat-label>
+                <mat-select [(value)]="violationFilters.type" (selectionChange)="applyViolationFilters()">
+                  <mat-option value="">All</mat-option>
+                  <mat-option value="LAYER_VIOLATION">Layer Violation</mat-option>
+                  <mat-option value="CYCLIC_DEPENDENCY">Cyclic Dependency</mat-option>
+                  <mat-option value="FORBIDDEN_DEPENDENCY">Forbidden Dependency</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            
+            <!-- Violations List -->
+            <div class="violations-list">
+              <mat-expansion-panel *ngFor="let violation of violations" class="violation-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon [style.color]="getSeverityColor(violation.severity)">error</mat-icon>
+                    {{ violation.violation_type }}
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    <span class="severity-badge" [style.background-color]="getSeverityColor(violation.severity)">
+                      {{ violation.severity }}
+                    </span>
+                    {{ violation.source_element }}
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="violation-details">
+                  <p><strong>Description:</strong> {{ violation.description }}</p>
+                  <p><strong>Source:</strong> {{ violation.source_element }}</p>
+                  <p><strong>Target:</strong> {{ violation.target_element }}</p>
+                  <p><strong>Constraint:</strong> {{ violation.constraint_violated }}</p>
+                  
+                  <div class="violation-suggestion" *ngIf="violation.fix_suggestion">
+                    <strong>Fix Suggestion:</strong>
+                    <p>{{ violation.fix_suggestion }}</p>
+                  </div>
+                  
+                  <div class="violation-actions">
+                    <button mat-stroked-button (click)="markViolationResolved(violation)">
+                      <mat-icon>check</mat-icon>
+                      Mark Resolved
+                    </button>
+                  </div>
+                </div>
+              </mat-expansion-panel>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Insights Tab -->
+        <mat-tab label="Insights" [badge]="insights.length">
+          <div class="tab-content">
+            <!-- Insight Filters -->
+            <div class="insight-filters">
+              <mat-form-field appearance="fill">
+                <mat-label>Priority</mat-label>
+                <mat-select [(value)]="insightFilters.priority" (selectionChange)="applyInsightFilters()">
+                  <mat-option value="">All</mat-option>
+                  <mat-option value="CRITICAL">Critical</mat-option>
+                  <mat-option value="HIGH">High</mat-option>
+                  <mat-option value="MEDIUM">Medium</mat-option>
+                  <mat-option value="LOW">Low</mat-option>
+                </mat-select>
+              </mat-form-field>
+              
+              <mat-form-field appearance="fill">
+                <mat-label>Category</mat-label>
+                <mat-select [(value)]="insightFilters.category" (selectionChange)="applyInsightFilters()">
+                  <mat-option value="">All</mat-option>
+                  <mat-option value="STRUCTURE">Structure</mat-option>
+                  <mat-option value="QUALITY">Quality</mat-option>
+                  <mat-option value="SECURITY">Security</mat-option>
+                  <mat-option value="PERFORMANCE">Performance</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            
+            <!-- Insights List -->
+            <div class="insights-list">
+              <mat-card *ngFor="let insight of insights" class="insight-card" [class]="'insight-' + insight.priority.toLowerCase()">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>lightbulb</mat-icon>
+                    {{ insight.title }}
+                  </mat-card-title>
+                  <mat-card-subtitle>
+                    <span class="insight-type">{{ insight.insight_type }}</span> •
+                    <span class="insight-category">{{ insight.category }}</span> •
+                    <span class="insight-priority">{{ insight.priority }}</span>
+                  </mat-card-subtitle>
+                </mat-card-header>
+                
+                <mat-card-content>
+                  <p>{{ insight.description }}</p>
+                  
+                  <div class="insight-recommendation" *ngIf="insight.recommendation">
+                    <strong>Recommendation:</strong>
+                    <p>{{ insight.recommendation }}</p>
+                  </div>
+                  
+                  <div class="insight-impact" *ngIf="insight.business_impact || insight.technical_impact">
+                    <div *ngIf="insight.business_impact">
+                      <strong>Business Impact:</strong> {{ insight.business_impact }}
+                    </div>
+                    <div *ngIf="insight.technical_impact">
+                      <strong>Technical Impact:</strong> {{ insight.technical_impact }}
+                    </div>
+                    <div *ngIf="insight.estimated_effort">
+                      <strong>Estimated Effort:</strong> {{ insight.estimated_effort }}
+                    </div>
+                  </div>
+                </mat-card-content>
+                
+                <mat-card-actions>
+                  <button mat-button (click)="acknowledgeInsight(insight)" [disabled]="insight.is_acknowledged">
+                    <mat-icon>{{ insight.is_acknowledged ? 'check' : 'thumb_up' }}</mat-icon>
+                    {{ insight.is_acknowledged ? 'Acknowledged' : 'Acknowledge' }}
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Metrics Tab -->
+        <mat-tab label="Metrics">
+          <div class="tab-content">
+            <div class="metrics-overview" *ngIf="codeMetrics">
+              <h3>Code Quality Metrics</h3>
+              
+              <!-- Metrics charts and detailed information would go here -->
+              <div class="metrics-placeholder">
+                Detailed code metrics (complexity, coupling, cohesion) would be displayed here
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card>
+  </div>
+</div>
