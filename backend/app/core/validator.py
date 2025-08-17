@@ -112,6 +112,8 @@ class EnvironmentValidator:
                     else:
                         self.warnings.append(f"AWS Bedrock warning: {e}")
                         
+            except ClientError as e:
+                self.warnings.append(f"AWS Bedrock access issue: {e}")
         except ImportError:
             self.errors.append("boto3 not installed - run: pip install boto3")
         except NoCredentialsError:
