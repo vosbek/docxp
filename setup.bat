@@ -119,11 +119,12 @@ if "%HAS_PODMAN%" == "true" (
         echo Starting services with Podman...
         
         REM Stop and remove existing containers if they exist
-        podman stop docxp-neo4j docxp-redis >nul 2>&1
-        podman rm docxp-neo4j docxp-redis >nul 2>&1
+        echo Cleaning up existing containers...
+        podman stop docxp-neo4j docxp-redis 2>nul
+        podman rm docxp-neo4j docxp-redis 2>nul
         
         echo Starting Neo4j...
-        podman run -d --name docxp-neo4j -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/docxp-production-2024 -e NEO4J_PLUGINS=[] neo4j:5.11
+        podman run -d --name docxp-neo4j -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/docxp-production-2024 neo4j:5.11
         if %errorlevel% neq 0 (
             echo ❌ Failed to start Neo4j
         ) else (
