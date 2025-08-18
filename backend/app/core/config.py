@@ -25,10 +25,24 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./docxp.db"
     
-    # Vector Database (ChromaDB)
-    VECTOR_DB_PATH: str = "./data/vector_db"
-    EMBEDDING_MODEL: str = "microsoft/codebert-base"  # Optimized for code understanding
+    # Vector Database Configuration
+    VECTOR_DB_TYPE: str = Field(default="chromadb", env="VECTOR_DB_TYPE")  # chromadb | postgresql_pgvector
+    VECTOR_DB_PATH: str = "./data/vector_db"  # For ChromaDB
     VECTOR_DB_ENABLED: bool = True
+    
+    # Embedding Configuration
+    EMBEDDING_PROVIDER: str = Field(default="codebert", env="EMBEDDING_PROVIDER")  # codebert | bedrock
+    EMBEDDING_MODEL: str = "microsoft/codebert-base"  # For local CodeBERT
+    EMBEDDING_DIMENSIONS: int = 768  # CodeBERT: 768, Bedrock Titan: 1024
+    
+    # AWS Bedrock Configuration
+    BEDROCK_EMBED_MODEL_ID: str = Field(default="amazon.titan-embed-text-v2:0", env="BEDROCK_EMBED_MODEL_ID")
+    BEDROCK_EMBEDDING_DIMENSIONS: int = Field(default=1024, env="BEDROCK_EMBEDDING_DIMENSIONS")
+    AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
+    
+    # PostgreSQL Vector Configuration
+    POSTGRESQL_VECTOR_URL: Optional[str] = Field(default=None, env="POSTGRESQL_VECTOR_URL")
+    PGVECTOR_ENABLED: bool = Field(default=False, env="PGVECTOR_ENABLED")
     
     # External Database Analysis (Optional - graceful degradation if not available)
     # Oracle Database
@@ -77,6 +91,25 @@ class Settings(BaseSettings):
     # us.anthropic.claude-3-5-sonnet-20241022-v2:0 (default)
     # us.anthropic.claude-3-7-sonnet-20250219-v1:0 
     BEDROCK_MODEL_ID: str = Field(default="us.anthropic.claude-3-5-sonnet-20241022-v2:0", env="BEDROCK_MODEL_ID")
+    
+    # Neo4j Knowledge Graph Configuration
+    NEO4J_URI: str = Field(default="bolt://localhost:7687", env="NEO4J_URI")
+    NEO4J_USERNAME: str = Field(default="neo4j", env="NEO4J_USERNAME")
+    NEO4J_PASSWORD: str = Field(default="docxp-neo4j-2024", env="NEO4J_PASSWORD")
+    NEO4J_DATABASE: str = Field(default="neo4j", env="NEO4J_DATABASE")
+    NEO4J_MAX_CONNECTION_LIFETIME: int = Field(default=300, env="NEO4J_MAX_CONNECTION_LIFETIME")  # 5 minutes
+    NEO4J_MAX_CONNECTION_POOL_SIZE: int = Field(default=50, env="NEO4J_MAX_CONNECTION_POOL_SIZE")
+    NEO4J_CONNECTION_ACQUISITION_TIMEOUT: int = Field(default=60, env="NEO4J_CONNECTION_ACQUISITION_TIMEOUT")  # seconds
+    NEO4J_ENABLED: bool = Field(default=True, env="NEO4J_ENABLED")
+    
+    # Redis Configuration (for task queues and caching)
+    REDIS_URL: str = Field(default="redis://localhost:6379", env="REDIS_URL")
+    RQ_REDIS_URL: str = Field(default="redis://localhost:6379", env="RQ_REDIS_URL")
+    REDIS_HOST: str = Field(default="localhost", env="REDIS_HOST")
+    REDIS_PORT: int = Field(default=6379, env="REDIS_PORT")
+    REDIS_DB: int = Field(default=0, env="REDIS_DB")
+    REDIS_PASSWORD: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
+    REDIS_ENABLED: bool = Field(default=True, env="REDIS_ENABLED")
     
     # Feature flags
     

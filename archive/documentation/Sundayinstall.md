@@ -226,16 +226,22 @@ pip install "huggingface_hub>=0.16.0,<0.20.0"
 pip install "sentence_transformers>=2.2.0"
 pip install "transformers>=4.21.0"
 
+# 🚨 FIX OPENSEARCH IMPORT ERROR
+pip install opensearch-py==2.4.2
+
 # Test sentence_transformers installation
-python -c "from sentence_transformers import SentenceTransformer; print('✅ sentence_transformers working')"
+python -c "from sentence_transformers import SentenceTransformer; print('sentence_transformers working')"
 
 # Test ChromaDB with SentenceTransformer
 python -c "
 import chromadb
 from chromadb.utils import embedding_functions
 ef = embedding_functions.SentenceTransformerEmbeddingFunction()
-print('✅ ChromaDB with SentenceTransformer working')
+print('ChromaDB with SentenceTransformer working')
 "
+
+# Test OpenSearch imports
+python -c "from opensearchpy import OpenSearch, AsyncOpenSearch; print('OpenSearch imports working')"
 
 # Verify critical imports work
 python validate_imports.py
@@ -477,6 +483,36 @@ aws sts get-caller-identity --profile msh
 # Test Bedrock access
 aws bedrock list-foundation-models --region us-east-1 --profile msh
 ```
+
+---
+
+## 🏢 **CURRENT ARCHITECTURE**
+
+**DocXP uses a modern, enterprise-grade architecture:**
+
+### Current Production Stack
+- ✅ **PostgreSQL 15**: Primary database for metadata and jobs
+- ✅ **OpenSearch 2.11**: Hybrid search engine (text + vector)
+- ✅ **AWS Bedrock**: Titan embeddings + Claude 3.5 Sonnet
+- ✅ **Redis + RQ**: Background job processing
+- ✅ **Semgrep**: Security vulnerability scanning
+- ✅ **jQAssistant**: Java architecture analysis
+
+### What DocXP Does
+**DocXP is Google for your codebase + AI expert assistant.**
+
+You can ask questions like:
+- "Where is user authentication implemented?"
+- "How does payment processing work?"
+- "Are there SQL injection vulnerabilities?"
+- "Show me the data flow from JSP to database"
+
+### Architecture Benefits
+- 🚀 **Enterprise AI**: AWS Bedrock Titan (1024-dim embeddings)
+- 🔍 **Hybrid Search**: OpenSearch combines text + semantic search
+- 🏢 **Scalable**: Handles multi-GB codebases with 10M+ code chunks
+- 🔒 **Secure**: Local-first, only API calls to AWS
+- 📊 **Multi-tool**: Integrates Semgrep, jQAssistant, Neo4j
 
 ---
 

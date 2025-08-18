@@ -58,6 +58,9 @@ except ImportError:
 from app.core.config import settings
 from app.services.vector_service import get_vector_service
 from app.services.semantic_ai_service import get_semantic_ai_service
+from app.core.database import AsyncSessionLocal
+from app.services.project_coordinator_service import get_project_coordinator_service
+from app.services.cross_repository_discovery_service import get_cross_repository_discovery_service
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +81,20 @@ class ConversationContext:
     user_preferences: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_activity: datetime = field(default_factory=datetime.utcnow)
+    
+    # WEEK 4 ENHANCEMENTS: Advanced context management
+    project_id: Optional[str] = None
+    business_rules_context: List[Dict[str, Any]] = field(default_factory=list)
+    architectural_insights_context: List[Dict[str, Any]] = field(default_factory=list)
+    domain_classification_context: Dict[str, Any] = field(default_factory=dict)
+    cross_repository_insights: List[Dict[str, Any]] = field(default_factory=list)
+    conversation_focus: Optional[str] = None  # "migration", "analysis", "architecture", "business", "documentation"
+    context_embeddings: List[float] = field(default_factory=list)
+    related_sessions: List[str] = field(default_factory=list)  # Related conversation sessions
+    knowledge_base_references: List[str] = field(default_factory=list)
+    conversation_sentiment: Optional[str] = None  # "positive", "neutral", "frustrated"
+    user_expertise_level: str = "intermediate"  # "beginner", "intermediate", "expert"
+    conversation_tags: List[str] = field(default_factory=list)
 
 @dataclass
 class AgentResponse:
@@ -103,6 +120,13 @@ class StrandsAgentService:
         self.vector_service = None
         self.semantic_ai_service = None
         
+        # WEEK 4 ENHANCEMENTS: Business rule and project integration
+        self.project_coordinator_service = None
+        self.cross_repo_discovery_service = None
+        self.conversation_memory_store: Dict[str, List[Dict[str, Any]]] = {}  # Long-term memory across sessions
+        self.business_rule_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self.architectural_insights_cache: Dict[str, List[Dict[str, Any]]] = {}
+        
         if self.available:
             asyncio.create_task(self._initialize_agents())
         else:
@@ -114,6 +138,10 @@ class StrandsAgentService:
             # Initialize services
             self.vector_service = await get_vector_service()
             self.semantic_ai_service = await get_semantic_ai_service()
+            
+            # WEEK 4 ENHANCEMENTS: Initialize business rule and project services
+            self.project_coordinator_service = await get_project_coordinator_service()
+            self.cross_repo_discovery_service = await get_cross_repository_discovery_service()
             
             # Create Bedrock provider for all agents
             provider = BedrockProvider(
@@ -187,6 +215,12 @@ Be direct, practical, and focus on delivering business value while managing tech
         agent.add_tool(self._create_technology_recommendation_tool())
         agent.add_tool(self._create_risk_assessment_tool())
         
+        # WEEK 4 ENHANCEMENTS: Add business rule context tools
+        agent.add_tool(self._create_business_rule_context_tool())
+        agent.add_tool(self._create_architectural_insights_tool())
+        agent.add_tool(self._create_project_context_tool())
+        agent.add_tool(self._create_cross_repository_insights_tool())
+        
         self.agents[AgentType.MIGRATION_EXPERT] = agent
     
     async def _create_code_analyzer_agent(self, provider):
@@ -248,6 +282,12 @@ Always provide:
         agent.add_tool(self._create_code_quality_analysis_tool())
         agent.add_tool(self._create_dependency_analysis_tool())
         agent.add_tool(self._create_pattern_detection_tool())
+        
+        # WEEK 4 ENHANCEMENTS: Add business rule context tools
+        agent.add_tool(self._create_business_rule_context_tool())
+        agent.add_tool(self._create_architectural_insights_tool())
+        agent.add_tool(self._create_project_context_tool())
+        agent.add_tool(self._create_cross_repository_insights_tool())
         
         self.agents[AgentType.CODE_ANALYZER] = agent
     
@@ -311,6 +351,12 @@ Always provide:
         agent.add_tool(self._create_scalability_assessment_tool())
         agent.add_tool(self._create_technology_recommendation_tool())
         
+        # WEEK 4 ENHANCEMENTS: Add business rule context tools
+        agent.add_tool(self._create_business_rule_context_tool())
+        agent.add_tool(self._create_architectural_insights_tool())
+        agent.add_tool(self._create_project_context_tool())
+        agent.add_tool(self._create_cross_repository_insights_tool())
+        
         self.agents[AgentType.ARCHITECTURE_ADVISOR] = agent
     
     async def _create_business_analyst_agent(self, provider):
@@ -373,6 +419,12 @@ Always provide:
         agent.add_tool(self._create_process_analysis_tool())
         agent.add_tool(self._create_impact_assessment_tool())
         
+        # WEEK 4 ENHANCEMENTS: Add business rule context tools
+        agent.add_tool(self._create_business_rule_context_tool())
+        agent.add_tool(self._create_architectural_insights_tool())
+        agent.add_tool(self._create_project_context_tool())
+        agent.add_tool(self._create_cross_repository_insights_tool())
+        
         self.agents[AgentType.BUSINESS_ANALYST] = agent
     
     async def _create_technical_writer_agent(self, provider):
@@ -433,6 +485,12 @@ Always provide:
         # Add documentation tools
         agent.add_tool(self._create_documentation_generation_tool())
         agent.add_tool(self._create_content_organization_tool())
+        
+        # WEEK 4 ENHANCEMENTS: Add business rule context tools
+        agent.add_tool(self._create_business_rule_context_tool())
+        agent.add_tool(self._create_architectural_insights_tool())
+        agent.add_tool(self._create_project_context_tool())
+        agent.add_tool(self._create_cross_repository_insights_tool())
         
         self.agents[AgentType.TECHNICAL_WRITER] = agent
     
@@ -897,6 +955,204 @@ Always provide:
             }
         )
     
+    # WEEK 4 ENHANCEMENTS: New tools integrating with business rule models
+    
+    def _create_business_rule_context_tool(self) -> Tool:
+        """Create tool for business rule context retrieval"""
+        async def business_rule_context(domain: str, repository_id: str = None) -> ToolResult:
+            try:
+                async with AsyncSessionLocal() as session:
+                    from sqlalchemy import text
+                    
+                    # Use raw SQL to avoid SQLAlchemy model conflicts
+                    if repository_id:
+                        query = text("""
+                            SELECT rule_name, business_domain, technology_stack, 
+                                   entry_point, business_description, impact_level, 
+                                   extraction_confidence
+                            FROM business_rule_traces 
+                            WHERE business_domain = :domain AND repository_id = :repo_id
+                            LIMIT 20
+                        """)
+                        result = await session.execute(query, {"domain": domain, "repo_id": int(repository_id)})
+                    else:
+                        query = text("""
+                            SELECT rule_name, business_domain, technology_stack, 
+                                   entry_point, business_description, impact_level, 
+                                   extraction_confidence
+                            FROM business_rule_traces 
+                            WHERE business_domain = :domain
+                            LIMIT 20
+                        """)
+                        result = await session.execute(query, {"domain": domain})
+                    
+                    context_data = []
+                    for row in result:
+                        context_data.append({
+                            "rule_name": row.rule_name,
+                            "business_domain": row.business_domain,
+                            "technology_stack": row.technology_stack,
+                            "entry_point": row.entry_point,
+                            "business_description": row.business_description,
+                            "impact_level": row.impact_level,
+                            "extraction_confidence": row.extraction_confidence
+                        })
+                    
+                    return ToolResult(
+                        success=True,
+                        data=context_data,
+                        message=f"Retrieved {len(context_data)} business rules for domain {domain}"
+                    )
+            except Exception as e:
+                return ToolResult(
+                    success=False,
+                    message=f"Business rule context retrieval failed: {e}"
+                )
+        
+        return Tool(
+            name="business_rule_context",
+            description="Retrieve business rules context for specific domains and repositories",
+            function=business_rule_context,
+            parameters={
+                "domain": {"type": "string", "description": "Business domain to query"},
+                "repository_id": {"type": "string", "description": "Optional repository ID to filter by"}
+            }
+        )
+    
+    def _create_architectural_insights_tool(self) -> Tool:
+        """Create tool for architectural insights retrieval"""
+        async def architectural_insights(insight_type: str = None, repository_id: str = None) -> ToolResult:
+            try:
+                async with AsyncSessionLocal() as session:
+                    from sqlalchemy import text
+                    
+                    # Use raw SQL to avoid SQLAlchemy model conflicts
+                    base_query = """
+                        SELECT title, insight_type, description, business_context, 
+                               technical_details, modernization_impact, modernization_priority, 
+                               confidence_score
+                        FROM enterprise_architectural_insights 
+                        WHERE 1=1
+                    """
+                    
+                    params = {}
+                    if insight_type:
+                        base_query += " AND insight_type = :insight_type"
+                        params["insight_type"] = insight_type
+                    
+                    if repository_id:
+                        base_query += " AND repository_id = :repo_id"
+                        params["repo_id"] = int(repository_id)
+                    
+                    base_query += " LIMIT 15"
+                    
+                    query = text(base_query)
+                    result = await session.execute(query, params)
+                    
+                    insights_data = []
+                    for row in result:
+                        insights_data.append({
+                            "title": row.title,
+                            "insight_type": row.insight_type,
+                            "description": row.description,
+                            "business_context": row.business_context,
+                            "technical_details": row.technical_details,
+                            "modernization_impact": row.modernization_impact,
+                            "modernization_priority": row.modernization_priority,
+                            "confidence_score": row.confidence_score
+                        })
+                    
+                    return ToolResult(
+                        success=True,
+                        data=insights_data,
+                        message=f"Retrieved {len(insights_data)} architectural insights"
+                    )
+            except Exception as e:
+                return ToolResult(
+                    success=False,
+                    message=f"Architectural insights retrieval failed: {e}"
+                )
+        
+        return Tool(
+            name="architectural_insights",
+            description="Retrieve architectural insights for modernization planning",
+            function=architectural_insights,
+            parameters={
+                "insight_type": {"type": "string", "description": "Optional insight type filter"},
+                "repository_id": {"type": "string", "description": "Optional repository ID to filter by"}
+            }
+        )
+    
+    def _create_project_context_tool(self) -> Tool:
+        """Create tool for project context retrieval"""
+        async def project_context(project_id: str) -> ToolResult:
+            try:
+                if self.project_coordinator_service:
+                    project_status = await self.project_coordinator_service.get_project_status(project_id)
+                    
+                    if project_status:
+                        return ToolResult(
+                            success=True,
+                            data=project_status,
+                            message=f"Retrieved project context for {project_id}"
+                        )
+                    else:
+                        return ToolResult(
+                            success=False,
+                            message=f"Project {project_id} not found"
+                        )
+                else:
+                    return ToolResult(
+                        success=False,
+                        message="Project coordinator service not available"
+                    )
+            except Exception as e:
+                return ToolResult(
+                    success=False,
+                    message=f"Project context retrieval failed: {e}"
+                )
+        
+        return Tool(
+            name="project_context",
+            description="Retrieve comprehensive project context and status information",
+            function=project_context,
+            parameters={
+                "project_id": {"type": "string", "description": "Project ID to retrieve context for"}
+            }
+        )
+    
+    def _create_cross_repository_insights_tool(self) -> Tool:
+        """Create tool for cross-repository insights"""
+        async def cross_repository_insights(project_id: str) -> ToolResult:
+            try:
+                if self.cross_repo_discovery_service:
+                    analysis_results = await self.cross_repo_discovery_service.analyze_project_repositories(project_id)
+                    
+                    return ToolResult(
+                        success=True,
+                        data=analysis_results,
+                        message=f"Retrieved cross-repository insights for project {project_id}"
+                    )
+                else:
+                    return ToolResult(
+                        success=False,
+                        message="Cross-repository discovery service not available"
+                    )
+            except Exception as e:
+                return ToolResult(
+                    success=False,
+                    message=f"Cross-repository insights retrieval failed: {e}"
+                )
+        
+        return Tool(
+            name="cross_repository_insights",
+            description="Analyze relationships and dependencies across multiple repositories in a project",
+            function=cross_repository_insights,
+            parameters={
+                "project_id": {"type": "string", "description": "Project ID to analyze"}
+            }
+        )
+    
     async def start_conversation(
         self,
         message: str,
@@ -911,22 +1167,45 @@ Always provide:
             session_id=session_id,
             current_agent=agent_type,
             repository_ids=context.get('repository_ids', []) if context else [],
-            user_preferences=context.get('user_preferences', {}) if context else {}
+            user_preferences=context.get('user_preferences', {}) if context else {},
+            # WEEK 4 ENHANCEMENTS: Enhanced context
+            project_id=context.get('project_id') if context else None,
+            conversation_focus=self._infer_conversation_focus(message, agent_type),
+            user_expertise_level=context.get('user_expertise_level', 'intermediate') if context else 'intermediate'
         )
         
         self.active_conversations[session_id] = conv_context
+        
+        # WEEK 4 ENHANCEMENTS: Load enhanced context
+        await asyncio.gather(
+            self._load_business_rule_context(conv_context),
+            self._load_architectural_insights_context(conv_context),
+            self._load_project_context(conv_context)
+        )
         
         # Get response from agent
         response = await self._get_agent_response(message, agent_type, conv_context)
         
         # Update conversation history
-        conv_context.conversation_history.append({
+        interaction = {
             "timestamp": datetime.utcnow().isoformat(),
             "user_message": message,
             "agent_response": response.content,
-            "agent_type": agent_type.value
-        })
+            "agent_type": agent_type.value,
+            # WEEK 4 ENHANCEMENTS: Enhanced interaction tracking
+            "conversation_focus": conv_context.conversation_focus,
+            "repository_ids": conv_context.repository_ids,
+            "project_id": conv_context.project_id,
+            "business_rules_used": len(conv_context.business_rules_context),
+            "insights_referenced": len(conv_context.architectural_insights_context),
+            "confidence": response.confidence
+        }
+        
+        conv_context.conversation_history.append(interaction)
         conv_context.last_activity = datetime.utcnow()
+        
+        # Store in long-term memory
+        await self._store_conversation_memory(session_id, interaction)
         
         # Add session ID to response metadata
         response.metadata["session_id"] = session_id
@@ -1027,6 +1306,40 @@ Always provide:
         if context.repository_ids:
             context_parts.append(f"Repository Context: Analyzing {len(context.repository_ids)} repositories")
         
+        # WEEK 4 ENHANCEMENTS: Add business rule context
+        if context.business_rules_context:
+            business_context = f"Business Rules Context: Found {len(context.business_rules_context)} business rules across domains: "
+            domains = list(set([rule["business_domain"] for rule in context.business_rules_context]))
+            business_context += ", ".join(domains[:5])  # Top 5 domains
+            context_parts.append(business_context)
+            
+            # Add sample business rules for context
+            sample_rules = []
+            for rule in context.business_rules_context[:3]:  # Top 3 rules
+                sample_rules.append(f"- {rule['rule_name']} ({rule['business_domain']})")
+            if sample_rules:
+                context_parts.append(f"Sample Rules:\n" + "\n".join(sample_rules))
+        
+        # Add architectural insights context
+        if context.architectural_insights_context:
+            insights_context = f"Architectural Insights: {len(context.architectural_insights_context)} insights available"
+            high_priority = [i for i in context.architectural_insights_context if i.get("modernization_priority", 0) > 70]
+            if high_priority:
+                insights_context += f" (including {len(high_priority)} high-priority modernization items)"
+            context_parts.append(insights_context)
+        
+        # Add project context
+        if context.project_id and context.domain_classification_context:
+            project_info = context.domain_classification_context
+            project_context = f"Project Context: {project_info.get('project_name', 'Unknown')} - Status: {project_info.get('project_status', 'Unknown')}"
+            if project_info.get('business_rules_discovered', 0) > 0:
+                project_context += f", {project_info['business_rules_discovered']} business rules discovered"
+            context_parts.append(project_context)
+        
+        # Add conversation focus
+        if context.conversation_focus:
+            context_parts.append(f"Conversation Focus: {context.conversation_focus}")
+        
         # Add recent conversation history
         if context.conversation_history:
             recent_history = context.conversation_history[-3:]  # Last 3 exchanges
@@ -1037,10 +1350,16 @@ Always provide:
             ])
             context_parts.append(f"Recent Context:\n{history_text}")
         
-        # Add user preferences
+        # Add user preferences and expertise level
         if context.user_preferences:
             prefs_text = ", ".join([f"{k}: {v}" for k, v in context.user_preferences.items()])
             context_parts.append(f"User Preferences: {prefs_text}")
+        
+        context_parts.append(f"User Expertise Level: {context.user_expertise_level}")
+        
+        # Add conversation tags for context
+        if context.conversation_tags:
+            context_parts.append(f"Conversation Tags: {', '.join(context.conversation_tags[:5])}")  # Top 5 tags
         
         return "\n\n".join(context_parts)
     
@@ -1195,9 +1514,212 @@ Always provide:
             "agent_types": [agent_type.value for agent_type in AgentType],
             "dependencies": {
                 "vector_service": self.vector_service is not None,
-                "semantic_ai_service": self.semantic_ai_service is not None
-            }
+                "semantic_ai_service": self.semantic_ai_service is not None,
+                # WEEK 4 ENHANCEMENTS: New service dependencies
+                "project_coordinator_service": self.project_coordinator_service is not None,
+                "cross_repo_discovery_service": self.cross_repo_discovery_service is not None
+            },
+            "conversation_memory_entries": len(self.conversation_memory_store),
+            "business_rule_cache_entries": len(self.business_rule_cache),
+            "architectural_insights_cache_entries": len(self.architectural_insights_cache)
         }
+    
+    # WEEK 4 ENHANCEMENTS: Advanced conversation management methods
+    
+    def _infer_conversation_focus(self, message: str, agent_type: AgentType) -> str:
+        """Infer the conversation focus from the message and agent type"""
+        message_lower = message.lower()
+        
+        # Keyword-based focus detection
+        if any(word in message_lower for word in ['migrate', 'migration', 'modernize', 'legacy']):
+            return "migration"
+        elif any(word in message_lower for word in ['architecture', 'design', 'scalability', 'pattern']):
+            return "architecture"
+        elif any(word in message_lower for word in ['business', 'process', 'rule', 'workflow']):
+            return "business"
+        elif any(word in message_lower for word in ['code', 'quality', 'refactor', 'technical debt']):
+            return "analysis"
+        elif any(word in message_lower for word in ['document', 'documentation', 'guide', 'manual']):
+            return "documentation"
+        
+        # Default based on agent type
+        focus_map = {
+            AgentType.MIGRATION_EXPERT: "migration",
+            AgentType.CODE_ANALYZER: "analysis",
+            AgentType.ARCHITECTURE_ADVISOR: "architecture", 
+            AgentType.BUSINESS_ANALYST: "business",
+            AgentType.TECHNICAL_WRITER: "documentation"
+        }
+        
+        return focus_map.get(agent_type, "general")
+    
+    async def _load_business_rule_context(self, conv_context: ConversationContext) -> None:
+        """Load business rule context for the conversation"""
+        try:
+            if not conv_context.repository_ids:
+                return
+                
+            async with AsyncSessionLocal() as session:
+                from sqlalchemy import text
+                
+                # Use raw SQL to avoid model conflicts
+                if len(conv_context.repository_ids) == 1:
+                    query = text("""
+                        SELECT rule_name, business_domain, technology_stack, 
+                               entry_point, extraction_confidence
+                        FROM business_rule_traces 
+                        WHERE repository_id = :repo_id
+                        LIMIT 20
+                    """)
+                    result = await session.execute(query, {"repo_id": int(conv_context.repository_ids[0])})
+                else:
+                    # For multiple repos, use a different approach
+                    placeholders = ",".join([":repo_id_" + str(i) for i in range(len(conv_context.repository_ids))])
+                    query_str = f"""
+                        SELECT rule_name, business_domain, technology_stack, 
+                               entry_point, extraction_confidence
+                        FROM business_rule_traces 
+                        WHERE repository_id IN ({placeholders})
+                        LIMIT 20
+                    """
+                    query = text(query_str)
+                    params = {f"repo_id_{i}": int(repo_id) for i, repo_id in enumerate(conv_context.repository_ids)}
+                    result = await session.execute(query, params)
+                
+                for row in result:
+                    conv_context.business_rules_context.append({
+                        "rule_name": row.rule_name,
+                        "business_domain": row.business_domain,
+                        "technology_stack": row.technology_stack,
+                        "entry_point": row.entry_point,
+                        "extraction_confidence": row.extraction_confidence
+                    })
+                    
+                # Update conversation tags based on business rules
+                domains = list(set([rule["business_domain"] for rule in conv_context.business_rules_context]))
+                conv_context.conversation_tags.extend(domains)
+                
+        except Exception as e:
+            logger.warning(f"Failed to load business rule context: {e}")
+    
+    async def _load_architectural_insights_context(self, conv_context: ConversationContext) -> None:
+        """Load architectural insights context for the conversation"""
+        try:
+            if not conv_context.repository_ids:
+                return
+                
+            async with AsyncSessionLocal() as session:
+                from sqlalchemy import text
+                
+                # Use raw SQL to avoid model conflicts
+                if len(conv_context.repository_ids) == 1:
+                    query = text("""
+                        SELECT title, insight_type, modernization_impact, 
+                               modernization_priority, confidence_score
+                        FROM enterprise_architectural_insights 
+                        WHERE repository_id = :repo_id
+                        LIMIT 15
+                    """)
+                    result = await session.execute(query, {"repo_id": int(conv_context.repository_ids[0])})
+                else:
+                    # For multiple repos, use parameterized query
+                    placeholders = ",".join([":repo_id_" + str(i) for i in range(len(conv_context.repository_ids))])
+                    query_str = f"""
+                        SELECT title, insight_type, modernization_impact, 
+                               modernization_priority, confidence_score
+                        FROM enterprise_architectural_insights 
+                        WHERE repository_id IN ({placeholders})
+                        LIMIT 15
+                    """
+                    query = text(query_str)
+                    params = {f"repo_id_{i}": int(repo_id) for i, repo_id in enumerate(conv_context.repository_ids)}
+                    result = await session.execute(query, params)
+                
+                for row in result:
+                    conv_context.architectural_insights_context.append({
+                        "title": row.title,
+                        "insight_type": row.insight_type,
+                        "modernization_impact": row.modernization_impact,
+                        "modernization_priority": row.modernization_priority,
+                        "confidence_score": row.confidence_score
+                    })
+                    
+        except Exception as e:
+            logger.warning(f"Failed to load architectural insights context: {e}")
+    
+    async def _load_project_context(self, conv_context: ConversationContext) -> None:
+        """Load project context if project_id is available"""
+        try:
+            if not conv_context.project_id or not self.project_coordinator_service:
+                return
+                
+            project_status = await self.project_coordinator_service.get_project_status(conv_context.project_id)
+            
+            if project_status:
+                conv_context.domain_classification_context = {
+                    "project_name": project_status.get("name", ""),
+                    "project_status": project_status.get("status", ""),
+                    "repositories_analyzed": project_status.get("repositories", {}).get("analyzed", 0),
+                    "business_rules_discovered": project_status.get("discoveries", {}).get("business_rules", 0),
+                    "insights_generated": project_status.get("discoveries", {}).get("insights", 0)
+                }
+                
+                # Add project-level tags
+                conv_context.conversation_tags.append(f"project:{conv_context.project_id}")
+                
+        except Exception as e:
+            logger.warning(f"Failed to load project context: {e}")
+    
+    async def _store_conversation_memory(self, session_id: str, interaction: Dict[str, Any]) -> None:
+        """Store conversation interaction in long-term memory"""
+        try:
+            if session_id not in self.conversation_memory_store:
+                self.conversation_memory_store[session_id] = []
+            
+            # Add timestamp and metadata
+            interaction["stored_at"] = datetime.utcnow().isoformat()
+            interaction["session_id"] = session_id
+            
+            self.conversation_memory_store[session_id].append(interaction)
+            
+            # Limit memory size per session (keep last 50 interactions)
+            if len(self.conversation_memory_store[session_id]) > 50:
+                self.conversation_memory_store[session_id] = self.conversation_memory_store[session_id][-50:]
+                
+        except Exception as e:
+            logger.warning(f"Failed to store conversation memory: {e}")
+    
+    async def _retrieve_related_conversations(self, conv_context: ConversationContext) -> List[Dict[str, Any]]:
+        """Retrieve related conversations based on context similarity"""
+        related = []
+        
+        try:
+            for session_id, memory_entries in self.conversation_memory_store.items():
+                if session_id == conv_context.session_id:
+                    continue
+                    
+                # Check for overlap in repository IDs, project IDs, or conversation tags
+                for entry in memory_entries[-5:]:  # Check recent entries only
+                    if (entry.get("repository_ids") and 
+                        set(entry["repository_ids"]).intersection(set(conv_context.repository_ids))):
+                        related.append({
+                            "session_id": session_id,
+                            "snippet": entry.get("user_message", "")[:100],
+                            "relevance": "repository_overlap"
+                        })
+                        break
+                    elif (entry.get("project_id") == conv_context.project_id and conv_context.project_id):
+                        related.append({
+                            "session_id": session_id,
+                            "snippet": entry.get("user_message", "")[:100],
+                            "relevance": "project_overlap"
+                        })
+                        break
+                        
+        except Exception as e:
+            logger.warning(f"Failed to retrieve related conversations: {e}")
+        
+        return related[:3]  # Return top 3 related conversations
 
 # Global Strands agent service instance
 strands_agent_service = StrandsAgentService()

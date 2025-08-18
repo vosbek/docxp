@@ -895,7 +895,7 @@ class ArchitecturalInsight(Base):
     
     Stores aggregated insights and recommendations from jQAssistant analysis
     """
-    __tablename__ = "architectural_insights"
+    __tablename__ = "indexing_architectural_insights"
 
     # Primary key
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
