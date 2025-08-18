@@ -82,7 +82,6 @@ class Settings(BaseSettings):
     ENABLE_DB_ANALYSIS: bool = Field(default=True, env="ENABLE_DB_ANALYSIS")  # Can disable entirely
     
     # AWS Bedrock - Support multiple authentication methods
-    AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
     AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None, env="AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
     AWS_SESSION_TOKEN: Optional[str] = Field(default=None, env="AWS_SESSION_TOKEN")
@@ -110,6 +109,33 @@ class Settings(BaseSettings):
     REDIS_DB: int = Field(default=0, env="REDIS_DB")
     REDIS_PASSWORD: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     REDIS_ENABLED: bool = Field(default=True, env="REDIS_ENABLED")
+    
+    # API Configuration
+    API_PORT: int = Field(default=8001, env="API_PORT")
+    AUTH_ENABLED: bool = Field(default=False, env="AUTH_ENABLED")
+    
+    # Application Environment
+    APP_ENV: str = Field(default="development", env="APP_ENV")
+    
+    # Logging
+    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
+    
+    # Chat/LLM Configuration
+    CHAT_MODEL: str = Field(default="anthropic.claude-3-5-sonnet-20241022-v2:0", env="CHAT_MODEL")
+    
+    # OpenSearch Configuration (Optional)
+    OPENSEARCH_HOST: str = Field(default="localhost", env="OPENSEARCH_HOST")
+    OPENSEARCH_PORT: int = Field(default=9200, env="OPENSEARCH_PORT")
+    OPENSEARCH_USE_SSL: bool = Field(default=False, env="OPENSEARCH_USE_SSL")
+    OPENSEARCH_VERIFY_CERTS: bool = Field(default=False, env="OPENSEARCH_VERIFY_CERTS")
+    
+    # AWS Configuration (Alternate naming)
+    AWS_DEFAULT_REGION: Optional[str] = Field(default=None, env="AWS_DEFAULT_REGION")
+    AWS_API_TIMEOUT: int = Field(default=30, env="AWS_API_TIMEOUT")
+    
+    # Processing Configuration
+    MAX_CONCURRENT_CHUNKS: int = Field(default=4, env="MAX_CONCURRENT_CHUNKS")
+    MAX_RETRIES: int = Field(default=3, env="MAX_RETRIES")
     
     # Feature flags
     
