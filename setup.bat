@@ -92,7 +92,7 @@ if not exist "backend\.env" (
         echo # Neo4j ^(Optional - will gracefully degrade if not available^)
         echo NEO4J_URI=bolt://localhost:7687
         echo NEO4J_USERNAME=neo4j
-        echo NEO4J_PASSWORD=docxp-2024
+        echo NEO4J_PASSWORD=docxp-production-2024
         echo NEO4J_ENABLED=true
         echo.
         echo # Redis ^(Optional - will gracefully degrade if not available^)
@@ -116,16 +116,34 @@ if "%HAS_PODMAN%" == "true" (
     set /p SETUP_SERVICES="Would you like to start Neo4j and Redis with Podman? (y/n): "
     
     if /i "%SETUP_SERVICES%" == "y" (
-        echo Starting Neo4j with Podman...
-        podman run -d --name docxp-neo4j -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/docxp-2024 neo4j:latest >nul 2>&1
+        echo Starting services with Podman...
         
-        echo Starting Redis with Podman...
-        podman run -d --name docxp-redis -p 6379:6379 redis:latest >nul 2>&1
+        REM Stop and remove existing containers if they exist
+        podman stop docxp-neo4j docxp-redis >nul 2>&1
+        podman rm docxp-neo4j docxp-redis >nul 2>&1
         
-        echo ✅ Optional services started
+        echo Starting Neo4j...
+        podman run -d --name docxp-neo4j -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/docxp-production-2024 -e NEO4J_PLUGINS=[] neo4j:5.11
+        if %errorlevel% neq 0 (
+            echo ❌ Failed to start Neo4j
+        ) else (
+            echo ✅ Neo4j started
+        )
         
-        REM Wait a moment for services to start
-        timeout /t 5 /nobreak >nul
+        echo Starting Redis...
+        podman run -d --name docxp-redis -p 6379:6379 redis:7-alpine
+        if %errorlevel% neq 0 (
+            echo ❌ Failed to start Redis
+        ) else (
+            echo ✅ Redis started
+        )
+        
+        echo Waiting for services to initialize...
+        timeout /t 10 /nobreak >nul
+        
+        REM Check if services are running
+        echo Checking service status...
+        podman ps --filter "name=docxp-neo4j" --filter "name=docxp-redis" --format "{{.Names}} - {{.Status}}"
     )
 )
 
