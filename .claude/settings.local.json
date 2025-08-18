@@ -161,7 +161,12 @@
       "Bash(Get-Content \"logs/start-2025-08-02-15-38-01.log\" -Tail 30)",
       "WebFetch(domain:deepwiki.org)",
       "WebSearch",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(if [ -d \"output\" ])",
+      "Bash(then mv output \"../archive/legacy/backend_output\")",
+      "Bash(fi)",
+      "Bash(if [ -d \"C:/devl/workspaces/docxp/frontend/docs\" ])",
+      "Bash(then mv \"C:/devl/workspaces/docxp/frontend/docs\" \"C:/devl/workspaces/docxp/archive/documentation/frontend_docs\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
