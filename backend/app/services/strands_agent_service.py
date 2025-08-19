@@ -12,89 +12,24 @@ from typing import Dict, List, Any, Optional, Union, AsyncGenerator
 from dataclasses import dataclass, field
 from enum import Enum
 
-# Try importing strands-agents with graceful fallback and better debugging
-STRANDS_AVAILABLE = False
-STRANDS_ERROR = None
-
-# Try different import patterns for strands-agents
-import_attempts = [
-    # Pattern 1: Direct strands imports (original)
-    lambda: (
-        __import__('strands', fromlist=['Agent', 'MessageFlow', 'ConversationMemory']),
-        __import__('strands.providers.bedrock', fromlist=['BedrockProvider']),
-        __import__('strands.providers.anthropic', fromlist=['AnthropicProvider']),
-        __import__('strands.core.agent', fromlist=['AgentConfig']),
-        __import__('strands.core.message', fromlist=['Message', 'MessageType']),
-        __import__('strands.core.tools', fromlist=['Tool', 'ToolResult'])
-    ),
-    # Pattern 2: strands_agents imports
-    lambda: (
-        __import__('strands_agents', fromlist=['Agent', 'MessageFlow', 'ConversationMemory']),
-        __import__('strands_agents.providers.bedrock', fromlist=['BedrockProvider']),
-        __import__('strands_agents.core.agent', fromlist=['AgentConfig'])
-    )
-]
-
-for i, attempt in enumerate(import_attempts, 1):
-    try:
-        modules = attempt()
-        # If we get here, imports worked
-        if i == 1:
-            from strands import Agent, MessageFlow, ConversationMemory
-            from strands.providers.bedrock import BedrockProvider
-            from strands.providers.anthropic import AnthropicProvider
-            from strands.core.agent import AgentConfig
-            from strands.core.message import Message, MessageType
-            from strands.core.tools import Tool, ToolResult
-        elif i == 2:
-            from strands_agents import Agent, MessageFlow, ConversationMemory
-            from strands_agents.providers.bedrock import BedrockProvider
-            from strands_agents.providers.anthropic import AnthropicProvider
-            from strands_agents.core.agent import AgentConfig
-            from strands_agents.core.message import Message, MessageType
-            from strands_agents.core.tools import Tool, ToolResult
-        
-        STRANDS_AVAILABLE = True
-        logging.info(f"Strands Agents SDK imported successfully using pattern {i}")
-        break
-    except ImportError as e:
-        STRANDS_ERROR = str(e)
-        logging.debug(f"Import pattern {i} failed: {e}")
-        continue
-
-if not STRANDS_AVAILABLE:
-    logging.warning(f"Strands Agents SDK not available. Last error: {STRANDS_ERROR}")
-    logging.warning("Install with: pip install strands-agents")
+# Import strands-agents - REQUIRED for application to function
+try:
+    # Import what's actually available in strands 1.5.0 based on exploration
+    from strands import Agent
+    from strands.models.bedrock import BedrockModel
+    from strands.types.tools import Tool, ToolResult
+    from strands.agent.agent import Message
+    from strands.types.content import Messages
     
-    # Create placeholder classes when Strands is not available
-    class Tool:
-        def __init__(self, name: str, description: str, function: Any, parameters: Dict[str, Any]):
-            self.name = name
-            self.description = description
-            self.function = function
-            self.parameters = parameters
+    STRANDS_AVAILABLE = True
+    logging.info("✅ Strands Agents SDK imported successfully")
     
-    class ToolResult:
-        def __init__(self, success: bool, data: Any = None, message: str = ""):
-            self.success = success
-            self.data = data
-            self.message = message
-    
-    class Agent:
-        def __init__(self, config: Any, provider: Any):
-            pass
-        def add_tool(self, tool: Tool):
-            pass
-        async def process_message(self, message: str):
-            return type('Response', (), {'content': 'Strands not available'})()
-    
-    class AgentConfig:
-        def __init__(self, name: str, system_prompt: str, max_tokens: int, temperature: float):
-            pass
-    
-    class BedrockProvider:
-        def __init__(self, model_id: str, region: str):
-            pass
+except ImportError as e:
+    error_msg = f"❌ CRITICAL: Strands Agents SDK is required but not available: {e}"
+    logging.error(error_msg)
+    logging.error("Install with: pip install strands-agents")
+    logging.error("Application cannot function without strands-agents")
+    raise ImportError(f"Required dependency missing: strands-agents. {error_msg}") from e
 
 from app.core.config import settings
 # NOTE: Vector operations now handled by OpenSearch - ChromaDB removed  
@@ -169,34 +104,34 @@ class StrandsAgentService:
         self.business_rule_cache: Dict[str, List[Dict[str, Any]]] = {}
         self.architectural_insights_cache: Dict[str, List[Dict[str, Any]]] = {}
         
-        if self.available:
-            asyncio.create_task(self._initialize_agents())
-        else:
+        # Initialize agents lazily when first requested to avoid event loop issues
+        self._initialization_task = None
+        if not self.available:
             logger.warning("Strands Agents not available - using fallback implementation")
     
     async def _initialize_agents(self):
         """Initialize all specialized agents"""
         try:
             # Initialize services
-            self.vector_service = await get_vector_service()
+            # NOTE: Vector service temporarily disabled during OpenSearch migration
+            # self.vector_service = await get_vector_service()
             self.semantic_ai_service = await get_semantic_ai_service()
             
             # WEEK 4 ENHANCEMENTS: Initialize business rule and project services
             self.project_coordinator_service = await get_project_coordinator_service()
             self.cross_repo_discovery_service = await get_cross_repository_discovery_service()
             
-            # Create Bedrock provider for all agents
-            provider = BedrockProvider(
-                model_id=settings.BEDROCK_MODEL_ID,
-                region=settings.AWS_REGION
+            # Create Bedrock model for all agents
+            model = BedrockModel(
+                model_id=getattr(settings, 'BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
             )
             
             # Initialize specialized agents
-            await self._create_migration_expert_agent(provider)
-            await self._create_code_analyzer_agent(provider)
-            await self._create_architecture_advisor_agent(provider)
-            await self._create_business_analyst_agent(provider)
-            await self._create_technical_writer_agent(provider)
+            await self._create_migration_expert_agent(model)
+            await self._create_code_analyzer_agent(model)
+            await self._create_architecture_advisor_agent(model)
+            await self._create_business_analyst_agent(model)
+            await self._create_technical_writer_agent(model)
             
             logger.info("Strands Agents initialized successfully")
             
@@ -204,7 +139,17 @@ class StrandsAgentService:
             logger.error(f"Failed to initialize Strands Agents: {e}")
             self.available = False
     
-    async def _create_migration_expert_agent(self, provider):
+    async def _ensure_initialized(self):
+        """Ensure agents are initialized before use"""
+        if not self.available:
+            return
+        
+        if self._initialization_task is None:
+            self._initialization_task = asyncio.create_task(self._initialize_agents())
+        
+        await self._initialization_task
+    
+    async def _create_migration_expert_agent(self, model):
         """Create specialized migration expert agent"""
         system_prompt = """You are an expert legacy system migration consultant with 20+ years of experience modernizing enterprise applications. Your expertise includes:
 
@@ -242,30 +187,25 @@ Always provide:
 - Business impact analysis
 
 Be direct, practical, and focus on delivering business value while managing technical complexity."""
-
-        config = AgentConfig(
-            name="Migration Expert",
-            system_prompt=system_prompt,
-            max_tokens=3000,
-            temperature=0.2
+        
+        # Create agent with model and system prompt
+        agent = Agent(
+            model=model,
+            system_prompt=system_prompt
         )
         
-        agent = Agent(config=config, provider=provider)
-        
-        # Add custom tools for migration analysis
-        agent.add_tool(self._create_migration_analysis_tool())
-        agent.add_tool(self._create_technology_recommendation_tool())
-        agent.add_tool(self._create_risk_assessment_tool())
-        
-        # WEEK 4 ENHANCEMENTS: Add business rule context tools
-        agent.add_tool(self._create_business_rule_context_tool())
-        agent.add_tool(self._create_architectural_insights_tool())
-        agent.add_tool(self._create_project_context_tool())
-        agent.add_tool(self._create_cross_repository_insights_tool())
+        # Register custom tools for migration analysis
+        await self._register_migration_tools(agent)
         
         self.agents[AgentType.MIGRATION_EXPERT] = agent
     
-    async def _create_code_analyzer_agent(self, provider):
+    async def _register_migration_tools(self, agent):
+        """Register migration-specific tools with the agent"""
+        # For now, we'll create simplified tools that work with the basic strands API
+        # These will be enhanced as the strands package provides more tool capabilities
+        pass
+    
+    async def _create_code_analyzer_agent(self, model):
         """Create specialized code analysis agent"""
         system_prompt = """You are a senior software engineer and code analysis expert specializing in legacy codebase assessment. Your expertise includes:
 
@@ -310,30 +250,15 @@ Always provide:
 - Prioritized improvement recommendations
 - Refactoring strategies with effort estimates
 - Technology upgrade pathways"""
-
-        config = AgentConfig(
-            name="Code Analyzer",
-            system_prompt=system_prompt,
-            max_tokens=3000,
-            temperature=0.1
+        
+        agent = Agent(
+            model=model,
+            system_prompt=system_prompt
         )
-        
-        agent = Agent(config=config, provider=provider)
-        
-        # Add code analysis tools
-        agent.add_tool(self._create_code_quality_analysis_tool())
-        agent.add_tool(self._create_dependency_analysis_tool())
-        agent.add_tool(self._create_pattern_detection_tool())
-        
-        # WEEK 4 ENHANCEMENTS: Add business rule context tools
-        agent.add_tool(self._create_business_rule_context_tool())
-        agent.add_tool(self._create_architectural_insights_tool())
-        agent.add_tool(self._create_project_context_tool())
-        agent.add_tool(self._create_cross_repository_insights_tool())
         
         self.agents[AgentType.CODE_ANALYZER] = agent
     
-    async def _create_architecture_advisor_agent(self, provider):
+    async def _create_architecture_advisor_agent(self, model):
         """Create specialized architecture advisor agent"""
         system_prompt = """You are a principal software architect with expertise in enterprise system design and modernization. Your specializations include:
 
@@ -379,29 +304,14 @@ Always provide:
 - Implementation patterns and best practices
 - Risk assessment and mitigation strategies"""
 
-        config = AgentConfig(
-            name="Architecture Advisor",
-            system_prompt=system_prompt,
-            max_tokens=3500,
-            temperature=0.25
+        agent = Agent(
+            model=model,
+            system_prompt=system_prompt
         )
-        
-        agent = Agent(config=config, provider=provider)
-        
-        # Add architecture analysis tools
-        agent.add_tool(self._create_architecture_analysis_tool())
-        agent.add_tool(self._create_scalability_assessment_tool())
-        agent.add_tool(self._create_technology_recommendation_tool())
-        
-        # WEEK 4 ENHANCEMENTS: Add business rule context tools
-        agent.add_tool(self._create_business_rule_context_tool())
-        agent.add_tool(self._create_architectural_insights_tool())
-        agent.add_tool(self._create_project_context_tool())
-        agent.add_tool(self._create_cross_repository_insights_tool())
         
         self.agents[AgentType.ARCHITECTURE_ADVISOR] = agent
     
-    async def _create_business_analyst_agent(self, provider):
+    async def _create_business_analyst_agent(self, model):
         """Create specialized business analyst agent"""
         system_prompt = """You are a senior business analyst specializing in enterprise software systems and digital transformation. Your expertise includes:
 
@@ -447,29 +357,14 @@ Always provide:
 - Impact assessment with quantified benefits
 - Implementation recommendations with success metrics"""
 
-        config = AgentConfig(
-            name="Business Analyst",
-            system_prompt=system_prompt,
-            max_tokens=3000,
-            temperature=0.3
+        agent = Agent(
+            model=model,
+            system_prompt=system_prompt
         )
-        
-        agent = Agent(config=config, provider=provider)
-        
-        # Add business analysis tools
-        agent.add_tool(self._create_business_rule_extraction_tool())
-        agent.add_tool(self._create_process_analysis_tool())
-        agent.add_tool(self._create_impact_assessment_tool())
-        
-        # WEEK 4 ENHANCEMENTS: Add business rule context tools
-        agent.add_tool(self._create_business_rule_context_tool())
-        agent.add_tool(self._create_architectural_insights_tool())
-        agent.add_tool(self._create_project_context_tool())
-        agent.add_tool(self._create_cross_repository_insights_tool())
         
         self.agents[AgentType.BUSINESS_ANALYST] = agent
     
-    async def _create_technical_writer_agent(self, provider):
+    async def _create_technical_writer_agent(self, model):
         """Create specialized technical documentation agent"""
         system_prompt = """You are an expert technical writer and documentation specialist with extensive experience in software documentation. Your expertise includes:
 
@@ -515,685 +410,15 @@ Always provide:
 - Cross-references to related documentation
 - Maintenance and update recommendations"""
 
-        config = AgentConfig(
-            name="Technical Writer",
-            system_prompt=system_prompt,
-            max_tokens=4000,
-            temperature=0.2
+        agent = Agent(
+            model=model,
+            system_prompt=system_prompt
         )
-        
-        agent = Agent(config=config, provider=provider)
-        
-        # Add documentation tools
-        agent.add_tool(self._create_documentation_generation_tool())
-        agent.add_tool(self._create_content_organization_tool())
-        
-        # WEEK 4 ENHANCEMENTS: Add business rule context tools
-        agent.add_tool(self._create_business_rule_context_tool())
-        agent.add_tool(self._create_architectural_insights_tool())
-        agent.add_tool(self._create_project_context_tool())
-        agent.add_tool(self._create_cross_repository_insights_tool())
         
         self.agents[AgentType.TECHNICAL_WRITER] = agent
     
-    def _create_migration_analysis_tool(self) -> Tool:
-        """Create tool for migration analysis"""
-        async def migration_analysis(legacy_technology: str, target_technology: str) -> ToolResult:
-            try:
-                if self.semantic_ai_service:
-                    results = await self.semantic_ai_service.find_migration_recommendations(
-                        legacy_pattern=legacy_technology,
-                        technology_stack=target_technology
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message=f"Migration analysis completed for {legacy_technology} → {target_technology}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Semantic AI service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Migration analysis failed: {e}"
-                )
-        
-        return Tool(
-            name="migration_analysis",
-            description="Analyze migration from legacy technology to modern alternatives",
-            function=migration_analysis,
-            parameters={
-                "legacy_technology": {"type": "string", "description": "Current legacy technology"},
-                "target_technology": {"type": "string", "description": "Target modern technology"}
-            }
-        )
-    
-    def _create_technology_recommendation_tool(self) -> Tool:
-        """Create tool for technology recommendations"""
-        async def technology_recommendation(requirements: str, constraints: str = "") -> ToolResult:
-            try:
-                # Use semantic search to find similar patterns
-                if self.semantic_ai_service:
-                    results = await self.semantic_ai_service.semantic_code_search(
-                        search_query=f"technology stack {requirements} {constraints}"
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message="Technology recommendations generated"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Semantic AI service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Technology recommendation failed: {e}"
-                )
-        
-        return Tool(
-            name="technology_recommendation",
-            description="Recommend modern technologies based on requirements and constraints",
-            function=technology_recommendation,
-            parameters={
-                "requirements": {"type": "string", "description": "Technical requirements and needs"},
-                "constraints": {"type": "string", "description": "Constraints and limitations"}
-            }
-        )
-    
-    def _create_risk_assessment_tool(self) -> Tool:
-        """Create tool for risk assessment"""
-        async def risk_assessment(component_path: str, migration_target: str) -> ToolResult:
-            try:
-                if self.semantic_ai_service:
-                    results = await self.semantic_ai_service.analyze_migration_impact(
-                        component_path=component_path,
-                        target_technology=migration_target
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message=f"Risk assessment completed for {component_path}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Semantic AI service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Risk assessment failed: {e}"
-                )
-        
-        return Tool(
-            name="risk_assessment",
-            description="Assess migration risks and impact for specific components",
-            function=risk_assessment,
-            parameters={
-                "component_path": {"type": "string", "description": "Path to component being assessed"},
-                "migration_target": {"type": "string", "description": "Target technology for migration"}
-            }
-        )
-    
-    def _create_code_quality_analysis_tool(self) -> Tool:
-        """Create tool for code quality analysis"""
-        async def code_quality_analysis(code_content: str, file_path: str) -> ToolResult:
-            try:
-                if self.semantic_ai_service:
-                    results = await self.semantic_ai_service.analyze_code_with_context(
-                        code_content=code_content,
-                        file_path=file_path,
-                        analysis_type="quality_assessment"
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message=f"Code quality analysis completed for {file_path}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Semantic AI service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Code quality analysis failed: {e}"
-                )
-        
-        return Tool(
-            name="code_quality_analysis",
-            description="Analyze code quality metrics and identify improvement opportunities",
-            function=code_quality_analysis,
-            parameters={
-                "code_content": {"type": "string", "description": "Code content to analyze"},
-                "file_path": {"type": "string", "description": "Path to the code file"}
-            }
-        )
-    
-    def _create_dependency_analysis_tool(self) -> Tool:
-        """Create tool for dependency analysis"""
-        async def dependency_analysis(search_query: str) -> ToolResult:
-            try:
-                if self.vector_service:
-                    results = await self.vector_service.semantic_search(
-                        query=f"dependencies imports {search_query}",
-                        collection_name="code_entities",
-                        n_results=10
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message="Dependency analysis completed"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Vector service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Dependency analysis failed: {e}"
-                )
-        
-        return Tool(
-            name="dependency_analysis",
-            description="Analyze component dependencies and relationships",
-            function=dependency_analysis,
-            parameters={
-                "search_query": {"type": "string", "description": "Component or dependency to analyze"}
-            }
-        )
-    
-    def _create_pattern_detection_tool(self) -> Tool:
-        """Create tool for design pattern detection"""
-        async def pattern_detection(code_context: str) -> ToolResult:
-            try:
-                if self.vector_service:
-                    results = await self.vector_service.semantic_search(
-                        query=f"design patterns {code_context}",
-                        collection_name="code_entities",
-                        n_results=5
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message="Pattern detection completed"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Vector service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Pattern detection failed: {e}"
-                )
-        
-        return Tool(
-            name="pattern_detection",
-            description="Detect design patterns and architectural styles in code",
-            function=pattern_detection,
-            parameters={
-                "code_context": {"type": "string", "description": "Code context to analyze for patterns"}
-            }
-        )
-    
-    def _create_architecture_analysis_tool(self) -> Tool:
-        """Create tool for architecture analysis"""
-        async def architecture_analysis(system_scope: str) -> ToolResult:
-            try:
-                if self.semantic_ai_service:
-                    results = await self.semantic_ai_service.semantic_code_search(
-                        search_query=f"architecture components {system_scope}"
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message=f"Architecture analysis completed for {system_scope}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Semantic AI service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Architecture analysis failed: {e}"
-                )
-        
-        return Tool(
-            name="architecture_analysis",
-            description="Analyze system architecture and component relationships",
-            function=architecture_analysis,
-            parameters={
-                "system_scope": {"type": "string", "description": "Scope of system to analyze"}
-            }
-        )
-    
-    def _create_scalability_assessment_tool(self) -> Tool:
-        """Create tool for scalability assessment"""
-        async def scalability_assessment(component_type: str, usage_patterns: str) -> ToolResult:
-            try:
-                # Simulate scalability analysis based on component patterns
-                assessment = {
-                    "scalability_score": 7.5,
-                    "bottlenecks": ["Database queries", "Session management"],
-                    "recommendations": [
-                        "Implement caching layer",
-                        "Use read replicas for database",
-                        "Implement stateless design"
-                    ],
-                    "effort_estimate": "Medium (2-3 months)"
-                }
-                return ToolResult(
-                    success=True,
-                    data=assessment,
-                    message=f"Scalability assessment completed for {component_type}"
-                )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Scalability assessment failed: {e}"
-                )
-        
-        return Tool(
-            name="scalability_assessment",
-            description="Assess system scalability and identify bottlenecks",
-            function=scalability_assessment,
-            parameters={
-                "component_type": {"type": "string", "description": "Type of component to assess"},
-                "usage_patterns": {"type": "string", "description": "Expected usage patterns and load"}
-            }
-        )
-    
-    def _create_business_rule_extraction_tool(self) -> Tool:
-        """Create tool for business rule extraction"""
-        async def business_rule_extraction(domain_context: str) -> ToolResult:
-            try:
-                if self.vector_service:
-                    results = await self.vector_service.semantic_search(
-                        query=f"business rules {domain_context}",
-                        collection_name="business_rules",
-                        n_results=10
-                    )
-                    return ToolResult(
-                        success=True,
-                        data=results,
-                        message=f"Business rule extraction completed for {domain_context}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Vector service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Business rule extraction failed: {e}"
-                )
-        
-        return Tool(
-            name="business_rule_extraction",
-            description="Extract and analyze business rules from domain context",
-            function=business_rule_extraction,
-            parameters={
-                "domain_context": {"type": "string", "description": "Business domain context to analyze"}
-            }
-        )
-    
-    def _create_process_analysis_tool(self) -> Tool:
-        """Create tool for process analysis"""
-        async def process_analysis(process_description: str) -> ToolResult:
-            try:
-                # Simulate process analysis
-                analysis = {
-                    "process_steps": ["Input validation", "Business logic", "Data persistence", "Response"],
-                    "bottlenecks": ["Manual approval step", "Legacy system integration"],
-                    "optimization_opportunities": [
-                        "Automate validation steps",
-                        "Implement parallel processing",
-                        "Cache frequently accessed data"
-                    ],
-                    "efficiency_score": 6.5
-                }
-                return ToolResult(
-                    success=True,
-                    data=analysis,
-                    message=f"Process analysis completed"
-                )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Process analysis failed: {e}"
-                )
-        
-        return Tool(
-            name="process_analysis",
-            description="Analyze business processes and identify optimization opportunities",
-            function=process_analysis,
-            parameters={
-                "process_description": {"type": "string", "description": "Description of the process to analyze"}
-            }
-        )
-    
-    def _create_impact_assessment_tool(self) -> Tool:
-        """Create tool for impact assessment"""
-        async def impact_assessment(change_description: str, scope: str) -> ToolResult:
-            try:
-                # Simulate impact assessment
-                assessment = {
-                    "affected_systems": ["Customer management", "Billing system", "Reporting"],
-                    "impact_level": "Medium",
-                    "risk_factors": ["Data migration complexity", "User training required"],
-                    "mitigation_strategies": [
-                        "Phased rollout approach",
-                        "Comprehensive testing",
-                        "User training program"
-                    ],
-                    "estimated_effort": "4-6 weeks"
-                }
-                return ToolResult(
-                    success=True,
-                    data=assessment,
-                    message=f"Impact assessment completed for {scope}"
-                )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Impact assessment failed: {e}"
-                )
-        
-        return Tool(
-            name="impact_assessment",
-            description="Assess impact of proposed changes on business and systems",
-            function=impact_assessment,
-            parameters={
-                "change_description": {"type": "string", "description": "Description of proposed changes"},
-                "scope": {"type": "string", "description": "Scope of impact analysis"}
-            }
-        )
-    
-    def _create_documentation_generation_tool(self) -> Tool:
-        """Create tool for documentation generation"""
-        async def documentation_generation(content_type: str, target_audience: str, topic: str) -> ToolResult:
-            try:
-                if self.semantic_ai_service:
-                    # Use semantic search to gather relevant information
-                    search_results = await self.semantic_ai_service.semantic_code_search(
-                        search_query=f"{content_type} {topic}",
-                        filters={"documentation_type": content_type}
-                    )
-                    
-                    return ToolResult(
-                        success=True,
-                        data=search_results,
-                        message=f"Documentation content generated for {topic}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Semantic AI service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Documentation generation failed: {e}"
-                )
-        
-        return Tool(
-            name="documentation_generation",
-            description="Generate technical documentation based on content type and audience",
-            function=documentation_generation,
-            parameters={
-                "content_type": {"type": "string", "description": "Type of documentation (guide, reference, tutorial)"},
-                "target_audience": {"type": "string", "description": "Intended audience for the documentation"},
-                "topic": {"type": "string", "description": "Topic or subject to document"}
-            }
-        )
-    
-    def _create_content_organization_tool(self) -> Tool:
-        """Create tool for content organization"""
-        async def content_organization(content_elements: str, organization_type: str) -> ToolResult:
-            try:
-                # Simulate content organization
-                organization = {
-                    "structure": {
-                        "introduction": ["Overview", "Prerequisites", "Scope"],
-                        "main_content": ["Step-by-step guide", "Examples", "Best practices"],
-                        "conclusion": ["Summary", "Next steps", "Additional resources"]
-                    },
-                    "recommended_format": "Hierarchical with clear sections",
-                    "cross_references": ["Related topics", "See also", "Dependencies"],
-                    "maintenance_notes": ["Update frequency", "Review schedule", "Ownership"]
-                }
-                return ToolResult(
-                    success=True,
-                    data=organization,
-                    message=f"Content organization plan created"
-                )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Content organization failed: {e}"
-                )
-        
-        return Tool(
-            name="content_organization",
-            description="Organize and structure content for optimal readability and navigation",
-            function=content_organization,
-            parameters={
-                "content_elements": {"type": "string", "description": "Elements to organize"},
-                "organization_type": {"type": "string", "description": "Type of organization structure"}
-            }
-        )
-    
-    # WEEK 4 ENHANCEMENTS: New tools integrating with business rule models
-    
-    def _create_business_rule_context_tool(self) -> Tool:
-        """Create tool for business rule context retrieval"""
-        async def business_rule_context(domain: str, repository_id: str = None) -> ToolResult:
-            try:
-                async with AsyncSessionLocal() as session:
-                    from sqlalchemy import text
-                    
-                    # Use raw SQL to avoid SQLAlchemy model conflicts
-                    if repository_id:
-                        query = text("""
-                            SELECT rule_name, business_domain, technology_stack, 
-                                   entry_point, business_description, impact_level, 
-                                   extraction_confidence
-                            FROM business_rule_traces 
-                            WHERE business_domain = :domain AND repository_id = :repo_id
-                            LIMIT 20
-                        """)
-                        result = await session.execute(query, {"domain": domain, "repo_id": int(repository_id)})
-                    else:
-                        query = text("""
-                            SELECT rule_name, business_domain, technology_stack, 
-                                   entry_point, business_description, impact_level, 
-                                   extraction_confidence
-                            FROM business_rule_traces 
-                            WHERE business_domain = :domain
-                            LIMIT 20
-                        """)
-                        result = await session.execute(query, {"domain": domain})
-                    
-                    context_data = []
-                    for row in result:
-                        context_data.append({
-                            "rule_name": row.rule_name,
-                            "business_domain": row.business_domain,
-                            "technology_stack": row.technology_stack,
-                            "entry_point": row.entry_point,
-                            "business_description": row.business_description,
-                            "impact_level": row.impact_level,
-                            "extraction_confidence": row.extraction_confidence
-                        })
-                    
-                    return ToolResult(
-                        success=True,
-                        data=context_data,
-                        message=f"Retrieved {len(context_data)} business rules for domain {domain}"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Business rule context retrieval failed: {e}"
-                )
-        
-        return Tool(
-            name="business_rule_context",
-            description="Retrieve business rules context for specific domains and repositories",
-            function=business_rule_context,
-            parameters={
-                "domain": {"type": "string", "description": "Business domain to query"},
-                "repository_id": {"type": "string", "description": "Optional repository ID to filter by"}
-            }
-        )
-    
-    def _create_architectural_insights_tool(self) -> Tool:
-        """Create tool for architectural insights retrieval"""
-        async def architectural_insights(insight_type: str = None, repository_id: str = None) -> ToolResult:
-            try:
-                async with AsyncSessionLocal() as session:
-                    from sqlalchemy import text
-                    
-                    # Use raw SQL to avoid SQLAlchemy model conflicts
-                    base_query = """
-                        SELECT title, insight_type, description, business_context, 
-                               technical_details, modernization_impact, modernization_priority, 
-                               confidence_score
-                        FROM enterprise_architectural_insights 
-                        WHERE 1=1
-                    """
-                    
-                    params = {}
-                    if insight_type:
-                        base_query += " AND insight_type = :insight_type"
-                        params["insight_type"] = insight_type
-                    
-                    if repository_id:
-                        base_query += " AND repository_id = :repo_id"
-                        params["repo_id"] = int(repository_id)
-                    
-                    base_query += " LIMIT 15"
-                    
-                    query = text(base_query)
-                    result = await session.execute(query, params)
-                    
-                    insights_data = []
-                    for row in result:
-                        insights_data.append({
-                            "title": row.title,
-                            "insight_type": row.insight_type,
-                            "description": row.description,
-                            "business_context": row.business_context,
-                            "technical_details": row.technical_details,
-                            "modernization_impact": row.modernization_impact,
-                            "modernization_priority": row.modernization_priority,
-                            "confidence_score": row.confidence_score
-                        })
-                    
-                    return ToolResult(
-                        success=True,
-                        data=insights_data,
-                        message=f"Retrieved {len(insights_data)} architectural insights"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Architectural insights retrieval failed: {e}"
-                )
-        
-        return Tool(
-            name="architectural_insights",
-            description="Retrieve architectural insights for modernization planning",
-            function=architectural_insights,
-            parameters={
-                "insight_type": {"type": "string", "description": "Optional insight type filter"},
-                "repository_id": {"type": "string", "description": "Optional repository ID to filter by"}
-            }
-        )
-    
-    def _create_project_context_tool(self) -> Tool:
-        """Create tool for project context retrieval"""
-        async def project_context(project_id: str) -> ToolResult:
-            try:
-                if self.project_coordinator_service:
-                    project_status = await self.project_coordinator_service.get_project_status(project_id)
-                    
-                    if project_status:
-                        return ToolResult(
-                            success=True,
-                            data=project_status,
-                            message=f"Retrieved project context for {project_id}"
-                        )
-                    else:
-                        return ToolResult(
-                            success=False,
-                            message=f"Project {project_id} not found"
-                        )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Project coordinator service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Project context retrieval failed: {e}"
-                )
-        
-        return Tool(
-            name="project_context",
-            description="Retrieve comprehensive project context and status information",
-            function=project_context,
-            parameters={
-                "project_id": {"type": "string", "description": "Project ID to retrieve context for"}
-            }
-        )
-    
-    def _create_cross_repository_insights_tool(self) -> Tool:
-        """Create tool for cross-repository insights"""
-        async def cross_repository_insights(project_id: str) -> ToolResult:
-            try:
-                if self.cross_repo_discovery_service:
-                    analysis_results = await self.cross_repo_discovery_service.analyze_project_repositories(project_id)
-                    
-                    return ToolResult(
-                        success=True,
-                        data=analysis_results,
-                        message=f"Retrieved cross-repository insights for project {project_id}"
-                    )
-                else:
-                    return ToolResult(
-                        success=False,
-                        message="Cross-repository discovery service not available"
-                    )
-            except Exception as e:
-                return ToolResult(
-                    success=False,
-                    message=f"Cross-repository insights retrieval failed: {e}"
-                )
-        
-        return Tool(
-            name="cross_repository_insights",
-            description="Analyze relationships and dependencies across multiple repositories in a project",
-            function=cross_repository_insights,
-            parameters={
-                "project_id": {"type": "string", "description": "Project ID to analyze"}
-            }
-        )
+    # NOTE: Tool creation methods temporarily removed while integrating with actual strands package
+    # These will be re-implemented using the proper strands tool API once we understand the structure
     
     async def start_conversation(
         self,
@@ -1202,6 +427,9 @@ Always provide:
         context: Optional[Dict[str, Any]] = None
     ) -> AgentResponse:
         """Start a new conversation with a specialized agent"""
+        # Ensure agents are initialized
+        await self._ensure_initialized()
+        
         session_id = str(uuid.uuid4())
         
         # Create conversation context
@@ -1319,20 +547,26 @@ Always provide:
             context_message = self._prepare_context_message(message, context)
             
             # Get response from Strands agent
-            response = await agent.process_message(context_message)
+            messages = [Message(role="user", content=context_message)]
+            response = await agent.stream_async(messages)
+            
+            # Collect response content
+            content = ""
+            async for chunk in response:
+                if hasattr(chunk, 'content') and chunk.content:
+                    content += chunk.content
             
             # Parse response and create AgentResponse
             return AgentResponse(
-                content=response.content,
+                content=content,
                 agent_type=agent_type,
                 confidence=0.9,  # High confidence for Strands responses
                 reasoning=f"Response generated by {agent_type.value} agent",
-                suggested_actions=self._extract_suggested_actions(response.content),
-                followup_questions=self._extract_followup_questions(response.content),
+                suggested_actions=self._extract_suggested_actions(content),
+                followup_questions=self._extract_followup_questions(content),
                 metadata={
                     "agent_type": agent_type.value,
-                    "response_length": len(response.content),
-                    "tool_calls_made": len(getattr(response, 'tool_calls', []))
+                    "response_length": len(content)
                 }
             )
             
