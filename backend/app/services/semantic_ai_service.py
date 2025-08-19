@@ -28,9 +28,11 @@ class SemanticAIService:
     
     async def _initialize(self):
         """Initialize the semantic AI service"""
+        # NOTE: Vector operations now handled by OpenSearch - skip vector service initialization
         try:
-            self.vector_service = await get_vector_service()
-            logger.info("Semantic AI service initialized successfully")
+            # Mock vector service since operations handled by OpenSearch
+            self.vector_service = None
+            logger.info("Semantic AI service initialized successfully (vector operations via OpenSearch)")
         except Exception as e:
             logger.error(f"Failed to initialize semantic AI service: {e}")
             raise
