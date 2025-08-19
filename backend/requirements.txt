@@ -22,7 +22,7 @@ redis==5.0.1
 rq==1.15.1
 
 # Search & Retrieval (V1 Hybrid BM25 + k-NN)
-opensearch-py==2.4.2
+opensearch-py[async]==2.6.0
 
 # Storage (S3-Compatible)
 minio==7.2.3
