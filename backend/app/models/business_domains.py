@@ -81,15 +81,21 @@ class BusinessSubdomain(Enum):
 class DomainTaxonomy(Base):
     """
     Hierarchical business domain taxonomy
-    Supports multi-level domain classification
+    Supports multi-level domain classification with proper referential integrity
     """
     __tablename__ = "domain_taxonomy"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     domain_id = Column(String(100), unique=True, nullable=False, index=True)
     
-    # Hierarchy
-    parent_domain_id = Column(String(100), ForeignKey("domain_taxonomy.domain_id"))
+    # Hierarchy with proper foreign key constraint
+    # Use use_alter=True for self-referencing foreign keys to avoid circular dependency during table creation
+    parent_domain_id = Column(
+        String(100), 
+        ForeignKey("domain_taxonomy.domain_id", ondelete="SET NULL", use_alter=True, name="fk_domain_taxonomy_parent"),
+        nullable=True,
+        index=True
+    )
     category = Column(String(50), nullable=False)  # DomainCategory enum
     subdomain = Column(String(100))  # BusinessSubdomain enum
     level = Column(Integer, default=0)  # 0=category, 1=subdomain, 2=specific
@@ -106,9 +112,17 @@ class DomainTaxonomy(Base):
     patterns = Column(ARRAY(String))  # Code/filename patterns
     regulatory_scope = Column(ARRAY(String))  # SOX, GDPR, HIPAA, etc.
     
-    # Relationships
-    parent = relationship("DomainTaxonomy", remote_side="DomainTaxonomy.domain_id")
-    children = relationship("DomainTaxonomy", back_populates="parent")
+    # Relationships with proper cascade and foreign key setup
+    parent = relationship(
+        "DomainTaxonomy", 
+        remote_side=[domain_id],
+        back_populates="children"
+    )
+    children = relationship(
+        "DomainTaxonomy", 
+        back_populates="parent",
+        cascade="all, delete-orphan"
+    )
     
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -127,7 +141,7 @@ class DomainClassificationRule(Base):
     # Rule definition
     rule_name = Column(String(200), nullable=False)
     rule_type = Column(String(50), nullable=False)  # keyword, pattern, ml_model
-    target_domain = Column(String(100), ForeignKey("domain_taxonomy.domain_id"), nullable=False)
+    target_domain = Column(String(100), ForeignKey("domain_taxonomy.domain_id", use_alter=True, name="fk_domain_classification_rule_target"), nullable=False)
     
     # Rule logic
     keywords = Column(ARRAY(String))  # Keyword matching
@@ -169,7 +183,7 @@ class DomainClassificationResult(Base):
     component_type = Column(String(100))  # "class", "method", "jsp", "action"
     
     # Classification results
-    primary_domain = Column(String(100), ForeignKey("domain_taxonomy.domain_id"), nullable=False)
+    primary_domain = Column(String(100), ForeignKey("domain_taxonomy.domain_id", use_alter=True, name="fk_business_rule_trace_primary"), nullable=False)
     confidence_score = Column(Float, nullable=False)  # 0.0 to 1.0
     secondary_domains = Column(JSON)  # Additional domains with scores
     
