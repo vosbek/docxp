@@ -461,9 +461,32 @@ class VectorService:
             logger.error(f"Failed to clear collection {collection_name}: {e}")
             return False
 
-# Global vector service instance
-vector_service = VectorService()
+# Global vector service instance (lazy-loaded)
+_vector_service_instance = None
 
 async def get_vector_service() -> VectorService:
-    """Get vector service instance"""
-    return vector_service
+    """Get vector service instance (lazy-loaded)"""
+    global _vector_service_instance
+    if _vector_service_instance is None:
+        try:
+            _vector_service_instance = VectorService()
+        except Exception as e:
+            logger.warning(f"ChromaDB not available, using fallback: {e}")
+            # Return a mock service that doesn't break the app
+            _vector_service_instance = MockVectorService()
+    return _vector_service_instance
+
+class MockVectorService:
+    """Mock vector service for when ChromaDB is not available"""
+    
+    async def add_documents(self, *args, **kwargs):
+        logger.info("ChromaDB not available - document addition skipped")
+        return True
+        
+    async def query_documents(self, *args, **kwargs):
+        logger.info("ChromaDB not available - returning empty results")
+        return []
+        
+    async def delete_collection(self, *args, **kwargs):
+        logger.info("ChromaDB not available - collection deletion skipped")
+        return True
