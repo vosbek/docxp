@@ -37,7 +37,7 @@ from app.models.indexing_models import (
 )
 from app.core.config import settings
 from app.services.hybrid_search_service import get_hybrid_search_service
-from app.core.opensearch_setup import get_opensearch_client
+from app.core.opensearch_setup import get_opensearch_client, is_opensearch_available
 from app.parsers.parser_factory import get_parser_for_file
 from app.services.embedding_service import get_embedding_service
 

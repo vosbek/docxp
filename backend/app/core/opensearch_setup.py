@@ -212,7 +212,7 @@ class OpenSearchSetup:
                             "dimension": self.embedding_dimension,
                             "method": {
                                 "name": "hnsw",
-                                "space_type": "cosinesimil",
+                                "space_type": "cosinesim",
                                 "engine": "faiss",
                                 "parameters": {
                                     "ef_construction": 128,
@@ -353,19 +353,50 @@ class OpenSearchSetup:
             await self.opensearch_client.close()
 
 
-# Global instance
-opensearch_setup = OpenSearchSetup()
+# Application-level OpenSearch instance - initialized during startup
+_opensearch_setup_instance: Optional[OpenSearchSetup] = None
 
 async def initialize_opensearch() -> bool:
     """Initialize OpenSearch with auto-detected dimensions"""
-    return await opensearch_setup.initialize()
+    global _opensearch_setup_instance
+    try:
+        _opensearch_setup_instance = OpenSearchSetup()
+        success = await _opensearch_setup_instance.initialize()
+        if not success:
+            logger.error("OpenSearch initialization failed")
+            _opensearch_setup_instance = None
+        return success
+    except Exception as e:
+        logger.error(f"OpenSearch initialization error: {e}")
+        _opensearch_setup_instance = None
+        return False
 
-async def get_opensearch_client() -> AsyncOpenSearch:
-    """Get configured OpenSearch client"""
-    if not opensearch_setup.opensearch_client:
-        await opensearch_setup._setup_clients()
-    return opensearch_setup.opensearch_client
+async def get_opensearch_client() -> Optional[AsyncOpenSearch]:
+    """Get configured OpenSearch client - returns None if not initialized"""
+    if _opensearch_setup_instance is None:
+        logger.warning("OpenSearch not initialized. Call initialize_opensearch() first.")
+        return None
+    
+    if not _opensearch_setup_instance.opensearch_client:
+        if not await _opensearch_setup_instance._setup_clients():
+            return None
+    
+    return _opensearch_setup_instance.opensearch_client
 
-def get_embedding_dimension() -> int:
-    """Get detected embedding dimension"""
-    return opensearch_setup.embedding_dimension
+def get_embedding_dimension() -> Optional[int]:
+    """Get detected embedding dimension - returns None if not initialized"""
+    if _opensearch_setup_instance is None:
+        logger.warning("OpenSearch not initialized. Call initialize_opensearch() first.")
+        return None
+    return _opensearch_setup_instance.embedding_dimension
+
+def is_opensearch_available() -> bool:
+    """Check if OpenSearch is available and properly initialized"""
+    return _opensearch_setup_instance is not None and _opensearch_setup_instance.opensearch_client is not None
+
+async def cleanup_opensearch():
+    """Clean up OpenSearch resources"""
+    global _opensearch_setup_instance
+    if _opensearch_setup_instance:
+        await _opensearch_setup_instance.cleanup()
+        _opensearch_setup_instance = None

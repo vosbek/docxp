@@ -11,7 +11,8 @@ import psutil
 import os
 
 from app.core.database import get_session
-from app.services.ai_service import ai_service_instance
+from app.core.startup import get_application_state
+from app.core.opensearch_setup import is_opensearch_available
 from app.core.logging_config import get_logger
 
 router = APIRouter()
@@ -51,14 +52,21 @@ async def detailed_health_check(db: AsyncSession = Depends(get_session)):
         health_status["checks"]["database"] = f"unhealthy: {str(e)}"
         health_status["status"] = "degraded"
     
-    # AI Service Check
+    # Application State Check
     try:
-        ai_service = ai_service_instance
-        # Just check if service initializes properly
-        health_status["checks"]["ai_service"] = "healthy" if ai_service else "degraded"
+        app_state = get_application_state()
+        state_info = app_state.get_status()
+        
+        health_status["checks"]["application_state"] = "healthy" if state_info["healthy"] else "degraded"
+        health_status["checks"]["opensearch"] = "healthy" if is_opensearch_available() else "degraded"
+        
+        # Add startup errors if any
+        if state_info["startup_errors"]:
+            health_status["startup_errors"] = state_info["startup_errors"]
+            
     except Exception as e:
-        logger.warning(f"AI service check failed: {e}")
-        health_status["checks"]["ai_service"] = f"failed: {str(e)}"
+        logger.warning(f"Application state check failed: {e}")
+        health_status["checks"]["application_state"] = f"failed: {str(e)}"
     
     # System Resources
     try:
