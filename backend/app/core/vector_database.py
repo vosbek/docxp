@@ -48,7 +48,7 @@ class DocumentEmbedding(Base):
     content_hash = Column(String(64), unique=True, index=True)
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1024), nullable=False) if PGVECTOR_AVAILABLE else Column(Text)  # Fallback to JSON
-    metadata = Column(JSONB, nullable=True)
+    document_metadata = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_accessed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     access_count = Column(Integer, default=1)
@@ -157,7 +157,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
             # Create metadata index for filtering
             await conn.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_embedding_metadata 
-                ON document_embeddings USING gin (metadata)
+                ON document_embeddings USING gin (document_metadata)
             """))
     
     async def add_embedding(self, id: str, content: str, embedding: List[float], metadata: Dict[str, Any] = None) -> bool:
@@ -181,7 +181,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
                     content_hash=content_hash,
                     content=content,
                     embedding=embedding,
-                    metadata=metadata or {},
+                    document_metadata=metadata or {},
                     created_at=datetime.utcnow(),
                     last_accessed_at=datetime.utcnow(),
                     access_count=1
@@ -206,7 +206,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
                 query = select(
                     DocumentEmbedding.id,
                     DocumentEmbedding.content,
-                    DocumentEmbedding.metadata,
+                    DocumentEmbedding.document_metadata,
                     DocumentEmbedding.created_at,
                     (DocumentEmbedding.embedding.cosine_distance(query_embedding)).label('distance')
                 )
@@ -214,7 +214,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
                 # Add metadata filter if provided
                 if metadata_filter:
                     for key, value in metadata_filter.items():
-                        query = query.where(DocumentEmbedding.metadata[key].astext == str(value))
+                        query = query.where(DocumentEmbedding.document_metadata[key].astext == str(value))
                 
                 # Order by similarity and limit results
                 query = query.order_by('distance').limit(limit)
@@ -228,7 +228,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
                     results.append({
                         'id': row.id,
                         'content': row.content,
-                        'metadata': row.metadata or {},
+                        'metadata': row.document_metadata or {},
                         'similarity': 1.0 - row.distance,  # Convert distance to similarity
                         'created_at': row.created_at.isoformat()
                     })
@@ -262,7 +262,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
                     'id': doc.id,
                     'content': doc.content,
                     'embedding': doc.embedding,
-                    'metadata': doc.metadata or {},
+                    'metadata': doc.document_metadata or {},
                     'created_at': doc.created_at.isoformat(),
                     'access_count': doc.access_count
                 }
@@ -314,7 +314,7 @@ class PostgreSQLVectorDatabase(VectorDatabaseInterface):
                 doc.content_hash = content_hash
                 doc.content = content
                 doc.embedding = embedding
-                doc.metadata = metadata or {}
+                doc.document_metadata = metadata or {}
                 doc.last_accessed_at = datetime.utcnow()
                 doc.access_count += 1
                 
