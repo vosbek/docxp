@@ -181,12 +181,18 @@ class AIService:
         except NoCredentialsError:
             error_msg = "No AWS credentials found. Please configure AWS_PROFILE or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            logger.warning("AWS credentials unavailable - service will operate in fallback mode")
+            self.client = None
+            # Don't raise error - allow graceful degradation
+            return
                 
         except Exception as e:
             error_msg = f"Failed to initialize Bedrock client: {e}"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            logger.warning("AWS Bedrock unavailable - service will operate in fallback mode")
+            self.client = None
+            # Don't raise error - allow graceful degradation
+            return
     
     def _test_connection(self):
         """Test AWS Bedrock connection"""
