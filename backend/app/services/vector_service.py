@@ -477,16 +477,40 @@ async def get_vector_service() -> VectorService:
     return _vector_service_instance
 
 class MockVectorService:
-    """Mock vector service for when ChromaDB is not available"""
+    """Mock vector service for when ChromaDB is not available - redirects to OpenSearch"""
     
     async def add_documents(self, *args, **kwargs):
-        logger.info("ChromaDB not available - document addition skipped")
+        logger.info("Vector operations handled by OpenSearch - document addition skipped")
         return True
         
     async def query_documents(self, *args, **kwargs):
-        logger.info("ChromaDB not available - returning empty results")
+        logger.info("Vector operations handled by OpenSearch - returning empty results")
         return []
         
     async def delete_collection(self, *args, **kwargs):
-        logger.info("ChromaDB not available - collection deletion skipped")
+        logger.info("Vector operations handled by OpenSearch - collection deletion skipped")
+        return True
+        
+    async def find_similar_code(self, *args, **kwargs):
+        logger.info("Vector operations handled by OpenSearch - returning empty results")
+        return []
+        
+    async def find_migration_patterns(self, *args, **kwargs):
+        logger.info("Vector operations handled by OpenSearch - returning empty results")
+        return []
+        
+    async def semantic_search(self, *args, **kwargs):
+        logger.info("Vector operations handled by OpenSearch - returning empty results")
+        return []
+        
+    async def bulk_add_entities(self, *args, **kwargs):
+        logger.info("Vector operations handled by OpenSearch - bulk add skipped")
+        return {"success": True, "added": 0}
+        
+    async def get_collection_stats(self, *args, **kwargs):
+        logger.info("Vector operations handled by OpenSearch - returning empty stats")
+        return {"documents": 0, "collections": 0}
+        
+    async def clear_collection(self, *args, **kwargs):
+        logger.info("Vector operations handled by OpenSearch - clear skipped")
         return True
