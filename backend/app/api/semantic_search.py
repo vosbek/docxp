@@ -70,33 +70,33 @@ async def semantic_search(
         logger.error(f"Semantic search failed: {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
-@router.post("/similar-code")
-async def find_similar_code(
-    request: SimilarCodeRequest,
-    vector_service: VectorService = Depends(get_vector_service)
-):
-    """
-    Find code entities similar to the provided code content
-    """
-    try:
-        results = await vector_service.find_similar_code(
-            code_content=request.code_content,
-            entity_type=request.entity_type,
-            n_results=request.max_results
-        )
-        
-        return {
-            "success": True,
-            "data": {
-                "query_code": request.code_content[:200] + "...",
-                "similar_entities": results,
-                "total_found": len(results)
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Similar code search failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Similar code search failed: {str(e)}")
+# NOTE: Legacy ChromaDB endpoint - disabled for OpenSearch migration
+# @router.post("/similar-code")
+# async def find_similar_code(
+#     request: SimilarCodeRequest,
+#     semantic_service: SemanticAIService = Depends(get_semantic_ai_service)
+# ):
+#     """
+#     Find code entities similar to the provided code content
+#     """
+#     try:
+#         results = await semantic_service.semantic_search(
+#             query=request.code_content,
+#             collection_name="code_entities"
+#         )
+#         
+#         return {
+#             "success": True,
+#             "data": {
+#                 "query_code": request.code_content[:200] + "...",
+#                 "similar_entities": results,
+#                 "total_found": len(results)
+#             }
+#         }
+#         
+#     except Exception as e:
+#         logger.error(f"Similar code search failed: {e}")
+#         raise HTTPException(status_code=500, detail=f"Similar code search failed: {str(e)}")
 
 @router.post("/migration-recommendations")
 async def get_migration_recommendations(
@@ -191,47 +191,28 @@ async def index_repository(
         logger.error(f"Repository indexing failed: {e}")
         raise HTTPException(status_code=500, detail=f"Repository indexing failed: {str(e)}")
 
-@router.get("/collections/stats")
-async def get_collection_statistics(
-    vector_service: VectorService = Depends(get_vector_service)
-):
-    """
-    Get statistics about vector database collections
-    """
-    try:
-        stats = await vector_service.get_collection_stats()
-        
-        return {
-            "success": True,
-            "data": stats
-        }
-        
-    except Exception as e:
-        logger.error(f"Collection stats failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Collection stats failed: {str(e)}")
+# NOTE: Legacy ChromaDB endpoints - disabled for OpenSearch migration
+# @router.get("/collections/stats")
+# async def get_collection_statistics():
+#     """
+#     Get statistics about vector database collections
+#     """
+#     return {
+#         "success": True,
+#         "data": {"message": "Vector operations handled by OpenSearch"}
+#     }
 
-@router.delete("/collections/{collection_name}")
-async def clear_collection(
-    collection_name: str,
-    vector_service: VectorService = Depends(get_vector_service)
-):
-    """
-    Clear all documents from a specific collection
-    """
-    try:
-        success = await vector_service.clear_collection(collection_name)
-        
-        if success:
-            return {
-                "success": True,
-                "message": f"Collection {collection_name} cleared successfully"
-            }
-        else:
-            raise HTTPException(status_code=400, detail=f"Failed to clear collection {collection_name}")
-        
-    except Exception as e:
-        logger.error(f"Clear collection failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Clear collection failed: {str(e)}")
+# @router.delete("/collections/{collection_name}")
+# async def clear_collection(
+#     collection_name: str
+# ):
+#     """
+#     Clear all documents from a specific collection
+#     """
+#     return {
+#         "success": True,
+#         "message": f"Collection clearing handled by OpenSearch"
+#     }
 
 @router.get("/health")
 async def semantic_search_health():
@@ -239,22 +220,17 @@ async def semantic_search_health():
     Health check for semantic search services
     """
     try:
-        # Test vector service
-        vector_service = await get_vector_service()
-        stats = await vector_service.get_collection_stats()
-        
-        # Test semantic AI service
+        # Test semantic AI service (vector operations handled by OpenSearch)
         semantic_service = await get_semantic_ai_service()
         
         return {
             "success": True,
             "status": "healthy",
             "services": {
-                "vector_database": "operational",
-                "semantic_ai": "operational",
-                "collections": len(stats)
+                "opensearch_vectors": "operational via semantic service",
+                "semantic_ai": "operational"
             },
-            "collection_stats": stats
+            "note": "Vector operations handled by OpenSearch"
         }
         
     except Exception as e:
