@@ -18,8 +18,8 @@ from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime
 from itertools import chain
 
-from opensearch_py import OpenSearch
-from opensearch_py.exceptions import OpenSearchException, ConnectionError, RequestError
+from opensearchpy import OpenSearch
+from opensearchpy.exceptions import OpenSearchException, ConnectionError, RequestError
 from prometheus_client import Counter, Histogram, Gauge
 
 from app.core.opensearch_setup import get_opensearch_client
