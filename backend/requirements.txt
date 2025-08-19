@@ -27,8 +27,8 @@ opensearch-py[async]==2.6.0
 # Storage (S3-Compatible)
 minio==7.2.3
 
-# Legacy Vector Database (kept for migration)
-chromadb==0.4.15
+# Vector operations handled by OpenSearch
+# Note: sentence-transformers used for embedding generation only
 sentence-transformers==2.2.2
 
 # Monitoring & Metrics

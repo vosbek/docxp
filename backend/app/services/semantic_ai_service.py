@@ -8,7 +8,8 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
-from app.services.vector_service import get_vector_service
+# NOTE: Vector operations now handled by OpenSearch - ChromaDB removed
+# from app.services.vector_service import get_vector_service
 from app.services.ai_service import AIService
 from app.core.config import settings
 

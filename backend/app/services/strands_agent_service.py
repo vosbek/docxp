@@ -56,7 +56,8 @@ except ImportError:
             pass
 
 from app.core.config import settings
-from app.services.vector_service import get_vector_service
+# NOTE: Vector operations now handled by OpenSearch - ChromaDB removed  
+# from app.services.vector_service import get_vector_service
 from app.services.semantic_ai_service import get_semantic_ai_service
 from app.core.database import AsyncSessionLocal
 from app.services.project_coordinator_service import get_project_coordinator_service

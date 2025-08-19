@@ -22,7 +22,8 @@ from app.services.knowledge_graph_service import (
     KnowledgeGraphService, get_knowledge_graph_service,
     GraphNode, GraphRelationship, NodeType, RelationshipType
 )
-from app.services.vector_service import get_vector_service
+# NOTE: Vector operations now handled by OpenSearch - ChromaDB removed
+# from app.services.vector_service import get_vector_service
 from app.models.base import Repository, CodeEntity, BusinessRule
 from app.models.graph_entities import (
     GraphNodeMetadata, GraphRelationshipMetadata, BusinessRuleTrace,

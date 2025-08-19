@@ -20,7 +20,8 @@ import git
 import json
 
 from app.core.config import settings
-from app.services.vector_service import get_vector_service
+# NOTE: Vector operations now handled by OpenSearch - ChromaDB removed
+# from app.services.vector_service import get_vector_service
 from app.services.semantic_ai_service import get_semantic_ai_service
 from app.services.ai_service import AIService
 

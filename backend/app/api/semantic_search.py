@@ -8,7 +8,8 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
 from app.services.semantic_ai_service import get_semantic_ai_service, SemanticAIService
-from app.services.vector_service import get_vector_service, VectorService
+# NOTE: Vector operations now handled by OpenSearch - ChromaDB removed
+# from app.services.vector_service import get_vector_service, VectorService
 
 logger = logging.getLogger(__name__)
 
