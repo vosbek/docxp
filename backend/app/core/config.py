@@ -128,6 +128,8 @@ class Settings(BaseSettings):
     OPENSEARCH_PORT: int = Field(default=9200, env="OPENSEARCH_PORT")
     OPENSEARCH_USE_SSL: bool = Field(default=False, env="OPENSEARCH_USE_SSL")
     OPENSEARCH_VERIFY_CERTS: bool = Field(default=False, env="OPENSEARCH_VERIFY_CERTS")
+    OPENSEARCH_INDEX_NAME: str = Field(default="docxp-code-index", env="OPENSEARCH_INDEX_NAME")
+    OPENSEARCH_URL: str = Field(default="http://localhost:9200", env="OPENSEARCH_URL")
     
     # AWS Configuration (Alternate naming)
     AWS_DEFAULT_REGION: Optional[str] = Field(default=None, env="AWS_DEFAULT_REGION")
@@ -174,7 +176,4 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Create directories if they don't exist
-Path(settings.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-Path(settings.TEMP_DIR).mkdir(parents=True, exist_ok=True)
-Path(settings.CONFIGS_DIR).mkdir(parents=True, exist_ok=True)
+# Note: Directory creation moved to application startup to avoid import-time side effects

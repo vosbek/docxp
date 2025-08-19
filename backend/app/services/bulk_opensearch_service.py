@@ -22,7 +22,7 @@ from opensearchpy import OpenSearch
 from opensearchpy.exceptions import OpenSearchException, ConnectionError, RequestError
 from prometheus_client import Counter, Histogram, Gauge
 
-from app.core.opensearch_setup import get_opensearch_client
+from app.core.opensearch_setup import get_opensearch_client, is_opensearch_available
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

@@ -1302,5 +1302,27 @@ Now generate comprehensive architecture documentation following these expert spe
         return []
 
 
-# Create shared singleton instance
-ai_service_instance = AIService()
+# Global AI service instance - lazily initialized
+_ai_service_instance = None
+
+def get_ai_service_instance():
+    """Get or create the AI service instance"""
+    global _ai_service_instance
+    if _ai_service_instance is None:
+        try:
+            _ai_service_instance = AIService()
+        except Exception as e:
+            logger.error(f"Failed to initialize AI service: {e}")
+            return None
+    return _ai_service_instance
+
+class _AIServiceProxy:
+    """Proxy class for backward compatibility"""
+    def __getattr__(self, name):
+        service = get_ai_service_instance()
+        if service is None:
+            raise RuntimeError("AI service is not available")
+        return getattr(service, name)
+
+# Backward compatibility - will be removed in future versions
+ai_service_instance = _AIServiceProxy()

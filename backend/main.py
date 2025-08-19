@@ -15,9 +15,8 @@ import uuid
 from app.api import documentation, repositories, analytics, configuration, health, aws_configuration, semantic_search, repository_processing, strands_agents, hybrid_search, v1_indexing
 from app.api.v1 import enhanced_indexing, jqassistant, semgrep
 from app.core.config import settings
-from app.core.database import init_db
-from app.core.opensearch_setup import initialize_opensearch
-from app.core.logging_config import setup_logging, get_logger, force_sqlalchemy_silence
+from app.core.startup import application_lifespan, get_application_state
+from app.core.logging_config import setup_logging, get_logger
 from app.core.error_handlers import register_exception_handlers
 
 # Setup enhanced logging
@@ -30,29 +29,10 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
-    # Startup
-    logger.info("Starting DocXP Backend...")
-    await init_db()
-    logger.info("Database initialized")
-    
-    # Initialize OpenSearch with auto-detected embedding dimensions
-    opensearch_success = await initialize_opensearch()
-    if opensearch_success:
-        logger.info("✅ OpenSearch V1 search engine initialized")
-    else:
-        logger.warning("⚠️  OpenSearch initialization failed - search functionality may be limited")
-    
-    # Force SQLAlchemy to be quiet after database initialization
-    force_sqlalchemy_silence()
-    
-    # Create necessary directories
-    Path(settings.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    Path(settings.TEMP_DIR).mkdir(parents=True, exist_ok=True)
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down DocXP Backend...")
+    async with application_lifespan() as app_state:
+        # Store application state in app for access in endpoints
+        app.state.docxp_state = app_state
+        yield
 
 # Create FastAPI application
 app = FastAPI(

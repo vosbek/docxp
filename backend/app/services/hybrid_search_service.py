@@ -23,7 +23,7 @@ from botocore.exceptions import ClientError
 from prometheus_client import Counter, Histogram, Gauge
 
 from app.core.config import settings
-from app.core.opensearch_setup import get_opensearch_client, get_embedding_dimension
+from app.core.opensearch_setup import get_opensearch_client, get_embedding_dimension, is_opensearch_available
 
 logger = logging.getLogger(__name__)
 
@@ -57,26 +57,40 @@ class RRFHybridSearchService:
         self.target_p50_ms = getattr(settings, 'TARGET_SEARCH_LATENCY_P50_MS', 700)
         self.target_p95_ms = getattr(settings, 'TARGET_SEARCH_LATENCY_P95_MS', 1200)
         
-        # Initialize clients
-        asyncio.create_task(self._initialize_clients())
+        # Note: Clients will be initialized lazily when needed
     
-    async def _initialize_clients(self):
-        """Initialize OpenSearch and Bedrock clients"""
+    async def _ensure_clients_initialized(self) -> bool:
+        """Ensure OpenSearch and Bedrock clients are initialized"""
         try:
-            self.opensearch_client = await get_opensearch_client()
-            self.embedding_dimension = get_embedding_dimension()
+            # Check if OpenSearch is available
+            if not is_opensearch_available():
+                logger.warning("OpenSearch is not available - hybrid search disabled")
+                return False
+                
+            if not self.opensearch_client:
+                self.opensearch_client = await get_opensearch_client()
+                if not self.opensearch_client:
+                    logger.warning("Failed to get OpenSearch client")
+                    return False
+                    
+            if not self.embedding_dimension:
+                self.embedding_dimension = get_embedding_dimension()
+                if not self.embedding_dimension:
+                    logger.warning("Failed to get embedding dimension")
+                    return False
             
-            # Initialize Bedrock client for embeddings
-            self.bedrock_client = boto3.client(
-                'bedrock-runtime',
-                region_name=getattr(settings, 'AWS_REGION', 'us-east-1')
-            )
+            # Initialize Bedrock client for embeddings if not already done
+            if not self.bedrock_client:
+                self.bedrock_client = boto3.client(
+                    'bedrock-runtime',
+                    region_name=getattr(settings, 'AWS_REGION', 'us-east-1')
+                )
             
-            logger.info(f"✅ RRF Hybrid Search initialized with {self.embedding_dimension}D embeddings")
+            return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to initialize RRF Hybrid Search: {e}")
-            raise
+            logger.error(f"Failed to initialize RRF Hybrid Search clients: {e}")
+            return False
     
     async def hybrid_search(
         self,
@@ -106,13 +120,20 @@ class RRFHybridSearchService:
         start_time = time.time()
         search_id = hashlib.md5(f"{query}{time.time()}".encode()).hexdigest()[:8]
         
+        # Ensure clients are initialized
+        if not await self._ensure_clients_initialized():
+            return {
+                "search_id": search_id,
+                "results": [],
+                "error": "Search service not available - OpenSearch not initialized",
+                "total_results": 0,
+                "search_time_ms": round((time.time() - start_time) * 1000, 2),
+                "rrf_fusion_enabled": False
+            }
+        
         try:
             SEARCH_REQUESTS.labels(search_type='hybrid').inc()
             logger.info(f"🔍 Starting hybrid search [{search_id}]: '{query[:50]}...'")
-            
-            # Ensure clients are initialized
-            if not self.opensearch_client:
-                await self._initialize_clients()
             
             # Generate query embedding for k-NN search
             embed_start = time.time()
