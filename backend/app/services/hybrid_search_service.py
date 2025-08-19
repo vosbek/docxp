@@ -610,6 +610,9 @@ class RRFHybridSearchService:
 # Global service instance
 hybrid_search_service = RRFHybridSearchService()
 
+# Alias for compatibility
+HybridSearchService = RRFHybridSearchService
+
 async def get_hybrid_search_service() -> RRFHybridSearchService:
     """Get hybrid search service instance"""
     return hybrid_search_service

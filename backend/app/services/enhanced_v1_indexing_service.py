@@ -52,8 +52,14 @@ class EnhancedV1IndexingService:
             r'.*build\.gradle$'
         ]
         
-        # Initialize services
-        asyncio.create_task(self._initialize_services())
+        # Initialize services lazily to avoid event loop issues during import
+        self._initialization_task = None
+    
+    async def _ensure_initialized(self):
+        """Ensure services are initialized before use"""
+        if self._initialization_task is None:
+            self._initialization_task = asyncio.create_task(self._initialize_services())
+        await self._initialization_task
     
     async def _initialize_services(self):
         """Initialize required services"""
@@ -92,6 +98,9 @@ class EnhancedV1IndexingService:
         Returns:
             Dictionary with job IDs and status information
         """
+        # Ensure initialization before proceeding
+        await self._ensure_initialized()
+        
         try:
             repo_path = Path(repository_path)
             if not repo_path.exists():

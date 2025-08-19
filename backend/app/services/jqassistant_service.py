@@ -19,6 +19,7 @@ import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set, Tuple
 from datetime import datetime, timedelta
+from dataclasses import dataclass, field
 import xml.etree.ElementTree as ET
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +37,43 @@ from app.models.indexing_models import (
 
 logger = logging.getLogger(__name__)
 
-class jQAssistantService:
+@dataclass
+class JQAssistantAnalysisResult:
+    """
+    Result of jQAssistant architectural analysis
+    """
+    # Analysis metadata
+    repository_path: str
+    analysis_timestamp: datetime = field(default_factory=datetime.utcnow)
+    success: bool = True
+    error_message: Optional[str] = None
+    
+    # Core analysis results
+    classes: List[Dict[str, Any]] = field(default_factory=list)
+    packages: List[Dict[str, Any]] = field(default_factory=list)
+    dependencies: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Architectural analysis
+    architectural_layers: List[Dict[str, Any]] = field(default_factory=list)
+    design_patterns: List[Dict[str, Any]] = field(default_factory=list)
+    architectural_violations: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Code quality metrics
+    metrics: Dict[str, Any] = field(default_factory=dict)
+    complexity_analysis: Dict[str, Any] = field(default_factory=dict)
+    dead_code_elements: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Analysis statistics
+    total_classes_analyzed: int = 0
+    total_packages_analyzed: int = 0
+    total_dependencies_found: int = 0
+    analysis_duration_seconds: float = 0.0
+    
+    # Additional insights
+    architectural_insights: List[Dict[str, Any]] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
+
+class JQAssistantService:
     """
     Enterprise jQAssistant integration service for Java architecture analysis
     """
@@ -1297,8 +1334,8 @@ class jQAssistantService:
 
 
 # Global service instance
-jqassistant_service = jQAssistantService()
+jqassistant_service = JQAssistantService()
 
-async def get_jqassistant_service() -> jQAssistantService:
+async def get_jqassistant_service() -> JQAssistantService:
     """Get jQAssistant service instance"""
     return jqassistant_service

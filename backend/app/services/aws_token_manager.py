@@ -58,8 +58,14 @@ class AWSTokenManager:
         self.max_consecutive_failures = 3
         self.retry_delay_base = 60  # Base delay in seconds
         
-        # Initialize credentials
-        asyncio.create_task(self._initialize_credentials())
+        # Initialize credentials lazily to avoid event loop issues during import
+        self._initialization_task = None
+    
+    async def _ensure_initialized(self):
+        """Ensure credentials are initialized before use"""
+        if self._initialization_task is None:
+            self._initialization_task = asyncio.create_task(self._initialize_credentials())
+        await self._initialization_task
     
     async def _initialize_credentials(self):
         """Initialize AWS credentials from available sources"""
@@ -452,6 +458,8 @@ class AWSTokenManager:
     async def get_valid_credentials(self) -> Optional[Dict[str, Any]]:
         """Get valid AWS credentials, refreshing if necessary"""
         try:
+            # Ensure initialization before proceeding
+            await self._ensure_initialized()
             # Check if refresh is needed
             if self._should_refresh_token():
                 logger.info("🔄 Refreshing credentials before use")
@@ -477,6 +485,9 @@ class AWSTokenManager:
     async def ensure_valid_clients(self) -> Tuple[Optional[Any], Optional[Any]]:
         """Ensure Bedrock and STS clients have valid credentials"""
         try:
+            # Ensure initialization before proceeding
+            await self._ensure_initialized()
+            
             credentials = await self.get_valid_credentials()
             if not credentials:
                 return None, None

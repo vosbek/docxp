@@ -70,8 +70,14 @@ class JQAssistantBatchService:
         self.max_memory_gb = getattr(settings, 'JQA_MAX_MEMORY_GB', 8)
         self.max_repo_size_gb = getattr(settings, 'JQA_MAX_REPO_SIZE_GB', 5)
         
-        # Initialize services
-        asyncio.create_task(self._initialize_services())
+        # Initialize services lazily to avoid event loop issues during import
+        self._initialization_task = None
+    
+    async def _ensure_initialized(self):
+        """Ensure services are initialized before use"""
+        if self._initialization_task is None:
+            self._initialization_task = asyncio.create_task(self._initialize_services())
+        await self._initialization_task
     
     async def _initialize_services(self):
         """Initialize required services"""
@@ -108,6 +114,9 @@ class JQAssistantBatchService:
         Returns:
             Analysis job ID for tracking progress
         """
+        # Ensure initialization before proceeding
+        await self._ensure_initialized()
+        
         async with get_async_session() as session:
             try:
                 # Validate repository

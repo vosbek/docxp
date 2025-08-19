@@ -63,8 +63,14 @@ class V1IndexingService:
         self.aws_api_timeout = getattr(settings, 'AWS_API_TIMEOUT_SECONDS', 30)
         self.max_retries = getattr(settings, 'INDEXING_MAX_RETRIES', 3)
         
-        # Initialize clients
-        asyncio.create_task(self._initialize_clients())
+        # Initialize clients lazily to avoid event loop issues during import  
+        self._initialization_task = None
+    
+    async def _ensure_initialized(self):
+        """Ensure clients are initialized before use"""
+        if self._initialization_task is None:
+            self._initialization_task = asyncio.create_task(self._initialize_clients())
+        await self._initialization_task
     
     async def _initialize_clients(self):
         """Initialize OpenSearch and EmbeddingService with error handling"""
@@ -97,6 +103,9 @@ class V1IndexingService:
         Returns:
             Job ID for tracking progress
         """
+        # Ensure initialization before proceeding
+        await self._ensure_initialized()
+        
         async with get_async_session() as session:
             try:
                 # Validate repository path
