@@ -12,18 +12,59 @@ from typing import Dict, List, Any, Optional, Union, AsyncGenerator
 from dataclasses import dataclass, field
 from enum import Enum
 
-# Try importing strands-agents with graceful fallback
-try:
-    from strands import Agent, MessageFlow, ConversationMemory
-    from strands.providers.bedrock import BedrockProvider
-    from strands.providers.anthropic import AnthropicProvider
-    from strands.core.agent import AgentConfig
-    from strands.core.message import Message, MessageType
-    from strands.core.tools import Tool, ToolResult
-    STRANDS_AVAILABLE = True
-except ImportError:
-    STRANDS_AVAILABLE = False
-    logging.warning("Strands Agents SDK not available. Install with: pip install strands-agents")
+# Try importing strands-agents with graceful fallback and better debugging
+STRANDS_AVAILABLE = False
+STRANDS_ERROR = None
+
+# Try different import patterns for strands-agents
+import_attempts = [
+    # Pattern 1: Direct strands imports (original)
+    lambda: (
+        __import__('strands', fromlist=['Agent', 'MessageFlow', 'ConversationMemory']),
+        __import__('strands.providers.bedrock', fromlist=['BedrockProvider']),
+        __import__('strands.providers.anthropic', fromlist=['AnthropicProvider']),
+        __import__('strands.core.agent', fromlist=['AgentConfig']),
+        __import__('strands.core.message', fromlist=['Message', 'MessageType']),
+        __import__('strands.core.tools', fromlist=['Tool', 'ToolResult'])
+    ),
+    # Pattern 2: strands_agents imports
+    lambda: (
+        __import__('strands_agents', fromlist=['Agent', 'MessageFlow', 'ConversationMemory']),
+        __import__('strands_agents.providers.bedrock', fromlist=['BedrockProvider']),
+        __import__('strands_agents.core.agent', fromlist=['AgentConfig'])
+    )
+]
+
+for i, attempt in enumerate(import_attempts, 1):
+    try:
+        modules = attempt()
+        # If we get here, imports worked
+        if i == 1:
+            from strands import Agent, MessageFlow, ConversationMemory
+            from strands.providers.bedrock import BedrockProvider
+            from strands.providers.anthropic import AnthropicProvider
+            from strands.core.agent import AgentConfig
+            from strands.core.message import Message, MessageType
+            from strands.core.tools import Tool, ToolResult
+        elif i == 2:
+            from strands_agents import Agent, MessageFlow, ConversationMemory
+            from strands_agents.providers.bedrock import BedrockProvider
+            from strands_agents.providers.anthropic import AnthropicProvider
+            from strands_agents.core.agent import AgentConfig
+            from strands_agents.core.message import Message, MessageType
+            from strands_agents.core.tools import Tool, ToolResult
+        
+        STRANDS_AVAILABLE = True
+        logging.info(f"Strands Agents SDK imported successfully using pattern {i}")
+        break
+    except ImportError as e:
+        STRANDS_ERROR = str(e)
+        logging.debug(f"Import pattern {i} failed: {e}")
+        continue
+
+if not STRANDS_AVAILABLE:
+    logging.warning(f"Strands Agents SDK not available. Last error: {STRANDS_ERROR}")
+    logging.warning("Install with: pip install strands-agents")
     
     # Create placeholder classes when Strands is not available
     class Tool:
