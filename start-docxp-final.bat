@@ -222,15 +222,11 @@ if not exist ".env.enterprise" (
     exit /b 1
 )
 
-python fix_env_loading.py
+echo   Running comprehensive configuration test...
+python test_config_loading.py
 if errorlevel 1 (
-    echo ❌ FATAL: Environment configuration failed
-    exit /b 1
-)
-
-python -c "from app.core.config import settings; print(f'Using database: {settings.DATABASE_URL}'); exit(1 if 'sqlite' in settings.DATABASE_URL else 0)"
-if errorlevel 1 (
-    echo ❌ FATAL: Still configured for SQLite instead of PostgreSQL
+    echo ❌ FATAL: Configuration validation failed
+    echo Please check the error messages above
     exit /b 1
 )
 
