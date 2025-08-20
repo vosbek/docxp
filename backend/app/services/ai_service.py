@@ -40,7 +40,7 @@ class AIService:
     def __init__(self):
         if not self._initialized:
             self.client = None
-            self._initialize_client()
+            # Do NOT initialize client during __init__ - defer until first use
             self._initialized = True
     
     def _get_credentials_hash(self):

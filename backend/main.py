@@ -3,6 +3,43 @@ DocXP - AI-Powered Documentation Generation System
 Main FastAPI Application
 """
 
+# CRITICAL: Load environment BEFORE any other imports
+import os
+from pathlib import Path
+
+def _load_env_enterprise_immediately():
+    """Load .env.enterprise file IMMEDIATELY before any other imports"""
+    env_file = Path(__file__).parent / ".env.enterprise"
+    
+    if env_file.exists():
+        print(f"MAIN.PY: Loading environment from {env_file}")
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or line.startswith('REM'):
+                    continue
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    # Handle Windows path variables
+                    if '%USERNAME%' in value:
+                        username = os.getenv('USERNAME', os.getenv('USER', 'hairsm2'))
+                        value = value.replace('%USERNAME%', username)
+                    os.environ[key] = value
+        
+        # Verify critical variables loaded
+        aws_profile = os.getenv('AWS_PROFILE')
+        aws_region = os.getenv('AWS_REGION')
+        database_url = os.getenv('DATABASE_URL')
+        print(f"MAIN.PY: Environment loaded - AWS_PROFILE={aws_profile}, AWS_REGION={aws_region}")
+        print(f"MAIN.PY: DATABASE_URL starts with: {database_url[:50] if database_url else 'None'}...")
+    else:
+        print(f"MAIN.PY: ERROR - .env.enterprise not found at {env_file}")
+
+# Load environment FIRST - before any other imports
+_load_env_enterprise_immediately()
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
