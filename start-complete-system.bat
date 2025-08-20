@@ -71,7 +71,7 @@ goto startbackend
 echo   - WARNING: Some services may not be fully ready, but proceeding...
 
 :startbackend
-echo [6/6] Starting DocXP Backend...
+echo [6/6] Starting DocXP Backend with environment fix...
 cd /d "%~dp0backend"
 
 REM Activate virtual environment and start backend
@@ -83,6 +83,7 @@ if exist "..\docxp-env\Scripts\activate.bat" (
     echo   - Attempting to use system Python...
 )
 
+echo   - Loading enterprise environment configuration...
 echo   - Starting FastAPI backend on http://localhost:8001...
 echo   - Press Ctrl+C to stop the server
 echo.
@@ -91,11 +92,13 @@ echo   DocXP Backend Starting...
 echo   - Infrastructure services: RUNNING
 echo   - Backend API: STARTING on http://localhost:8001
 echo   - Health endpoint: http://localhost:8001/health
+echo   - Environment: .env.enterprise loaded
+echo   - AWS Profile: msh
 echo ============================================================================
 echo.
 
-REM Start the backend
-python main.py
+REM Start the backend with environment fix
+call start-backend-fixed.bat
 
 echo.
 echo ============================================================================
