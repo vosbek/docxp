@@ -93,31 +93,63 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [4/4] Wait for services to be ready (120 seconds max)...
-set /a counter=0
-:wait_loop
-set /a counter+=1
-if %counter% gtr 24 (
-    echo ❌ FATAL: Services did not become ready within 120 seconds
-    echo Container status:
-    podman ps -a --filter name=docxp-
+echo [4/4] Test each service individually...
+
+echo   Testing PostgreSQL (port 5432)...
+powershell -c "Test-NetConnection -ComputerName localhost -Port 5432 -WarningAction SilentlyContinue" | findstr "TcpTestSucceeded.*True" >nul
+if errorlevel 1 (
+    echo ❌ PostgreSQL port not accessible
+    podman logs --tail 10 docxp-postgres
     exit /b 1
+) else (
+    echo ✅ PostgreSQL ready
 )
 
-timeout /t 5 >nul
-echo   Checking services... (%counter%/24)
+echo   Testing Redis (using container health check)...
+podman exec docxp-redis redis-cli ping >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Redis not responding
+    podman logs --tail 10 docxp-redis
+    exit /b 1
+) else (
+    echo ✅ Redis ready
+)
 
-REM Check PostgreSQL
-powershell -c "Test-NetConnection -ComputerName localhost -Port 5432 -WarningAction SilentlyContinue -InformationLevel Quiet" >nul 2>&1 || goto wait_loop
+echo   Testing OpenSearch (may take 60+ seconds to initialize)...
+set /a opensearch_counter=0
+:opensearch_wait
+set /a opensearch_counter+=1
+if %opensearch_counter% gtr 20 (
+    echo ❌ OpenSearch failed to initialize within 100 seconds
+    podman logs --tail 20 docxp-opensearch
+    exit /b 1
+)
+curl -s http://localhost:9200/_cluster/health >nul 2>&1
+if errorlevel 1 (
+    echo   OpenSearch still initializing... (%opensearch_counter%/20)
+    timeout /t 5 >nul
+    goto opensearch_wait
+) else (
+    echo ✅ OpenSearch ready
+)
 
-REM Check Redis  
-redis-cli ping >nul 2>&1 || goto wait_loop
-
-REM Check OpenSearch
-curl -s -f http://localhost:9200/_cluster/health >nul 2>&1 || goto wait_loop
-
-REM Check Neo4j
-curl -s -f http://localhost:7474 >nul 2>&1 || goto wait_loop
+echo   Testing Neo4j (may take 30+ seconds to initialize)...
+set /a neo4j_counter=0
+:neo4j_wait
+set /a neo4j_counter+=1
+if %neo4j_counter% gtr 12 (
+    echo ❌ Neo4j failed to initialize within 60 seconds
+    podman logs --tail 20 docxp-neo4j
+    exit /b 1
+)
+curl -s http://localhost:7474 >nul 2>&1
+if errorlevel 1 (
+    echo   Neo4j still initializing... (%neo4j_counter%/12)
+    timeout /t 5 >nul
+    goto neo4j_wait
+) else (
+    echo ✅ Neo4j ready
+)
 
 echo ✅ All services are ready!
 
