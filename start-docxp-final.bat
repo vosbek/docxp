@@ -19,9 +19,13 @@ if errorlevel 1 (
 
 cd /d "%~dp0"
 
-echo [1/4] Force cleanup existing containers...
+echo [1/4] Force cleanup existing containers and volumes...
 podman stop --force docxp-postgres docxp-redis docxp-opensearch docxp-neo4j docxp-minio 2>nul
 podman rm --force docxp-postgres docxp-redis docxp-opensearch docxp-neo4j docxp-minio 2>nul
+echo   Removing Neo4j volume data to fix version downgrade error...
+podman volume rm neo4j_data 2>nul
+podman volume rm neo4j_logs 2>nul
+podman volume prune -f 2>nul
 
 echo [2/4] Create required network...
 podman network rm docxp-network 2>nul
