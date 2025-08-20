@@ -115,40 +115,96 @@ if errorlevel 1 (
     echo ✅ Redis ready
 )
 
-echo   Testing OpenSearch (may take 60+ seconds to initialize)...
+echo   Testing OpenSearch (may take 2+ minutes to initialize)...
+echo   First checking if port 9200 is accessible...
+powershell -c "Test-NetConnection -ComputerName localhost -Port 9200 -WarningAction SilentlyContinue" | findstr "TcpTestSucceeded.*True" >nul
+if errorlevel 1 (
+    echo   Port 9200 not yet accessible, waiting...
+    timeout /t 10 >nul
+    powershell -c "Test-NetConnection -ComputerName localhost -Port 9200 -WarningAction SilentlyContinue" | findstr "TcpTestSucceeded.*True" >nul
+    if errorlevel 1 (
+        echo ❌ OpenSearch port 9200 never became accessible
+        echo Container status:
+        podman ps --filter name=docxp-opensearch
+        echo Recent logs:
+        podman logs --tail 10 docxp-opensearch
+        exit /b 1
+    )
+)
+
+echo   Port accessible, testing OpenSearch API...
 set /a opensearch_counter=0
 :opensearch_wait
 set /a opensearch_counter+=1
-if %opensearch_counter% gtr 20 (
-    echo ❌ OpenSearch failed to initialize within 100 seconds
+if %opensearch_counter% gtr 30 (
+    echo ❌ OpenSearch API failed to respond within 150 seconds
+    echo Testing with PowerShell:
+    powershell -c "try { (Invoke-WebRequest -Uri 'http://localhost:9200/_cluster/health' -UseBasicParsing).Content } catch { $_.Exception.Message }"
+    echo Recent container logs:
     podman logs --tail 20 docxp-opensearch
     exit /b 1
 )
+
+REM Try curl first
 curl -s http://localhost:9200/_cluster/health >nul 2>&1
 if errorlevel 1 (
-    echo   OpenSearch still initializing... (%opensearch_counter%/20)
-    timeout /t 5 >nul
-    goto opensearch_wait
+    REM If curl fails, try PowerShell
+    powershell -c "try { Invoke-WebRequest -Uri 'http://localhost:9200/_cluster/health' -UseBasicParsing -TimeoutSec 5 } catch { exit 1 }" >nul 2>&1
+    if errorlevel 1 (
+        echo   OpenSearch still initializing... (%opensearch_counter%/30)
+        timeout /t 5 >nul
+        goto opensearch_wait
+    ) else (
+        echo ✅ OpenSearch ready (via PowerShell)
+    )
 ) else (
-    echo ✅ OpenSearch ready
+    echo ✅ OpenSearch ready (via curl)
 )
 
-echo   Testing Neo4j (may take 30+ seconds to initialize)...
+echo   Testing Neo4j (may take 60+ seconds to initialize)...
+echo   First checking if port 7474 is accessible...
+powershell -c "Test-NetConnection -ComputerName localhost -Port 7474 -WarningAction SilentlyContinue" | findstr "TcpTestSucceeded.*True" >nul
+if errorlevel 1 (
+    echo   Port 7474 not yet accessible, waiting...
+    timeout /t 15 >nul
+    powershell -c "Test-NetConnection -ComputerName localhost -Port 7474 -WarningAction SilentlyContinue" | findstr "TcpTestSucceeded.*True" >nul
+    if errorlevel 1 (
+        echo ❌ Neo4j port 7474 never became accessible
+        echo Container status:
+        podman ps --filter name=docxp-neo4j
+        echo Recent logs:
+        podman logs --tail 15 docxp-neo4j
+        exit /b 1
+    )
+)
+
+echo   Port accessible, testing Neo4j web interface...
 set /a neo4j_counter=0
 :neo4j_wait
 set /a neo4j_counter+=1
-if %neo4j_counter% gtr 12 (
-    echo ❌ Neo4j failed to initialize within 60 seconds
+if %neo4j_counter% gtr 20 (
+    echo ❌ Neo4j web interface failed to respond within 100 seconds
+    echo Testing with PowerShell:
+    powershell -c "try { (Invoke-WebRequest -Uri 'http://localhost:7474' -UseBasicParsing -TimeoutSec 5).StatusCode } catch { $_.Exception.Message }"
+    echo Recent container logs:
     podman logs --tail 20 docxp-neo4j
     exit /b 1
 )
+
+REM Try curl first
 curl -s http://localhost:7474 >nul 2>&1
 if errorlevel 1 (
-    echo   Neo4j still initializing... (%neo4j_counter%/12)
-    timeout /t 5 >nul
-    goto neo4j_wait
+    REM If curl fails, try PowerShell
+    powershell -c "try { Invoke-WebRequest -Uri 'http://localhost:7474' -UseBasicParsing -TimeoutSec 5 } catch { exit 1 }" >nul 2>&1
+    if errorlevel 1 (
+        echo   Neo4j still initializing... (%neo4j_counter%/20)
+        timeout /t 5 >nul
+        goto neo4j_wait
+    ) else (
+        echo ✅ Neo4j ready (via PowerShell)
+    )
 ) else (
-    echo ✅ Neo4j ready
+    echo ✅ Neo4j ready (via curl)
 )
 
 echo ✅ All services are ready!
