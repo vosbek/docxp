@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     API_TIMEOUT: int = 300  # 5 minutes for long operations
     
-    # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./docxp.db"
+    # Database  
+    DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./docxp.db", env="DATABASE_URL")
     
     # Vector Database Configuration
     VECTOR_DB_TYPE: str = Field(default="chromadb", env="VECTOR_DB_TYPE")  # chromadb | postgresql_pgvector
@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
     AWS_SESSION_TOKEN: Optional[str] = Field(default=None, env="AWS_SESSION_TOKEN")
     AWS_PROFILE: Optional[str] = Field(default=None, env="AWS_PROFILE")
+    AWS_CONFIG_FILE: Optional[str] = Field(default=None, env="AWS_CONFIG_FILE")
+    AWS_SHARED_CREDENTIALS_FILE: Optional[str] = Field(default=None, env="AWS_SHARED_CREDENTIALS_FILE")
+    AWS_MAX_ATTEMPTS: Optional[int] = Field(default=3, env="AWS_MAX_ATTEMPTS")
+    AWS_RETRY_MODE: Optional[str] = Field(default="adaptive", env="AWS_RETRY_MODE")
     # Bedrock Model Configuration - Choose between Claude 3.5 Sonnet v2 or Claude 3.7 Sonnet
     # us.anthropic.claude-3-5-sonnet-20241022-v2:0 (default)
     # us.anthropic.claude-3-7-sonnet-20250219-v1:0 

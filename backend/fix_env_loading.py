@@ -32,7 +32,8 @@ def load_env_enterprise():
                 
                 # Handle Windows path variables
                 if '%USERNAME%' in value:
-                    value = value.replace('%USERNAME%', os.getenv('USERNAME', ''))
+                    username = os.getenv('USERNAME', os.getenv('USER', 'hairsm2'))
+                    value = value.replace('%USERNAME%', username)
                 
                 # Set environment variable
                 os.environ[key] = value
