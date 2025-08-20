@@ -127,8 +127,19 @@ class AIService:
             # Legacy Claude response format
             return response_body.get('completion', '')
     
-    def _create_session(self):
-        """Create AWS session with current credentials"""
+    async def _create_session(self):
+        """Create AWS session with current credentials using token manager"""
+        from app.services.aws_token_manager import aws_token_manager
+        
+        # First try to get credentials from token manager
+        try:
+            credentials = await aws_token_manager.get_valid_credentials()
+            if credentials:
+                return boto3.Session(**credentials)
+        except Exception as e:
+            logger.debug(f"Token manager unavailable, falling back to traditional methods: {e}")
+        
+        # Fallback to traditional session creation
         session_kwargs = {
             'region_name': settings.AWS_REGION
         }
@@ -152,8 +163,14 @@ class AIService:
         """Initialize AWS Bedrock client with multiple auth methods"""
         logger.debug("Initializing AWS Bedrock client...")
         try:
-            # Create session using centralized method
-            session = self._create_session()
+            # Create session using centralized method (now async-aware)
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                session = loop.run_until_complete(self._create_session())
+            except RuntimeError:
+                # No event loop running, create one
+                session = asyncio.run(self._create_session())
             
             # Log the auth method being used
             if settings.AWS_PROFILE:
@@ -198,7 +215,12 @@ class AIService:
         """Test AWS Bedrock connection"""
         try:
             # Create a separate bedrock client for listing models (not bedrock-runtime)
-            session = self._create_session()
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                session = loop.run_until_complete(self._create_session())
+            except RuntimeError:
+                session = asyncio.run(self._create_session())
             bedrock_client = session.client('bedrock')
             
             # Try a simple API call to verify credentials
@@ -220,7 +242,12 @@ class AIService:
             # If we can't create the bedrock client, try a simpler credential verification
             try:
                 # Use simple STS call to verify credentials work at all
-                session = self._create_session()
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    session = loop.run_until_complete(self._create_session())
+                except RuntimeError:
+                    session = asyncio.run(self._create_session())
                 sts = session.client('sts')
                 identity = sts.get_caller_identity()
                 logger.debug(f"AWS credentials verified for account {identity.get('Account')}, Bedrock client ready")
@@ -266,7 +293,12 @@ class AIService:
             self._ensure_client_ready()
             
             # Create a separate bedrock client for listing models (not bedrock-runtime)
-            session = self._create_session()
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                session = loop.run_until_complete(self._create_session())
+            except RuntimeError:
+                session = asyncio.run(self._create_session())
             bedrock_client = session.client('bedrock')
             
             # Get foundation models
