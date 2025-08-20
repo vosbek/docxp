@@ -91,7 +91,7 @@ class OpenSearchSetup:
             cluster_health = await self.opensearch_client.cluster.health()
             logger.info(f"OpenSearch cluster status: {cluster_health['status']}")
             
-            # Bedrock client for dimension detection
+            # Bedrock client for dimension detection (REQUIRED)
             try:
                 self.bedrock_client = boto3.client(
                     'bedrock-runtime',
@@ -107,6 +107,7 @@ class OpenSearchSetup:
                 
             except (ClientError, NoCredentialsError) as e:
                 logger.error(f"Bedrock client setup failed: {e}")
+                logger.error("AWS credentials are REQUIRED - no fallback methods allowed")
                 return False
                 
             return True
@@ -118,8 +119,12 @@ class OpenSearchSetup:
     async def _detect_embedding_dimensions(self) -> bool:
         """
         Auto-detect embedding dimensions by calling Bedrock Titan model
-        This is critical to avoid hardcoded dimensions
+        MUST succeed - no fallback methods allowed
         """
+        if self.bedrock_client is None:
+            logger.error("Bedrock client is None - cannot detect embedding dimensions")
+            return False
+            
         try:
             embed_model = getattr(settings, 'BEDROCK_EMBED_MODEL_ID', 'amazon.titan-embed-text-v2:0')
             logger.info(f"Detecting embedding dimensions for model: {embed_model}")
@@ -146,7 +151,8 @@ class OpenSearchSetup:
                 
                 # Validate dimension is reasonable
                 if self.embedding_dimension < 128 or self.embedding_dimension > 4096:
-                    logger.warning(f"Unusual embedding dimension detected: {self.embedding_dimension}")
+                    logger.error(f"Invalid embedding dimension detected: {self.embedding_dimension}")
+                    return False
                     
                 return True
             else:
@@ -154,17 +160,8 @@ class OpenSearchSetup:
                 return False
                 
         except Exception as e:
-            logger.error(f"Embedding dimension detection failed: {e}")
-            
-            # Fallback: try to detect from existing index
-            if await self._detect_from_existing_index():
-                logger.info(f"Using dimension from existing index: {self.embedding_dimension}")
-                return True
-                
-            # Last resort: use common Titan dimensions
-            logger.warning("Using fallback dimension detection")
-            self.embedding_dimension = 1024  # Common Titan v2 dimension
-            return True
+            logger.error(f"Embedding dimension detection via Bedrock failed: {e}")
+            return False
             
     async def _detect_from_existing_index(self) -> bool:
         """Try to detect dimensions from existing index mapping"""

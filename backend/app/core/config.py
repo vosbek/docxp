@@ -178,6 +178,32 @@ class Settings(BaseSettings):
         env_file = [".env.enterprise", ".env"]  # Try .env.enterprise first, then .env
         case_sensitive = True
 
+# Load environment immediately when importing
+import os
+from pathlib import Path
+
+def _load_env_enterprise():
+    """Load .env.enterprise file immediately when config is imported"""
+    env_file = Path(__file__).parent.parent / ".env.enterprise"
+    
+    if env_file.exists():
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or line.startswith('REM'):
+                    continue
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    # Handle Windows path variables
+                    if '%USERNAME%' in value:
+                        username = os.getenv('USERNAME', os.getenv('USER', 'hairsm2'))
+                        value = value.replace('%USERNAME%', username)
+                    os.environ[key] = value
+
+# Load environment before creating settings
+_load_env_enterprise()
 settings = Settings()
 
 # Note: Directory creation moved to application startup to avoid import-time side effects

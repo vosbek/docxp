@@ -222,6 +222,14 @@ if not exist ".env.enterprise" (
     exit /b 1
 )
 
+echo   Testing AWS credentials specifically...
+python test_aws_only.py
+if errorlevel 1 (
+    echo ❌ FATAL: AWS credentials test failed
+    echo Please check your AWS profile 'msh' is logged in: aws sso login --profile msh
+    exit /b 1
+)
+
 echo   Running comprehensive configuration test...
 python test_config_loading.py
 if errorlevel 1 (

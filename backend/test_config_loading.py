@@ -53,6 +53,18 @@ def test_config_loading():
             print("❌ ERROR: AWS_PROFILE not set")
             return False
             
+        # Test AWS credentials availability (CRITICAL - app MUST fail if not working)
+        try:
+            import boto3
+            session = boto3.Session(profile_name=settings.AWS_PROFILE, region_name=settings.AWS_REGION)
+            sts = session.client('sts')
+            identity = sts.get_caller_identity()
+            print(f"✅ AWS credentials working: Account {identity.get('Account')}")
+        except Exception as e:
+            print(f"❌ ERROR: AWS credentials REQUIRED but not working: {e}")
+            print("   NO FALLBACK METHODS ALLOWED - Application MUST have working AWS credentials")
+            return False
+            
         print("✅ All configuration validation passed!")
         return True
         
