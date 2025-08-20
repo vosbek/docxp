@@ -25,9 +25,11 @@ podman rm --force docxp-postgres docxp-redis docxp-opensearch docxp-neo4j docxp-
 
 echo [2/4] Create required network...
 podman network rm docxp-network 2>nul
-podman network create docxp-network --driver bridge --subnet=172.20.0.0/16
+podman network prune -f 2>nul
+podman network create docxp-network --driver bridge
 if errorlevel 1 (
     echo ❌ FATAL: Network creation failed
+    podman network ls
     exit /b 1
 )
 
