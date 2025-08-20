@@ -212,7 +212,7 @@ class OpenSearchSetup:
                             "dimension": self.embedding_dimension,
                             "method": {
                                 "name": "hnsw",
-                                "space_type": "cosinesim",
+                                "space_type": "cosine",
                                 "engine": "faiss",
                                 "parameters": {
                                     "ef_construction": 128,

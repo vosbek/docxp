@@ -21,7 +21,7 @@ tasklist | findstr python.exe >nul && (
 )
 
 echo [2/6] Stopping all DocXP containers...
-podman stop docxp-opensearch docxp-postgres docxp-redis docxp-neo4j docxp-minio docxp-backend docxp-worker 2>nul
+podman stop docxp-opensearch docxp-postgres postgres docxp-redis docxp-neo4j docxp-minio docxp-backend docxp-worker 2>nul
 echo   - Container stop commands completed
 
 echo [3/6] Waiting for clean shutdown...
@@ -30,7 +30,7 @@ timeout /t 5 >nul
 REM Step 2: Start infrastructure services
 echo [4/6] Starting infrastructure services...
 echo   - Starting PostgreSQL...
-podman start docxp-postgres
+podman start docxp-postgres 2>nul || podman start postgres 2>nul || echo     PostgreSQL container not found or already running
 echo   - Starting Redis...
 podman start docxp-redis
 echo   - Starting OpenSearch...
@@ -105,5 +105,6 @@ echo ===========================================================================
 echo   DocXP System Shutdown
 echo ============================================================================
 echo Backend has been stopped. Infrastructure containers are still running.
-echo To stop everything: podman stop docxp-opensearch docxp-postgres docxp-redis docxp-neo4j
+echo To stop everything: podman stop docxp-opensearch docxp-redis docxp-neo4j
+echo Note: PostgreSQL container may be named 'postgres' or 'docxp-postgres'
 echo.
