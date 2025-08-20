@@ -438,7 +438,7 @@ class AWSTokenManager:
         # Determine status
         if seconds_until_expiry <= 0:
             status = TokenStatus.EXPIRED
-        elif seconds_until_expiry < (self.refresh_threshold_minutes * 60):
+        elif seconds_until_expiry < (30 * 60):  # 30 minutes threshold
             status = TokenStatus.EXPIRING_SOON
         elif self.consecutive_failures > 0:
             status = TokenStatus.REFRESH_FAILED
