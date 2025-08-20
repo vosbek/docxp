@@ -43,53 +43,64 @@ echo   - Network cleanup completed
 echo [2/8] Waiting for complete shutdown...
 timeout /t 5 >nul
 
-REM Step 2: Start infrastructure services using Podman Compose
-echo [3/8] Starting infrastructure services with proper networking...
-echo   - Using podman-compose.yml for correct service orchestration
-echo   - This ensures proper networking and dependencies
-
-REM Start only infrastructure services first (not backend)
-podman-compose -f podman-compose.yml up -d postgres redis opensearch neo4j minio
-if errorlevel 1 (
-    echo ❌ Failed to start infrastructure services with podman-compose
-    echo Attempting manual container creation...
-    goto manual_start
-)
-echo   - Infrastructure services started with compose
-
-goto wait_for_services
-
-:manual_start
-echo [3.1/8] Manual container startup fallback...
+REM Step 2: Start infrastructure services manually (more reliable than compose)
+echo [3/8] Starting infrastructure services with manual container management...
+echo   - This approach avoids podman-compose network naming conflicts
 echo   - Creating DocXP network...
-podman network create docxp-network --subnet=172.20.0.0/16 2>nul
+
+REM Try to create network, ignore if it already exists
+podman network create docxp-network --driver bridge --subnet=172.20.0.0/16 2>nul || (
+    echo     Network already exists or using different approach...
+)
+
+REM Verify network exists or create alternative
+podman network ls | findstr docxp-network >nul
+if errorlevel 1 (
+    echo   - Network creation failed, testing container connectivity without custom network...
+    set USE_CUSTOM_NETWORK=false
+) else (
+    echo   - Network 'docxp-network' is ready
+    set USE_CUSTOM_NETWORK=true
+)
+
+if "%USE_CUSTOM_NETWORK%"=="true" (
+    set NETWORK_ARG=--network docxp-network
+    echo   - Using custom network: docxp-network
+) else (
+    set NETWORK_ARG=
+    echo   - Using default bridge network
+)
 
 echo   - Starting PostgreSQL...
-podman run -d --name docxp-postgres ^
-    --network docxp-network ^
-    --hostname postgres ^
+podman run -d --name docxp-postgres %NETWORK_ARG% ^
     -p 5432:5432 ^
-    -e POSTGRES_DB=docxp ^
+    -e POSTGRES_DB=docxp_enterprise ^
     -e POSTGRES_USER=docxp_user ^
-    -e POSTGRES_PASSWORD=docxp_local_dev_2024 ^
+    -e POSTGRES_PASSWORD=docxp_secure_2024 ^
     -e POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256" ^
     -v postgres_data:/var/lib/postgresql/data ^
     --restart unless-stopped ^
     postgres:16-alpine
+if errorlevel 1 (
+    echo     ⚠️  PostgreSQL startup may have issues, continuing...
+) else (
+    echo     ✅ PostgreSQL container started
+)
 
 echo   - Starting Redis...
-podman run -d --name docxp-redis ^
-    --network docxp-network ^
-    --hostname redis ^
+podman run -d --name docxp-redis %NETWORK_ARG% ^
     -p 6379:6379 ^
     -v redis_data:/data ^
     --restart unless-stopped ^
     redis:7-alpine redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+if errorlevel 1 (
+    echo     ⚠️  Redis startup may have issues, continuing...
+) else (
+    echo     ✅ Redis container started
+)
 
 echo   - Starting OpenSearch...
-podman run -d --name docxp-opensearch ^
-    --network docxp-network ^
-    --hostname opensearch ^
+podman run -d --name docxp-opensearch %NETWORK_ARG% ^
     -p 9200:9200 ^
     -p 9600:9600 ^
     -e "discovery.type=single-node" ^
@@ -104,11 +115,14 @@ podman run -d --name docxp-opensearch ^
     -v opensearch_data:/usr/share/opensearch/data ^
     --restart unless-stopped ^
     opensearchproject/opensearch:2.11.0
+if errorlevel 1 (
+    echo     ⚠️  OpenSearch startup may have issues, continuing...
+) else (
+    echo     ✅ OpenSearch container started
+)
 
 echo   - Starting Neo4j...
-podman run -d --name docxp-neo4j ^
-    --network docxp-network ^
-    --hostname neo4j ^
+podman run -d --name docxp-neo4j %NETWORK_ARG% ^
     -p 7474:7474 ^
     -p 7687:7687 ^
     -e NEO4J_AUTH=neo4j/docxp-neo4j-2024 ^
@@ -122,11 +136,14 @@ podman run -d --name docxp-neo4j ^
     -v neo4j_plugins:/plugins ^
     --restart unless-stopped ^
     neo4j:5.11
+if errorlevel 1 (
+    echo     ⚠️  Neo4j startup may have issues, continuing...
+) else (
+    echo     ✅ Neo4j container started
+)
 
 echo   - Starting MinIO (optional)...
-podman run -d --name docxp-minio ^
-    --network docxp-network ^
-    --hostname minio ^
+podman run -d --name docxp-minio %NETWORK_ARG% ^
     -p 9000:9000 ^
     -p 9001:9001 ^
     -e MINIO_ROOT_USER=docxp-root ^
@@ -134,10 +151,18 @@ podman run -d --name docxp-minio ^
     -e MINIO_DOMAIN=minio ^
     -v minio_data:/data ^
     --restart unless-stopped ^
-    minio/minio:latest server /data --console-address ":9001"
+    minio/minio:latest server /data --console-address ":9001" 2>nul
+if errorlevel 1 (
+    echo     ⚠️  MinIO startup failed (optional service)
+) else (
+    echo     ✅ MinIO container started
+)
 
-:wait_for_services
-echo [4/8] Waiting for infrastructure services to become healthy...
+echo [4/8] Verifying container startup...
+echo   - Checking that containers are running
+podman ps --filter name=docxp- --format "table {{.Names}} {{.Status}}"
+
+echo [4.1/8] Waiting for infrastructure services to become healthy...
 echo   - This may take up to 2 minutes for all services to initialize
 echo   - Checking service health every 10 seconds...
 
