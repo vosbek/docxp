@@ -171,7 +171,7 @@ class Settings(BaseSettings):
     ]
     
     class Config:
-        env_file = ".env"
+        env_file = [".env.enterprise", ".env"]  # Try .env.enterprise first, then .env
         case_sensitive = True
 
 settings = Settings()
