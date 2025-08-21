@@ -258,7 +258,7 @@ class GraphRelationshipMetadata(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)
 
-class BusinessRuleTrace(Base):
+class GraphBusinessRuleTrace(Base):
     """SQLAlchemy model for business rule traces across technologies"""
     __tablename__ = "graph_business_rule_traces"
     
