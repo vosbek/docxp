@@ -889,7 +889,7 @@ class CyclicDependency(Base):
         Index('idx_cycle_severity_resolved', 'severity', 'is_resolved'),
     )
 
-class ArchitecturalInsight(Base):
+class IndexingArchitecturalInsight(Base):
     """
     High-level architectural insights and recommendations
     
@@ -932,7 +932,7 @@ class ArchitecturalInsight(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships
-    analysis_job = relationship("ArchitecturalAnalysisJob", backref="insights")
+    analysis_job = relationship("ArchitecturalAnalysisJob", backref="indexing_insights")
     
     __table_args__ = (
         Index('idx_insight_type_priority', 'insight_type', 'priority'),

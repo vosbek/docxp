@@ -290,7 +290,7 @@ class FlowStep(BaseModel):
     validation_rules: List[str] = Field(default_factory=list)
     error_conditions: List[str] = Field(default_factory=list)
 
-class ArchitecturalInsight(Base):
+class GraphArchitecturalInsight(Base):
     """SQLAlchemy model for architectural insights and recommendations"""
     __tablename__ = "graph_architectural_insights"
     

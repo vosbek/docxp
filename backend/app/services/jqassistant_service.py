@@ -31,7 +31,7 @@ from app.core.config import settings
 from app.core.database import get_async_session
 from app.models.indexing_models import (
     ArchitecturalAnalysisJob, PackageDependency, ArchitecturalViolation,
-    DesignPattern, DeadCodeElement, CodeMetrics, ArchitecturalInsight,
+    DesignPattern, DeadCodeElement, CodeMetrics, IndexingArchitecturalInsight,
     JobStatus
 )
 
@@ -1029,7 +1029,7 @@ class JQAssistantService:
             
             # Store insights
             for insight in insights:
-                arch_insight = ArchitecturalInsight(
+                arch_insight = IndexingArchitecturalInsight(
                     analysis_job_id=job.id,
                     insight_type=insight["type"],
                     priority=insight["priority"],
@@ -1205,7 +1205,7 @@ class JQAssistantService:
                 
                 # Get insights
                 insights_result = await session.execute(
-                    select(ArchitecturalInsight).where(ArchitecturalInsight.analysis_job_id == job_id)
+                    select(IndexingArchitecturalInsight).where(IndexingArchitecturalInsight.analysis_job_id == job_id)
                 )
                 insights = insights_result.scalars().all()
                 

@@ -29,7 +29,7 @@ from app.core.database import get_async_session
 from app.models.indexing_models import (
     IndexingJob, ArchitecturalAnalysisJob, PackageDependency, 
     ArchitecturalViolation, DesignPattern, DeadCodeElement, 
-    CodeMetrics, CyclicDependency, ArchitecturalInsight,
+    CodeMetrics, CyclicDependency, IndexingArchitecturalInsight,
     JobStatus, ArchitecturalLayer
 )
 from app.services.jqassistant_service import (
@@ -564,7 +564,7 @@ class JQAssistantBatchService:
             
             # Quality score insight
             if analysis_result.overall_quality_score < 60:
-                insights.append(ArchitecturalInsight(
+                insights.append(IndexingArchitecturalInsight(
                     analysis_job_id=job.id,
                     insight_type='WARNING',
                     category='QUALITY',
@@ -580,7 +580,7 @@ class JQAssistantBatchService:
             
             # Cyclic dependencies insight
             if len(analysis_result.cyclic_dependencies) > 0:
-                insights.append(ArchitecturalInsight(
+                insights.append(IndexingArchitecturalInsight(
                     analysis_job_id=job.id,
                     insight_type='WARNING',
                     category='STRUCTURE',
@@ -597,7 +597,7 @@ class JQAssistantBatchService:
             # Layer violations insight
             layer_violations = [v for v in analysis_result.architectural_violations if v.violation_type == 'LAYER_VIOLATION']
             if len(layer_violations) > 5:
-                insights.append(ArchitecturalInsight(
+                insights.append(IndexingArchitecturalInsight(
                     analysis_job_id=job.id,
                     insight_type='WARNING',
                     category='STRUCTURE',
@@ -613,7 +613,7 @@ class JQAssistantBatchService:
             
             # Design patterns insight
             if len(analysis_result.design_patterns) > 0:
-                insights.append(ArchitecturalInsight(
+                insights.append(IndexingArchitecturalInsight(
                     analysis_job_id=job.id,
                     insight_type='OBSERVATION',
                     category='STRUCTURE',
@@ -629,7 +629,7 @@ class JQAssistantBatchService:
             
             # Dead code insight
             if len(analysis_result.dead_code_elements) > 10:
-                insights.append(ArchitecturalInsight(
+                insights.append(IndexingArchitecturalInsight(
                     analysis_job_id=job.id,
                     insight_type='RECOMMENDATION',
                     category='QUALITY',
