@@ -1,0 +1,276 @@
+<div class="repository-management-container" [@slideIn]>
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <i class="pi pi-folder"></i>
+        Repository Management
+      </h1>
+      <p class="page-description">
+        Manage your code repositories, sync status, and generate documentation
+      </p>
+    </div>
+    <div class="header-actions">
+      <p-button 
+        label="Add Repository" 
+        icon="pi pi-plus" 
+        (onClick)="showAddRepositoryDialog()"
+        styleClass="p-button-primary">
+      </p-button>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-folder" style="color: var(--primary-color)"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalRepositories }}</span>
+          <span class="stat-label">Total Repositories</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-check-circle" style="color: var(--green-500)"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ syncedRepositories }}</span>
+          <span class="stat-label">Synced</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-heart" style="color: var(--green-600)"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ healthyRepositories }}</span>
+          <span class="stat-label">Healthy</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-percentage" style="color: var(--blue-500)"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalRepositories > 0 ? ((syncedRepositories / totalRepositories) * 100).toFixed(0) : 0 }}%</span>
+          <span class="stat-label">Sync Rate</span>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Repository Table -->
+  <p-card class="repository-table-card">
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <h3>Repository Status</h3>
+        <div class="card-actions">
+          <p-button 
+            icon="pi pi-refresh" 
+            (onClick)="loadRepositories()" 
+            [loading]="loading"
+            pTooltip="Refresh repositories"
+            styleClass="p-button-text">
+          </p-button>
+        </div>
+      </div>
+    </ng-template>
+
+    <p-table 
+      [value]="repositories" 
+      [loading]="loading"
+      styleClass="p-datatable-gridlines"
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} repositories"
+      [rowHover]="true"
+      dataKey="path">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="name">Repository <p-sortIcon field="name"></p-sortIcon></th>
+          <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+          <th pSortableColumn="health">Health <p-sortIcon field="health"></p-sortIcon></th>
+          <th pSortableColumn="lastSync">Last Sync <p-sortIcon field="lastSync"></p-sortIcon></th>
+          <th>Files</th>
+          <th>Size</th>
+          <th>Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-repo>
+        <tr>
+          <td>
+            <div class="repository-info">
+              <div class="repo-name">{{ repo.name }}</div>
+              <div class="repo-path">{{ repo.path }}</div>
+            </div>
+          </td>
+          <td>
+            <p-tag 
+              [value]="repo.status | titlecase" 
+              [severity]="getStatusSeverity(repo.status)"
+              icon="pi pi-circle-fill">
+            </p-tag>
+          </td>
+          <td>
+            <p-tag 
+              [value]="repo.health | titlecase" 
+              [severity]="getHealthSeverity(repo.health)"
+              icon="pi pi-heart">
+            </p-tag>
+          </td>
+          <td>
+            <span pTooltip="{{repo.lastSync ? (repo.lastSync | date:'full') : 'Never'}}">
+              {{ getRelativeTime(repo.lastSync) }}
+            </span>
+          </td>
+          <td>{{ repo.filesCount | number }}</td>
+          <td>{{ repo.size }}</td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-sync" 
+                (onClick)="syncRepository(repo)"
+                pTooltip="Sync repository"
+                styleClass="p-button-text p-button-sm"
+                [disabled]="repo.status === 'syncing'">
+              </p-button>
+              
+              <p-button 
+                icon="pi pi-bolt" 
+                (onClick)="generateDocumentation(repo)"
+                pTooltip="Generate documentation"
+                styleClass="p-button-text p-button-sm p-button-success">
+              </p-button>
+              
+              <p-button 
+                icon="pi pi-eye" 
+                (onClick)="viewLastJob(repo)"
+                pTooltip="View last job"
+                styleClass="p-button-text p-button-sm p-button-info"
+                [disabled]="!repo.lastJobId">
+              </p-button>
+              
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="confirmRemoveRepository(repo)"
+                pTooltip="Remove repository"
+                styleClass="p-button-text p-button-sm p-button-danger">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 2rem;">
+            <div class="empty-state">
+              <i class="pi pi-folder" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+              <h4>No Repositories Found</h4>
+              <p>Add your first repository to get started with documentation generation.</p>
+              <p-button 
+                label="Add Repository" 
+                icon="pi pi-plus" 
+                (onClick)="showAddRepositoryDialog()">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <p-card class="action-card">
+      <div class="action-content">
+        <i class="pi pi-chart-line action-icon"></i>
+        <h4>View Analytics</h4>
+        <p>Analyze repository metrics and usage patterns</p>
+        <p-button label="Go to Analytics" (onClick)="navigateToAnalytics()"></p-button>
+      </div>
+    </p-card>
+
+    <p-card class="action-card">
+      <div class="action-content">
+        <i class="pi pi-history action-icon"></i>
+        <h4>Documentation History</h4>
+        <p>Browse past documentation jobs and results</p>
+        <p-button label="View History" (onClick)="navigateToHistory()"></p-button>
+      </div>
+    </p-card>
+  </div>
+</div>
+
+<!-- Add Repository Dialog -->
+<p-dialog 
+  header="Add Repository" 
+  [(visible)]="showAddDialog" 
+  [modal]="true" 
+  [closable]="true"
+  [dismissableMask]="false"
+  styleClass="add-repo-dialog">
+  
+  <div class="dialog-content">
+    <div class="field">
+      <label for="repoPath">Repository Path</label>
+      <input 
+        pInputText 
+        id="repoPath"
+        [(ngModel)]="newRepositoryPath" 
+        placeholder="Enter repository path (e.g., /path/to/repo or https://github.com/user/repo)"
+        class="w-full"
+        (keyup.enter)="addRepository()"
+        [disabled]="addingRepository">
+    </div>
+    
+    <div class="help-text">
+      <p><strong>Supported formats:</strong></p>
+      <ul>
+        <li>Local path: <code>/path/to/your/repository</code></li>
+        <li>Git URL: <code>https://github.com/user/repo.git</code></li>
+        <li>SSH: <code>git&#64;github.com:user/repo.git</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="showAddDialog = false"
+        styleClass="p-button-text"
+        [disabled]="addingRepository">
+      </p-button>
+      <p-button 
+        label="Add & Sync" 
+        icon="pi pi-plus" 
+        (onClick)="addRepository()"
+        [loading]="addingRepository"
+        [disabled]="!newRepositoryPath.trim()">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Toast Messages -->
+<p-toast></p-toast>
+
+<!-- Confirmation Dialog -->
+<p-confirmDialog></p-confirmDialog>

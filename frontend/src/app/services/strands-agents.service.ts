@@ -81,7 +81,7 @@ export type AgentType =
   providedIn: 'root'
 })
 export class StrandsAgentsService {
-  private readonly baseUrl = environment.apiUrl || 'http://localhost:8000';
+  private readonly baseUrl = environment.apiUrl;
   
   private activeConversationsSubject = new BehaviorSubject<string[]>([]);
   private agentHealthSubject = new BehaviorSubject<any>(null);

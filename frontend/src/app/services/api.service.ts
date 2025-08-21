@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, interval } from 'rxjs';
-import { map, catchError, switchMap } from 'rxjs/operators';
+import { map, catchError, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { LoggingService } from './logging.service';
 
 export interface DocumentationRequest {
   repository_path: string;
@@ -81,16 +82,35 @@ export interface JobDiagramsResponse {
   providedIn: 'root'
 })
 export class ApiService {
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = environment.apiUrl;
   private activeJobs = new BehaviorSubject<JobStatus[]>([]);
   
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private logger: LoggingService) {}
   
   // Documentation Generation
   generateDocumentation(request: DocumentationRequest): Observable<DocumentationResponse> {
+    this.logger.info('API', 'Starting documentation generation', { 
+      repository: request.repository_path,
+      depth: request.depth 
+    });
+    
     return this.http.post<DocumentationResponse>(
       `${this.apiUrl}/documentation/generate`,
       request
+    ).pipe(
+      tap(response => {
+        this.logger.info('API', 'Documentation generation started successfully', {
+          jobId: response.job_id,
+          repository: request.repository_path
+        });
+      }),
+      catchError(error => {
+        this.logger.error('API', 'Documentation generation failed', {
+          repository: request.repository_path,
+          error: error.message
+        });
+        throw error;
+      })
     );
   }
   
@@ -201,7 +221,7 @@ export class ApiService {
   
   // Health Check
   getHealthStatus(): Observable<any> {
-    return this.http.get<any>('http://localhost:8001/health/detailed');
+    return this.http.get<any>(`${environment.apiUrl.replace('/api', '')}/health/detailed`);
   }
   
   // Active Jobs Management

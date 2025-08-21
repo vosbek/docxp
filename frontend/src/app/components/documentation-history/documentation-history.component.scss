@@ -1,0 +1,439 @@
+.history-container {
+  padding: 1rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.header-content {
+  .page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-color);
+    
+    i {
+      color: var(--primary-color);
+    }
+  }
+  
+  .page-description {
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: 1.1rem;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  ::ng-deep .p-card-body {
+    padding: 1rem;
+  }
+  
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    
+    i {
+      font-size: 1.5rem;
+      color: white;
+    }
+    
+    &.total {
+      background: var(--primary-color);
+    }
+    
+    &.success {
+      background: var(--green-500);
+    }
+    
+    &.warning {
+      background: var(--red-500);
+    }
+    
+    &.info {
+      background: var(--blue-500);
+    }
+  }
+  
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-color);
+      line-height: 1;
+    }
+    
+    .stat-label {
+      color: var(--text-color-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+  }
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filters-card {
+  ::ng-deep .p-card-header {
+    padding-bottom: 0;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0 1rem 0;
+    
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+  
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    
+    .field {
+      display: flex;
+      flex-direction: column;
+      
+      label {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-color);
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+.jobs-table-card {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0 1rem 0;
+    
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.repository-info {
+  .repo-name {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+  }
+  
+  .repo-path {
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+    font-family: monospace;
+    word-break: break-all;
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-color-secondary);
+  
+  h4 {
+    margin: 1rem 0 0.5rem 0;
+    color: var(--text-color);
+  }
+  
+  p {
+    margin: 0.5rem 0;
+  }
+  
+  .p-button {
+    margin-top: 1rem;
+  }
+}
+
+.chart-card {
+  ::ng-deep .p-card-header {
+    h4 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+  
+  ::ng-deep .p-card-body {
+    padding-top: 0;
+  }
+}
+
+.activity-card {
+  ::ng-deep .p-card-header {
+    h4 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+  
+  ::ng-deep .p-card-body {
+    padding-top: 0;
+  }
+}
+
+.custom-timeline {
+  ::ng-deep .p-timeline-event-marker {
+    border: none !important;
+    background: none !important;
+  }
+  
+  .custom-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.8rem;
+  }
+  
+  .timeline-event {
+    padding-left: 1rem;
+    
+    .event-title {
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 0.25rem;
+    }
+    
+    .event-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-color-secondary);
+      margin-bottom: 0.25rem;
+    }
+    
+    .event-time {
+      font-size: 0.8rem;
+      color: var(--text-color-secondary);
+    }
+  }
+}
+
+.quick-stats-card {
+  ::ng-deep .p-card-header {
+    h4 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+  
+  .quick-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    
+    .quick-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--surface-200);
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      .label {
+        color: var(--text-color-secondary);
+        font-size: 0.9rem;
+      }
+      
+      .value {
+        font-weight: 600;
+        color: var(--text-color);
+      }
+    }
+  }
+}
+
+.job-detail-dialog {
+  width: 90vw;
+  max-width: 600px;
+  
+  .job-detail-content {
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      
+      .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        
+        label {
+          font-weight: 600;
+          color: var(--text-color-secondary);
+          font-size: 0.9rem;
+        }
+        
+        span, .p-tag {
+          color: var(--text-color);
+          
+          &.monospace {
+            font-family: monospace;
+            font-size: 0.9rem;
+          }
+        }
+      }
+    }
+  }
+  
+  .dialog-footer {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .history-container {
+    padding: 0.5rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  ::ng-deep .p-datatable {
+    font-size: 0.875rem;
+    
+    .repository-info .repo-path {
+      display: none;
+    }
+  }
+}
+
+// Loading states
+.loading-overlay {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+}
+
+// Status-specific styling
+::ng-deep {
+  .p-tag.p-tag-success {
+    background: var(--green-100);
+    color: var(--green-900);
+  }
+  
+  .p-tag.p-tag-warning {
+    background: var(--yellow-100);
+    color: var(--yellow-900);
+  }
+  
+  .p-tag.p-tag-danger {
+    background: var(--red-100);
+    color: var(--red-900);
+  }
+  
+  .p-tag.p-tag-info {
+    background: var(--blue-100);
+    color: var(--blue-900);
+  }
+  
+  .p-tag.p-tag-secondary {
+    background: var(--surface-200);
+    color: var(--text-color-secondary);
+  }
+}

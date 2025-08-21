@@ -45,7 +45,7 @@ export interface BatchProcessingRequest {
   providedIn: 'root'
 })
 export class RepositoryProcessingService {
-  private readonly baseUrl = environment.apiUrl || 'http://localhost:8000';
+  private readonly baseUrl = environment.apiUrl;
   
   private batchStatusSubject = new BehaviorSubject<BatchStatus | null>(null);
   private repositoryStatusMap = new Map<string, BehaviorSubject<ProcessingStatus | null>>();
@@ -181,44 +181,6 @@ export class RepositoryProcessingService {
   /**
    * Create a sample repository configuration for testing
    */
-  createSampleRepositories(): RepositorySource[] {
-    return [
-      {
-        id: 'sample-legacy-app',
-        name: 'Sample Legacy Application',
-        source_type: 'git',
-        source_path: 'https://github.com/apache/struts.git',
-        branch: 'master',
-        priority: 1,
-        processing_options: {
-          deep_analysis: true,
-          extract_business_rules: true,
-          include_tests: true
-        },
-        metadata: {
-          description: 'Apache Struts - Legacy Java web framework',
-          migration_target: 'Spring Boot',
-          team: 'migration-team'
-        }
-      },
-      {
-        id: 'sample-corba-service',
-        name: 'Legacy CORBA Service',
-        source_type: 'directory',
-        source_path: '/path/to/corba/service',
-        priority: 2,
-        processing_options: {
-          deep_analysis: true,
-          extract_business_rules: true
-        },
-        metadata: {
-          description: 'Legacy CORBA-based service',
-          migration_target: 'gRPC/REST API',
-          complexity: 'high'
-        }
-      }
-    ];
-  }
 
   /**
    * Validate repository configuration

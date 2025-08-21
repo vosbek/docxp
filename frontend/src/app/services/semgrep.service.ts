@@ -76,9 +76,7 @@ export interface AnalyzeFileRequest {
   providedIn: 'root'
 })
 export class SemgrepService {
-  private readonly apiUrl = environment.production ? 
-    'http://localhost:8000/api' : 
-    'http://localhost:8000/api';
+  private readonly apiUrl = `${environment.apiUrl}/api`;
 
   constructor(private http: HttpClient) {}
 

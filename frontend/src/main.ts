@@ -24,19 +24,19 @@ const routes: Routes = [
   },
   { 
     path: 'repositories', 
-    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+    loadComponent: () => import('./app/components/repository-management/repository-management.component').then(m => m.RepositoryManagementComponent) 
   },
   { 
     path: 'history', 
-    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+    loadComponent: () => import('./app/components/documentation-history/documentation-history.component').then(m => m.DocumentationHistoryComponent) 
   },
   { 
     path: 'analytics', 
-    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+    loadComponent: () => import('./app/components/analytics/analytics.component').then(m => m.AnalyticsComponent) 
   },
   { 
     path: 'settings', 
-    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+    loadComponent: () => import('./app/components/settings/settings.component').then(m => m.SettingsComponent) 
   },
   { 
     path: 'jobs/:id', 
@@ -44,7 +44,7 @@ const routes: Routes = [
   },
   { 
     path: 'documentation/:id', 
-    loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+    loadComponent: () => import('./app/components/job-details/job-details.component').then(m => m.JobDetailsComponent) 
   },
   { path: '**', redirectTo: '/dashboard' }
 ];

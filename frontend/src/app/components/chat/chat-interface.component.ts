@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { ChatService } from '../../services/chat.service';
+import { ApiService, RepositoryInfo } from '../../services/api.service';
 import { MarkdownPipe } from '../../shared/pipes/markdown.pipe';
 
 export interface ChatMessage {
@@ -49,16 +50,7 @@ export class ChatInterfaceComponent implements OnInit, OnDestroy, AfterViewInit 
   // Repository management
   repositoryFilter = '';
   selectedRepositories: Repository[] = [];
-  availableRepositories: Repository[] = [
-    { id: '1', name: 'ClaimProcessor', technology: 'Java/Struts', status: 'indexed', lastIndexed: new Date() },
-    { id: '2', name: 'CustomerPortal', technology: 'Angular/Spring', status: 'indexed' },
-    { id: '3', name: 'PaymentGateway', technology: 'Java/CORBA', status: 'indexed' },
-    { id: '4', name: 'UserManagement', technology: 'Java/Struts2', status: 'processing' },
-    { id: '5', name: 'BillingService', technology: 'Java/Spring', status: 'indexed' },
-    { id: '6', name: 'ReportingAPI', technology: 'Python/Flask', status: 'indexed' },
-    { id: '7', name: 'NotificationService', technology: 'Node.js', status: 'error' },
-    { id: '8', name: 'AuthenticationService', technology: 'Java/Spring Boot', status: 'indexed' },
-  ];
+  availableRepositories: Repository[] = [];
   
   suggestedQuestions = [
     'Show me all repositories using legacy authentication',
@@ -70,10 +62,54 @@ export class ChatInterfaceComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private destroy$ = new Subject<void>();
 
-  constructor(private chatService: ChatService) {}
+  constructor(
+    private chatService: ChatService,
+    private apiService: ApiService
+  ) {}
 
   ngOnInit() {
     this.initializeWelcomeMessage();
+    this.loadRepositories();
+  }
+
+  private loadRepositories() {
+    this.apiService.listRepositories().subscribe({
+      next: (repositories: RepositoryInfo[]) => {
+        this.availableRepositories = repositories.map(repo => ({
+          id: repo.name,
+          name: repo.name,
+          technology: this.detectTechnology(repo.languages),
+          status: 'indexed' as const,
+          lastIndexed: new Date(),
+          description: `${repo.total_files} files, ${repo.total_lines} lines`
+        }));
+      },
+      error: (error) => {
+        console.error('Failed to load repositories:', error);
+        // Don't fall back to hardcoded data - leave empty array
+        this.availableRepositories = [];
+      }
+    });
+  }
+
+  private detectTechnology(languages: { [key: string]: number }): string {
+    if (!languages || Object.keys(languages).length === 0) {
+      return 'Unknown';
+    }
+    
+    const primaryLanguage = Object.keys(languages)[0];
+    const languageMap: { [key: string]: string } = {
+      'Java': 'Java/Spring',
+      'JavaScript': 'JavaScript/Node.js',
+      'TypeScript': 'TypeScript/Angular',
+      'Python': 'Python',
+      'C#': 'C#/.NET',
+      'C++': 'C++',
+      'Go': 'Go',
+      'Rust': 'Rust'
+    };
+    
+    return languageMap[primaryLanguage] || primaryLanguage;
   }
 
   ngAfterViewInit() {

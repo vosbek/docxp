@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { StrandsAgentsService, AgentType } from './strands-agents.service';
+import { LoggingService } from './logging.service';
 
 export interface ChatResponse {
   content: string;
@@ -49,14 +50,15 @@ export interface ConversationContext {
   providedIn: 'root'
 })
 export class ChatService {
-  private readonly baseUrl = environment.apiUrl || 'http://localhost:8000';
+  private readonly baseUrl = environment.apiUrl;
   private conversationContext = new BehaviorSubject<ConversationContext>({});
   
   public context$ = this.conversationContext.asObservable();
 
   constructor(
     private http: HttpClient,
-    private strandsService: StrandsAgentsService
+    private strandsService: StrandsAgentsService,
+    private logger: LoggingService
   ) {}
 
   /**
@@ -76,12 +78,12 @@ export class ChatService {
         return this.generateSemanticResponse(message, semanticResults);
       }
       
-      // Fallback to simulated response for development
-      return this.simulateResponse(message);
+      // No fallback - throw error if no service available
+      throw new Error('No AI service available. Please ensure Strands Agents or Semantic Search services are running.');
     } catch (error) {
       console.error('Chat service error:', error);
-      // Fallback to simulation if all other methods fail
-      return this.simulateResponse(message);
+      // Re-throw error without fallback
+      throw error;
     }
   }
 
@@ -240,225 +242,6 @@ export class ChatService {
     this.conversationContext.next({});
   }
 
-  /**
-   * Simulate AI response for development/demo purposes
-   * This will be replaced with actual API calls once backend is implemented
-   */
-  private async simulateResponse(message: string): Promise<ChatResponse> {
-    // Simulate API delay
-    await this.delay(1500 + Math.random() * 1000);
-
-    const lowerMessage = message.toLowerCase();
-
-    // Pattern-based responses for demonstration
-    if (lowerMessage.includes('authentication') || lowerMessage.includes('auth')) {
-      return {
-        content: `🔐 **Authentication Analysis Results**
-
-I found **6 repositories** using legacy authentication systems:
-
-### Legacy Authentication Implementations:
-1. **ClaimProcessor** - Uses custom AuthFilter.java (Struts-based)
-2. **CustomerPortal** - LoginAction.java with session management
-3. **PaymentGateway** - SecurityInterceptor.java (CORBA integration)
-4. **UserManagement** - Legacy LDAP connector
-5. **BillingService** - Token-based auth (deprecated)
-6. **ReportingAPI** - Basic HTTP auth
-
-### Migration Recommendations:
-• **Priority 1**: Modernize to OAuth 2.0/OIDC
-• **Priority 2**: Implement JWT tokens for stateless auth
-• **Priority 3**: Consolidate to single identity provider
-
-Would you like me to analyze the migration impact for any specific repository?`,
-        metadata: {
-          analysisType: 'cross-repo',
-          fileReferences: [
-            'ClaimProcessor/src/main/java/auth/AuthFilter.java',
-            'CustomerPortal/src/actions/LoginAction.java',
-            'PaymentGateway/src/security/SecurityInterceptor.java'
-          ]
-        }
-      };
-    }
-
-    if (lowerMessage.includes('oracle') || lowerMessage.includes('database') || lowerMessage.includes('table')) {
-      return {
-        content: `🗄️ **Oracle Database Usage Analysis**
-
-Found **CUSTOMER_ACCOUNTS** table usage across **8 repositories**:
-
-### Database Dependencies:
-1. **ClaimProcessor** → 15 queries (read/write)
-2. **CustomerPortal** → 8 queries (mostly read)
-3. **BillingService** → 12 queries (complex joins)
-4. **UserManagement** → 6 queries (user profile data)
-5. **ReportingAPI** → 22 queries (analytics)
-
-### Schema Analysis:
-\`\`\`sql
--- Most frequently accessed columns:
-CUSTOMER_ID (PRIMARY KEY)
-EMAIL_ADDRESS
-ACCOUNT_STATUS
-CREATED_DATE
-LAST_LOGIN_DATE
-\`\`\`
-
-### Migration Strategy:
-• **Phase 1**: Extract to microservice with REST API
-• **Phase 2**: Migrate to PostgreSQL/MongoDB
-• **Phase 3**: Implement event-driven updates
-
-**⚠️ High Risk**: BillingService has complex stored procedures that need careful migration planning.`,
-        metadata: {
-          analysisType: 'cross-repo',
-          repositoryName: 'Multiple repositories',
-          fileReferences: [
-            'ClaimProcessor/src/main/java/dao/CustomerDAO.java',
-            'BillingService/src/main/java/billing/CustomerBillingDAO.java'
-          ]
-        }
-      };
-    }
-
-    if (lowerMessage.includes('struts') || lowerMessage.includes('action')) {
-      return {
-        content: `⚡ **Struts Actions Analysis**
-
-Found **47 Struts actions** across **4 repositories**:
-
-### Payment Processing Actions:
-• **PaymentAction.java** - Handles credit card processing
-• **RefundAction.java** - Processes refunds and chargebacks  
-• **BillingCycleAction.java** - Monthly billing automation
-• **InvoiceAction.java** - Invoice generation and delivery
-
-### Migration Complexity:
-🟢 **Low**: Simple form processing (12 actions)
-🟡 **Medium**: Business logic integration (23 actions)  
-🔴 **High**: Complex workflows with multiple dependencies (12 actions)
-
-### Modernization Path:
-1. **Extract business logic** to service layer
-2. **Convert to REST endpoints** (Spring Boot)
-3. **Implement async processing** where applicable
-4. **Add proper error handling** and validation
-
-Would you like me to generate detailed migration plans for the high-complexity actions?`,
-        metadata: {
-          analysisType: 'single-repo',
-          fileReferences: [
-            'PaymentGateway/src/actions/PaymentAction.java',
-            'BillingService/src/actions/RefundAction.java'
-          ]
-        }
-      };
-    }
-
-    if (lowerMessage.includes('migration') || lowerMessage.includes('modernization') || lowerMessage.includes('plan')) {
-      return {
-        content: `🚀 **Enterprise Migration Strategy**
-
-Based on analysis of your **100+ repositories**, here's the recommended migration approach:
-
-### 🎯 Phase 1: Foundation (Months 1-3)
-- **Containerize** core services (Docker + Kubernetes)
-- **Implement** API gateway pattern
-- **Establish** CI/CD pipelines
-- **Set up** monitoring and logging
-
-### 🔄 Phase 2: Core Services (Months 4-8)
-- **Migrate** authentication to OAuth 2.0
-- **Extract** database layer to microservices
-- **Convert** critical Struts actions to REST APIs
-- **Modernize** CORBA interfaces to gRPC
-
-### ⚡ Phase 3: Optimization (Months 9-12)
-- **Implement** event-driven architecture
-- **Add** caching layers (Redis)
-- **Optimize** database queries
-- **Scale** horizontally with load balancing
-
-### 📊 Risk Assessment:
-• **High Risk**: 12 repositories with complex CORBA dependencies
-• **Medium Risk**: 34 repositories with Oracle stored procedures
-• **Low Risk**: 54 repositories with standard CRUD operations
-
-**Estimated Timeline**: 12-15 months
-**Team Required**: 8-10 developers + 2 architects
-**Budget**: $2.5M - $3.2M
-
-Would you like me to dive deeper into any specific phase?`,
-        metadata: {
-          analysisType: 'migration-analysis'
-        }
-      };
-    }
-
-    if (lowerMessage.includes('corba')) {
-      return {
-        content: `🔗 **CORBA Interfaces Analysis**
-
-Identified **23 CORBA interfaces** that need modernization:
-
-### Critical CORBA Dependencies:
-1. **AccountService.idl** → Used by 8 repositories
-2. **PaymentProcessor.idl** → Financial transactions
-3. **CustomerLookup.idl** → User data retrieval
-4. **ReportGenerator.idl** → Business intelligence
-
-### Modernization Strategy:
-• **Replace with gRPC** for high-performance inter-service communication
-• **Convert to REST APIs** for web-facing services
-• **Implement message queues** for async operations
-
-### Implementation Plan:
-1. **Map CORBA → gRPC** service definitions
-2. **Create compatibility layer** during transition
-3. **Gradual cutover** with feature flags
-4. **Remove legacy CORBA** infrastructure
-
-**Timeline**: 6-8 months with parallel development approach.`,
-        metadata: {
-          analysisType: 'cross-repo',
-          fileReferences: [
-            'CoreServices/idl/AccountService.idl',
-            'PaymentGateway/idl/PaymentProcessor.idl'
-          ]
-        }
-      };
-    }
-
-    // Default response for unrecognized patterns
-    return {
-      content: `I understand you're asking about: **"${message}"**
-
-I can help you analyze your legacy codebase in several ways:
-
-### 🔍 **Available Analysis Types:**
-• **Repository Structure** - Understand dependencies and architecture
-• **Technology Stack** - Identify legacy components that need modernization  
-• **Migration Planning** - Get step-by-step modernization roadmaps
-• **Cross-Repository Impact** - See how changes affect multiple systems
-• **Code Pattern Detection** - Find similar implementations across repos
-
-### 💡 **Try asking:**
-• "Which repositories use the CustomerService?"
-• "Show me all Oracle stored procedures"
-• "What's the migration risk for the payment system?"
-• "Find all deprecated APIs across repositories"
-
-What specific aspect of your codebase would you like me to analyze?`,
-      metadata: {
-        analysisType: 'single-repo'
-      }
-    };
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 
   /**
    * Continue a Strands conversation with a specific session
