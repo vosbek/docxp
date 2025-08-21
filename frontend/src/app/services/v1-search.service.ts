@@ -124,9 +124,7 @@ export interface HealthStatus {
   providedIn: 'root'
 })
 export class V1SearchService {
-  private readonly apiUrl = environment.production ? 
-    'http://localhost:8000/api' : 
-    'http://localhost:8000/api';
+  private readonly apiUrl = `${environment.apiUrl}/api`;
 
   constructor(private http: HttpClient) {}
 

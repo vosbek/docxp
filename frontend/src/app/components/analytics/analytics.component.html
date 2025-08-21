@@ -1,0 +1,466 @@
+<div class="analytics-container" [@slideIn]>
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <i class="pi pi-chart-line"></i>
+        Analytics & Insights
+      </h1>
+      <p class="page-description">
+        Comprehensive analytics for your documentation generation performance and repository insights
+      </p>
+    </div>
+    <div class="header-actions">
+      <p-dropdown 
+        [(ngModel)]="selectedPeriod"
+        [options]="periodOptions"
+        (onChange)="onPeriodChange()"
+        optionLabel="label" 
+        optionValue="value"
+        styleClass="period-selector">
+      </p-dropdown>
+      
+      <p-calendar 
+        *ngIf="selectedPeriod === 'custom'"
+        [(ngModel)]="dateRange" 
+        (onSelect)="onDateRangeChange()"
+        selectionMode="range" 
+        [readonlyInput]="true" 
+        dateFormat="mm/dd/yy"
+        placeholder="Select date range">
+      </p-calendar>
+      
+      <p-button 
+        icon="pi pi-download" 
+        label="Export Report"
+        (onClick)="exportReport()"
+        styleClass="p-button-outlined">
+      </p-button>
+    </div>
+  </div>
+
+  <!-- Performance KPIs -->
+  <div class="kpi-grid" [@fadeIn]>
+    <p-card class="kpi-card primary">
+      <div class="kpi-content">
+        <div class="kpi-icon">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ performanceMetrics.successRate.toFixed(1) }}%</span>
+          <span class="kpi-label">Success Rate</span>
+        </div>
+        <div class="kpi-trend">
+          <i class="pi pi-arrow-up" style="color: var(--green-500)"></i>
+          <span>+2.5%</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="kpi-card success">
+      <div class="kpi-content">
+        <div class="kpi-icon">
+          <i class="pi pi-clock"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ performanceMetrics.avgJobDuration }}</span>
+          <span class="kpi-label">Avg Duration</span>
+        </div>
+        <div class="kpi-trend">
+          <i class="pi pi-arrow-down" style="color: var(--green-500)"></i>
+          <span>-15s</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="kpi-card info">
+      <div class="kpi-content">
+        <div class="kpi-icon">
+          <i class="pi pi-bolt"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ performanceMetrics.throughput }}</span>
+          <span class="kpi-label">Total Jobs</span>
+        </div>
+        <div class="kpi-trend">
+          <i class="pi pi-arrow-up" style="color: var(--blue-500)"></i>
+          <span>+12</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="kpi-card warning">
+      <div class="kpi-content">
+        <div class="kpi-icon">
+          <i class="pi pi-exclamation-triangle"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ performanceMetrics.errorRate.toFixed(1) }}%</span>
+          <span class="kpi-label">Error Rate</span>
+        </div>
+        <div class="kpi-trend">
+          <i class="pi pi-arrow-down" style="color: var(--green-500)"></i>
+          <span>-1.2%</span>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-grid">
+    <!-- Trend Analysis -->
+    <p-card class="chart-card large">
+      <ng-template pTemplate="header">
+        <div class="card-header">
+          <h3>Performance Trends</h3>
+          <p-button 
+            icon="pi pi-refresh" 
+            (onClick)="loadAnalytics()" 
+            [loading]="loading"
+            styleClass="p-button-text p-button-sm">
+          </p-button>
+        </div>
+      </ng-template>
+      
+      <p-chart 
+        type="line" 
+        [data]="trendChartData" 
+        [options]="trendChartOptions"
+        height="300px">
+      </p-chart>
+    </p-card>
+
+    <!-- Status Distribution -->
+    <p-card class="chart-card">
+      <ng-template pTemplate="header">
+        <h4>Job Status Distribution</h4>
+      </ng-template>
+      
+      <p-chart 
+        type="doughnut" 
+        [data]="statusDistributionData" 
+        [options]="statusDistributionOptions"
+        height="250px">
+      </p-chart>
+    </p-card>
+
+    <!-- Repository Comparison -->
+    <p-card class="chart-card">
+      <ng-template pTemplate="header">
+        <h4>Top Repositories</h4>
+      </ng-template>
+      
+      <p-chart 
+        type="bar" 
+        [data]="repositoryComparisonData" 
+        [options]="repositoryComparisonOptions"
+        height="250px">
+      </p-chart>
+    </p-card>
+  </div>
+
+  <!-- Tabbed Content -->
+  <p-tabView class="analytics-tabs">
+    <!-- Repository Analytics Tab -->
+    <p-tabPanel header="Repository Analytics" leftIcon="pi pi-folder">
+      <div class="tab-content">
+        <p-table 
+          [value]="repositoryAnalytics" 
+          [loading]="loading"
+          styleClass="p-datatable-gridlines"
+          [paginator]="true" 
+          [rows]="10"
+          [rowHover]="true"
+          dataKey="path">
+          
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="name">Repository <p-sortIcon field="name"></p-sortIcon></th>
+              <th pSortableColumn="totalJobs">Total Jobs <p-sortIcon field="totalJobs"></p-sortIcon></th>
+              <th pSortableColumn="successfulJobs">Success Rate <p-sortIcon field="successfulJobs"></p-sortIcon></th>
+              <th pSortableColumn="averageDuration">Avg Duration <p-sortIcon field="averageDuration"></p-sortIcon></th>
+              <th pSortableColumn="totalEntities">Entities <p-sortIcon field="totalEntities"></p-sortIcon></th>
+              <th pSortableColumn="healthScore">Health Score <p-sortIcon field="healthScore"></p-sortIcon></th>
+              <th pSortableColumn="riskLevel">Risk Level <p-sortIcon field="riskLevel"></p-sortIcon></th>
+              <th>Last Activity</th>
+              <th>Actions</th>
+            </tr>
+          </ng-template>
+          
+          <ng-template pTemplate="body" let-repo>
+            <tr>
+              <td>
+                <div class="repository-info">
+                  <div class="repo-name">{{ repo.name }}</div>
+                  <div class="repo-path">{{ repo.path }}</div>
+                </div>
+              </td>
+              <td>{{ repo.totalJobs }}</td>
+              <td>
+                <div class="success-rate">
+                  <span>{{ repo.totalJobs > 0 ? ((repo.successfulJobs / repo.totalJobs) * 100).toFixed(0) : 0 }}%</span>
+                  <p-progressBar 
+                    [value]="repo.totalJobs > 0 ? (repo.successfulJobs / repo.totalJobs) * 100 : 0"
+                    [showValue]="false"
+                    styleClass="small-progress">
+                  </p-progressBar>
+                </div>
+              </td>
+              <td>{{ repo.averageDuration }}</td>
+              <td>{{ repo.totalEntities | number }}</td>
+              <td>
+                <div class="health-score">
+                  <p-knob 
+                    [(ngModel)]="repo.healthScore" 
+                    [readonly]="true"
+                    [size]="40"
+                    [strokeWidth]="8"
+                    valueTemplate="{value}%"
+                    [valueColor]="repo.healthScore > 80 ? '#10b981' : repo.healthScore > 60 ? '#f59e0b' : '#ef4444'">
+                  </p-knob>
+                </div>
+              </td>
+              <td>
+                <p-tag 
+                  [value]="repo.riskLevel | titlecase" 
+                  [severity]="getRiskSeverity(repo.riskLevel)"
+                  icon="pi pi-shield">
+                </p-tag>
+              </td>
+              <td>
+                <span pTooltip="{{repo.lastActivity ? (repo.lastActivity | date:'full') : 'Never'}}">
+                  {{ getRelativeTime(repo.lastActivity) }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <p-button 
+                    icon="pi pi-eye" 
+                    (onClick)="navigateToRepository(repo)"
+                    pTooltip="View repository"
+                    styleClass="p-button-text p-button-sm">
+                  </p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </p-tabPanel>
+
+    <!-- Technology Analysis Tab -->
+    <p-tabPanel header="Technology Analysis" leftIcon="pi pi-cog">
+      <div class="tab-content">
+        <div class="technology-grid">
+          <!-- Technology Distribution Chart -->
+          <p-card class="tech-chart-card">
+            <ng-template pTemplate="header">
+              <h4>Technology Distribution</h4>
+            </ng-template>
+            
+            <p-chart 
+              type="pie" 
+              [data]="technologyDistributionData" 
+              [options]="technologyDistributionOptions"
+              height="300px">
+            </p-chart>
+          </p-card>
+
+          <!-- Technology Breakdown Table -->
+          <p-card class="tech-table-card">
+            <ng-template pTemplate="header">
+              <h4>Migration Complexity Assessment</h4>
+            </ng-template>
+            
+            <p-table 
+              [value]="technologyBreakdown" 
+              styleClass="p-datatable-sm"
+              [rowHover]="true">
+              
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>Technology</th>
+                  <th>Files</th>
+                  <th>Percentage</th>
+                  <th>Complexity</th>
+                  <th>Migration Effort</th>
+                </tr>
+              </ng-template>
+              
+              <ng-template pTemplate="body" let-tech>
+                <tr>
+                  <td>
+                    <div class="tech-name">
+                      <i class="tech-icon" [class]="'pi pi-' + (tech.technology.toLowerCase() === 'java' ? 'circle' : 'code')"></i>
+                      {{ tech.technology }}
+                    </div>
+                  </td>
+                  <td>{{ tech.files | number }}</td>
+                  <td>
+                    <div class="percentage-bar">
+                      <span>{{ tech.percentage }}%</span>
+                      <p-progressBar 
+                        [value]="tech.percentage"
+                        [showValue]="false"
+                        styleClass="small-progress">
+                      </p-progressBar>
+                    </div>
+                  </td>
+                  <td>
+                    <p-tag 
+                      [value]="tech.complexity | titlecase" 
+                      [severity]="getComplexitySeverity(tech.complexity)">
+                    </p-tag>
+                  </td>
+                  <td>
+                    <p-tag 
+                      [value]="tech.migrationEffort | titlecase" 
+                      [severity]="getMigrationEffortSeverity(tech.migrationEffort)">
+                    </p-tag>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </p-card>
+        </div>
+
+        <!-- Migration Recommendations -->
+        <p-card class="recommendations-card">
+          <ng-template pTemplate="header">
+            <h4>Migration Recommendations</h4>
+          </ng-template>
+          
+          <div class="recommendations-content">
+            <div class="recommendation-item">
+              <div class="recommendation-icon success">
+                <i class="pi pi-check"></i>
+              </div>
+              <div class="recommendation-text">
+                <h5>JavaScript & Configuration Files</h5>
+                <p>Low complexity migration. These files can be migrated with minimal effort using automated tools.</p>
+              </div>
+            </div>
+
+            <div class="recommendation-item">
+              <div class="recommendation-icon warning">
+                <i class="pi pi-exclamation-triangle"></i>
+              </div>
+              <div class="recommendation-text">
+                <h5>Java Business Logic</h5>
+                <p>Medium complexity. Review and refactor business logic for modern frameworks. Consider microservices architecture.</p>
+              </div>
+            </div>
+
+            <div class="recommendation-item">
+              <div class="recommendation-icon danger">
+                <i class="pi pi-times"></i>
+              </div>
+              <div class="recommendation-text">
+                <h5>JSP Pages</h5>
+                <p>High complexity migration. JSP pages require complete rewrite to modern frontend frameworks like React or Angular.</p>
+              </div>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+
+    <!-- System Performance Tab -->
+    <p-tabPanel header="System Performance" leftIcon="pi pi-desktop">
+      <div class="tab-content">
+        <div class="performance-grid">
+          <!-- System Load -->
+          <p-card class="performance-card">
+            <ng-template pTemplate="header">
+              <h4>System Load</h4>
+            </ng-template>
+            
+            <div class="knob-container">
+              <p-knob 
+                [(ngModel)]="performanceMetrics.systemLoad" 
+                [readonly]="true"
+                [size]="120"
+                [strokeWidth]="10"
+                valueTemplate="{value}%"
+                [valueColor]="performanceMetrics.systemLoad < 70 ? '#10b981' : performanceMetrics.systemLoad < 85 ? '#f59e0b' : '#ef4444'">
+              </p-knob>
+              <p class="knob-description">Current system utilization</p>
+            </div>
+          </p-card>
+
+          <!-- Performance Metrics -->
+          <p-card class="performance-metrics-card">
+            <ng-template pTemplate="header">
+              <h4>Performance Metrics</h4>
+            </ng-template>
+            
+            <div class="metrics-list">
+              <div class="metric-item">
+                <span class="metric-label">Average Job Duration</span>
+                <span class="metric-value">{{ performanceMetrics.avgJobDuration }}</span>
+                <span class="metric-trend positive">
+                  <i class="pi pi-arrow-down"></i> 12% faster
+                </span>
+              </div>
+
+              <div class="metric-item">
+                <span class="metric-label">Jobs per Hour</span>
+                <span class="metric-value">24</span>
+                <span class="metric-trend positive">
+                  <i class="pi pi-arrow-up"></i> 8% increase
+                </span>
+              </div>
+
+              <div class="metric-item">
+                <span class="metric-label">Memory Usage</span>
+                <span class="metric-value">2.4 GB</span>
+                <span class="metric-trend neutral">
+                  <i class="pi pi-minus"></i> stable
+                </span>
+              </div>
+
+              <div class="metric-item">
+                <span class="metric-label">Error Rate</span>
+                <span class="metric-value">{{ performanceMetrics.errorRate.toFixed(1) }}%</span>
+                <span class="metric-trend positive">
+                  <i class="pi pi-arrow-down"></i> 1.2% improvement
+                </span>
+              </div>
+            </div>
+          </p-card>
+        </div>
+
+        <!-- Quick Actions -->
+        <p-card class="quick-actions-card">
+          <ng-template pTemplate="header">
+            <h4>Quick Actions</h4>
+          </ng-template>
+          
+          <div class="quick-actions">
+            <p-button 
+              label="View System Health" 
+              icon="pi pi-heart"
+              styleClass="p-button-outlined">
+            </p-button>
+            
+            <p-button 
+              label="View Job History" 
+              icon="pi pi-history"
+              (onClick)="navigateToHistory()"
+              styleClass="p-button-outlined">
+            </p-button>
+            
+            <p-button 
+              label="Clear Cache" 
+              icon="pi pi-refresh"
+              styleClass="p-button-outlined p-button-warning">
+            </p-button>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+  </p-tabView>
+</div>
+
+<!-- Toast Messages -->
+<p-toast></p-toast>

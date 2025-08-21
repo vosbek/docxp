@@ -1,0 +1,487 @@
+.settings-container {
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.header-content {
+  .page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-color);
+    
+    i {
+      color: var(--primary-color);
+    }
+  }
+  
+  .page-description {
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: 1.1rem;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-self: stretch;
+    
+    .p-button {
+      width: 100%;
+    }
+  }
+}
+
+.warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--yellow-50);
+  border: 1px solid var(--yellow-200);
+  border-radius: 8px;
+  color: var(--yellow-800);
+  
+  i {
+    color: var(--yellow-600);
+    font-size: 1.25rem;
+  }
+  
+  span {
+    flex: 1;
+    font-weight: 500;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+}
+
+.settings-tabs {
+  ::ng-deep .p-tabview-nav {
+    background: var(--surface-50);
+    border-radius: 12px 12px 0 0;
+    
+    .p-tabview-nav-link {
+      border: none;
+      background: transparent;
+      color: var(--text-color-secondary);
+      padding: 1rem 1.5rem;
+      
+      &:not(.p-disabled):focus {
+        box-shadow: none;
+      }
+    }
+    
+    .p-highlight .p-tabview-nav-link {
+      background: white;
+      color: var(--primary-color);
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    }
+  }
+  
+  ::ng-deep .p-tabview-panels {
+    background: white;
+    border: none;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    padding: 0;
+  }
+}
+
+.tab-content {
+  padding: 2rem;
+}
+
+.settings-card,
+.info-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  margin-bottom: 1.5rem;
+  
+  ::ng-deep .p-card-header {
+    padding-bottom: 0;
+    
+    .card-header,
+    h3, h4 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  label {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    
+    &[for*="checkbox"] {
+      order: 2;
+    }
+  }
+  
+  small {
+    color: var(--text-color-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    order: 3;
+  }
+  
+  &.checkbox-field {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.75rem;
+    
+    .p-checkbox {
+      margin-top: 0.125rem;
+    }
+    
+    label {
+      order: 2;
+      flex: 1;
+      margin: 0;
+    }
+    
+    small {
+      order: 3;
+      width: 100%;
+      margin-top: 0.25rem;
+    }
+  }
+}
+
+.slider-value {
+  text-align: center;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-top: 0.5rem;
+}
+
+.exclude-patterns-section {
+  margin-top: 1.5rem;
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    
+    h4 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  }
+  
+  .section-description {
+    display: block;
+    color: var(--text-color-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+  
+  .exclude-patterns-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    
+    .pattern-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      .pattern-input {
+        flex: 1;
+      }
+    }
+  }
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    
+    i {
+      color: var(--primary-color);
+      font-size: 1.1rem;
+      width: 1.25rem;
+    }
+    
+    strong {
+      margin-right: 0.5rem;
+    }
+    
+    .status-enabled {
+      color: var(--green-600);
+      font-weight: 600;
+    }
+    
+    .status-disabled {
+      color: var(--text-color-secondary);
+    }
+  }
+}
+
+.advanced-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  
+  .advanced-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 0;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+    
+    .advanced-content {
+      flex: 1;
+      
+      h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-color);
+      }
+      
+      p {
+        margin: 0;
+        color: var(--text-color-secondary);
+        line-height: 1.4;
+      }
+    }
+    
+    .backup-actions {
+      display: flex;
+      gap: 0.5rem;
+      
+      @media (max-width: 768px) {
+        justify-content: center;
+      }
+    }
+  }
+}
+
+.dev-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  
+  .dev-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--surface-50);
+    border-radius: 6px;
+    
+    .dev-label {
+      color: var(--text-color-secondary);
+      font-weight: 500;
+    }
+    
+    .dev-value {
+      color: var(--text-color);
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .settings-container {
+    padding: 0.5rem;
+  }
+  
+  .tab-content {
+    padding: 1rem;
+  }
+  
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .field.checkbox-field {
+    flex-direction: column;
+    align-items: flex-start;
+    
+    .p-checkbox {
+      order: 1;
+      margin-top: 0;
+    }
+    
+    label {
+      order: 2;
+    }
+    
+    small {
+      order: 3;
+      width: 100%;
+    }
+  }
+}
+
+// Form styling
+::ng-deep {
+  .p-inputtext,
+  .p-dropdown,
+  .p-inputnumber input {
+    border-radius: 6px;
+    border: 1px solid var(--surface-300);
+    
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 1px var(--primary-color);
+    }
+  }
+  
+  .p-slider {
+    .p-slider-range {
+      background: var(--primary-color);
+    }
+    
+    .p-slider-handle {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+  }
+  
+  .p-checkbox {
+    .p-checkbox-box {
+      border-radius: 4px;
+      
+      &.p-highlight {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+    }
+  }
+  
+  .p-button {
+    border-radius: 6px;
+    
+    &.p-button-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.875rem;
+    }
+  }
+  
+  .p-divider {
+    margin: 1.5rem 0;
+    
+    &.p-divider-horizontal:before {
+      border-top-color: var(--surface-200);
+    }
+  }
+}
+
+// Loading states
+.loading-overlay {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+}
+
+// Animation classes
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-down {
+  animation: slideInDown 0.3s ease-out;
+}
+
+// Input validation styling
+.field.has-error {
+  .p-inputtext,
+  .p-dropdown,
+  .p-inputnumber input {
+    border-color: var(--red-500);
+    
+    &:focus {
+      border-color: var(--red-500);
+      box-shadow: 0 0 0 1px var(--red-500);
+    }
+  }
+  
+  small {
+    color: var(--red-600);
+  }
+}

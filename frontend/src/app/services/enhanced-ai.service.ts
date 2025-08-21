@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
-import { map, catchError, delay } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { SearchResult, SearchResponse } from './v1-search.service';
 
@@ -60,9 +60,7 @@ export interface EnhancementResponse {
   providedIn: 'root'
 })
 export class EnhancedAIService {
-  private readonly apiUrl = environment.production ? 
-    'http://localhost:8000/api' : 
-    'http://localhost:8000/api';
+  private readonly apiUrl = `${environment.apiUrl}/api`;
 
   constructor(private http: HttpClient) {}
 
@@ -80,14 +78,12 @@ export class EnhancedAIService {
       user_context: userContext
     };
 
-    // For now, simulate AI generation with intelligent analysis
-    // In production, this would call a real AI service
-    return of(this.simulateAIQuestionGeneration(searchResults, originalQuery))
+    return this.http.post<{ success: boolean; data: AIGeneratedQuestion[] }>(`${this.apiUrl}/v1/ai/generate-questions`, request)
       .pipe(
-        delay(1200), // Simulate AI processing time
+        map(response => response.success ? response.data : []),
         catchError(error => {
           console.error('AI question generation failed:', error);
-          return of(this.getFallbackQuestions(searchResults, originalQuery));
+          throw error;
         })
       );
   }
@@ -112,7 +108,7 @@ export class EnhancedAIService {
         map(response => response.success ? response.data : {}),
         catchError(error => {
           console.error('Code flow analysis failed:', error);
-          return of(this.simulateCodeFlowAnalysis(searchResults));
+          throw error;
         })
       );
   }
@@ -130,7 +126,7 @@ export class EnhancedAIService {
       map(contexts => Object.assign({}, ...contexts)),
       catchError(error => {
         console.error('Code context retrieval failed:', error);
-        return of(this.simulateCodeContext(searchResults));
+        throw error;
       })
     );
   }
@@ -184,7 +180,7 @@ export class EnhancedAIService {
         return of({
           success: false,
           data: {
-            aiQuestions: this.getFallbackQuestions(request.searchResults, request.originalQuery),
+            aiQuestions: [],
             codeFlowAnalysis: {},
             codeContext: {},
             crossFileRelations: []
@@ -205,277 +201,24 @@ export class EnhancedAIService {
     userQuestion: string, 
     existingResults: SearchResult[]
   ): Observable<AIGeneratedQuestion[]> {
-    return of(this.analyzeUserQuestionForContext(userQuestion, existingResults))
-      .pipe(delay(800)); // Simulate processing
+    const request = {
+      user_question: userQuestion,
+      existing_results: existingResults
+    };
+
+    return this.http.post<{ success: boolean; data: AIGeneratedQuestion[] }>(`${this.apiUrl}/v1/ai/contextual-questions`, request)
+      .pipe(
+        map(response => response.success ? response.data : []),
+        catchError(error => {
+          console.error('Contextual question generation failed:', error);
+          throw error;
+        })
+      );
   }
 
-  /**
-   * Simulate AI question generation with intelligent analysis
-   */
-  private simulateAIQuestionGeneration(
-    results: SearchResult[], 
-    originalQuery: string
-  ): AIGeneratedQuestion[] {
-    const questions: AIGeneratedQuestion[] = [];
-    
-    // Analyze file types and patterns
-    const fileTypes = new Set(results.map(r => r.citation.path.split('.').pop()?.toLowerCase()));
-    const languages = new Set(results.map(r => r.metadata.language));
-    const hasMultipleRepos = new Set(results.map(r => r.metadata.repo_id)).size > 1;
-    
-    // Architecture questions
-    if (fileTypes.has('jsp') && fileTypes.has('java')) {
-      questions.push({
-        question: "How does the MVC architecture flow from JSP views to Java controllers in this system?",
-        confidence: 0.92,
-        reasoning: "Found JSP and Java files indicating classic MVC pattern",
-        category: 'architecture'
-      });
-    }
-    
-    if (fileTypes.has('ts') && originalQuery.toLowerCase().includes('component')) {
-      questions.push({
-        question: "What Angular services and dependencies does this component hierarchy require?",
-        confidence: 0.88,
-        reasoning: "Angular component query suggests dependency analysis need",
-        category: 'dependencies'
-      });
-    }
-    
-    if (fileTypes.has('idl')) {
-      questions.push({
-        question: "How can these CORBA interfaces be modernized to RESTful APIs?",
-        confidence: 0.75,
-        reasoning: "CORBA IDL files suggest legacy system modernization opportunity",
-        category: 'architecture'
-      });
-    }
-    
-    // Implementation questions
-    const hasErrorHandling = results.some(r => 
-      r.content.toLowerCase().includes('try') || 
-      r.content.toLowerCase().includes('catch') ||
-      r.content.toLowerCase().includes('exception')
-    );
-    
-    if (hasErrorHandling) {
-      questions.push({
-        question: "What error handling and recovery patterns are implemented across these components?",
-        confidence: 0.83,
-        reasoning: "Multiple files show error handling implementations",
-        category: 'implementation'
-      });
-    }
-    
-    // Pattern questions
-    const hasAsync = results.some(r => 
-      r.content.toLowerCase().includes('async') ||
-      r.content.toLowerCase().includes('promise') ||
-      r.content.toLowerCase().includes('observable')
-    );
-    
-    if (hasAsync) {
-      questions.push({
-        question: "How are asynchronous operations coordinated and what concurrency patterns are used?",
-        confidence: 0.78,
-        reasoning: "Asynchronous code patterns detected",
-        category: 'patterns'
-      });
-    }
-    
-    // Cross-repository questions
-    if (hasMultipleRepos) {
-      questions.push({
-        question: "How do these components interact across different repositories and what integration challenges exist?",
-        confidence: 0.81,
-        reasoning: "Multiple repositories suggest distributed system architecture",
-        category: 'dependencies'
-      });
-    }
-    
-    // Language-specific questions
-    if (languages.has('Python') && languages.has('JavaScript')) {
-      questions.push({
-        question: "How is data exchanged between the Python backend and JavaScript frontend?",
-        confidence: 0.85,
-        reasoning: "Full-stack implementation with Python and JavaScript",
-        category: 'implementation'
-      });
-    }
-    
-    return questions.slice(0, 6); // Limit to 6 high-quality questions
-  }
 
-  /**
-   * Simulate code flow analysis
-   */
-  private simulateCodeFlowAnalysis(results: SearchResult[]): { [resultId: string]: CodeFlowAnalysis } {
-    const analysis: { [resultId: string]: CodeFlowAnalysis } = {};
-    
-    results.forEach(result => {
-      const filePath = result.citation.path;
-      const fileExt = filePath.split('.').pop()?.toLowerCase();
-      const relations: CodeFlowRelation[] = [];
-      
-      // Generate relations based on file type and content
-      switch (fileExt) {
-        case 'jsp':
-          relations.push({
-            type: 'forwards_to',
-            source: filePath,
-            target: this.inferActionFromJSP(result.content),
-            confidence: 0.8,
-            line_number: result.citation.start,
-            description: 'JSP form submits to Struts action'
-          });
-          break;
-          
-        case 'java':
-          if (filePath.includes('Action')) {
-            relations.push({
-              type: 'renders',
-              source: filePath,
-              target: this.inferJSPFromAction(result.content),
-              confidence: 0.75,
-              line_number: result.citation.start,
-              description: 'Action forwards to JSP view'
-            });
-          }
-          break;
-          
-        case 'ts':
-          if (result.content.includes('@Component')) {
-            relations.push({
-              type: 'injects',
-              source: filePath,
-              target: this.inferServiceFromComponent(result.content),
-              confidence: 0.9,
-              line_number: result.citation.start,
-              description: 'Component injects service dependency'
-            });
-          }
-          break;
-      }
-      
-      analysis[result.id] = {
-        relations,
-        suggestions: this.generateCodeSuggestions(result),
-        complexity_score: this.calculateComplexityScore(result),
-        modernization_opportunities: this.identifyModernizationOpportunities(result)
-      };
-    });
-    
-    return analysis;
-  }
 
-  /**
-   * Simulate code context
-   */
-  private simulateCodeContext(results: SearchResult[]): { [resultId: string]: CodeContext } {
-    const context: { [resultId: string]: CodeContext } = {};
-    
-    results.forEach(result => {
-      context[result.id] = {
-        beforeLines: ['// Context before the match', '// Additional setup code'],
-        afterLines: ['// Context after the match', '// Cleanup or follow-up code'],
-        relatedFiles: this.inferRelatedFiles(result),
-        imports: this.extractImports(result.content),
-        exports: this.extractExports(result.content)
-      };
-    });
-    
-    return context;
-  }
 
-  /**
-   * Helper methods for content analysis
-   */
-  private inferActionFromJSP(content: string): string {
-    const actionMatch = content.match(/action\s*=\s*['"]([^'"]+)['"]/);
-    return actionMatch ? actionMatch[1] : 'unknown_action';
-  }
-
-  private inferJSPFromAction(content: string): string {
-    const forwardMatch = content.match(/forward\s*=\s*['"]([^'"]+)['"]/);
-    return forwardMatch ? forwardMatch[1] + '.jsp' : 'unknown_view.jsp';
-  }
-
-  private inferServiceFromComponent(content: string): string {
-    const serviceMatch = content.match(/constructor\([^)]*(\w+Service)[^)]*/);
-    return serviceMatch ? serviceMatch[1] : 'unknown_service';
-  }
-
-  private inferRelatedFiles(result: SearchResult): string[] {
-    const relatedFiles: string[] = [];
-    const content = result.content;
-    
-    // Extract import statements
-    const importMatches = content.match(/import\s+.*?from\s+['"]([^'"]+)['"]/g);
-    if (importMatches) {
-      importMatches.forEach(match => {
-        const pathMatch = match.match(/['"]([^'"]+)['"]/);
-        if (pathMatch) {
-          relatedFiles.push(pathMatch[1]);
-        }
-      });
-    }
-    
-    return relatedFiles;
-  }
-
-  private extractImports(content: string): string[] {
-    const imports: string[] = [];
-    const importMatches = content.match(/import\s+[^;]+;/g);
-    if (importMatches) {
-      imports.push(...importMatches);
-    }
-    return imports;
-  }
-
-  private extractExports(content: string): string[] {
-    const exports: string[] = [];
-    const exportMatches = content.match(/export\s+[^;]+;/g);
-    if (exportMatches) {
-      exports.push(...exportMatches);
-    }
-    return exports;
-  }
-
-  private generateCodeSuggestions(result: SearchResult): string[] {
-    const suggestions: string[] = [];
-    
-    if (result.content.includes('TODO')) {
-      suggestions.push('Contains TODO items that need attention');
-    }
-    
-    if (!result.content.includes('try') && result.content.includes('Exception')) {
-      suggestions.push('Consider adding proper error handling');
-    }
-    
-    return suggestions;
-  }
-
-  private calculateComplexityScore(result: SearchResult): number {
-    let score = 1;
-    score += (result.content.match(/if\s*\(/g) || []).length;
-    score += (result.content.match(/for\s*\(/g) || []).length;
-    score += (result.content.match(/while\s*\(/g) || []).length;
-    return Math.min(score, 10);
-  }
-
-  private identifyModernizationOpportunities(result: SearchResult): string[] {
-    const opportunities: string[] = [];
-    
-    if (result.citation.path.includes('.jsp')) {
-      opportunities.push('Consider migrating JSP to modern template engine or SPA');
-    }
-    
-    if (result.content.includes('CORBA')) {
-      opportunities.push('Modernize CORBA interfaces to REST APIs');
-    }
-    
-    return opportunities;
-  }
 
   private extractCrossFileRelations(codeFlowAnalysis: { [resultId: string]: CodeFlowAnalysis }): CodeFlowRelation[] {
     const crossFileRelations: CodeFlowRelation[] = [];
@@ -487,58 +230,6 @@ export class EnhancedAIService {
     return crossFileRelations;
   }
 
-  private analyzeUserQuestionForContext(
-    userQuestion: string, 
-    existingResults: SearchResult[]
-  ): AIGeneratedQuestion[] {
-    const contextualQuestions: AIGeneratedQuestion[] = [];
-    
-    if (userQuestion.toLowerCase().includes('how')) {
-      contextualQuestions.push({
-        question: `What are the step-by-step implementation details for: "${userQuestion}"?`,
-        confidence: 0.85,
-        reasoning: "How-question suggests need for detailed implementation walkthrough",
-        category: 'implementation'
-      });
-    }
-    
-    if (userQuestion.toLowerCase().includes('what')) {
-      contextualQuestions.push({
-        question: `What dependencies and relationships are involved in: "${userQuestion}"?`,
-        confidence: 0.8,
-        reasoning: "What-question suggests need for comprehensive relationship analysis",
-        category: 'dependencies'
-      });
-    }
-    
-    if (userQuestion.toLowerCase().includes('why')) {
-      contextualQuestions.push({
-        question: `What architectural decisions led to the approach in: "${userQuestion}"?`,
-        confidence: 0.75,
-        reasoning: "Why-question suggests need for architectural reasoning analysis",
-        category: 'architecture'
-      });
-    }
-    
-    return contextualQuestions;
-  }
-
-  private getFallbackQuestions(results: SearchResult[], originalQuery: string): AIGeneratedQuestion[] {
-    return [
-      {
-        question: "What are the main components and their responsibilities in this codebase?",
-        confidence: 0.7,
-        reasoning: "General architectural overview question",
-        category: 'architecture'
-      },
-      {
-        question: "How are errors handled and what recovery mechanisms exist?",
-        confidence: 0.65,
-        reasoning: "Important implementation detail",
-        category: 'implementation'
-      }
-    ];
-  }
 
   private getEmptyContext(): CodeContext {
     return {
