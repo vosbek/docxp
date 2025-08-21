@@ -89,13 +89,7 @@ export interface GoldenQuestionRequest {
   max_results?: number;
 }
 
-export interface DemoQuestion {
-  id: string;
-  question: string;
-  description: string;
-  expected_files: string[];
-  category: string;
-}
+// Demo questions interface removed - production mode only
 
 export interface HealthStatus {
   success: boolean;
@@ -224,22 +218,7 @@ export class V1SearchService {
       );
   }
 
-  /**
-   * Get predefined demo questions
-   */
-  getDemoQuestions(): Observable<{ success: boolean; data: { demo_questions: DemoQuestion[] } }> {
-    this.logRequest('Get Demo Questions', {});
-    
-    return this.http.get<{ success: boolean; data: { demo_questions: DemoQuestion[] } }>(`${this.apiUrl}/v1/search/demo-questions`)
-      .pipe(
-        retry(1),
-        map(response => {
-          this.logResponse('Get Demo Questions', response);
-          return response;
-        }),
-        catchError(error => this.handleError('Get Demo Questions', error))
-      );
-  }
+  // Demo questions functionality removed - production mode only
 
   /**
    * Check V1 search system health

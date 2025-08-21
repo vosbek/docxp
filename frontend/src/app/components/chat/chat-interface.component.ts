@@ -86,7 +86,7 @@ export class ChatInterfaceComponent implements OnInit, OnDestroy, AfterViewInit 
       },
       error: (error) => {
         console.error('Failed to load repositories:', error);
-        // Don't fall back to hardcoded data - leave empty array
+        // No hardcoded fallback - require proper backend connection
         this.availableRepositories = [];
       }
     });

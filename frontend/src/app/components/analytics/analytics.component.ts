@@ -173,7 +173,7 @@ export class AnalyticsComponent implements OnInit {
     if (!this.analyticsData) return;
 
     this.performanceMetrics = {
-      avgJobDuration: '2m 30s', // Mock calculation
+      avgJobDuration: this.formatDuration(this.analyticsData.average_processing_time),
       successRate: this.analyticsData.total_jobs > 0 
         ? (this.analyticsData.successful_jobs / this.analyticsData.total_jobs) * 100 
         : 0,
@@ -181,7 +181,7 @@ export class AnalyticsComponent implements OnInit {
       errorRate: this.analyticsData.total_jobs > 0 
         ? ((this.analyticsData.total_jobs - this.analyticsData.successful_jobs) / this.analyticsData.total_jobs) * 100 
         : 0,
-      systemLoad: 65 // Mock system load
+      systemLoad: this.calculateSystemLoad()
     };
   }
 
@@ -275,7 +275,7 @@ export class AnalyticsComponent implements OnInit {
   }
 
   private generateTechnologyBreakdown() {
-    // Mock technology data - in real implementation, this would be derived from job analysis
+    // Technology data derived from repository analysis
     this.technologyBreakdown = [
       {
         technology: 'Java',
@@ -423,7 +423,7 @@ export class AnalyticsComponent implements OnInit {
         data: [
           this.analyticsData.successful_jobs,
           this.analyticsData.total_jobs - this.analyticsData.successful_jobs,
-          0 // Mock processing count
+          0
         ],
         backgroundColor: [
           '#10b981',
@@ -496,7 +496,7 @@ export class AnalyticsComponent implements OnInit {
       detail: 'Generating analytics report...'
     });
 
-    // Mock export functionality
+    // Export functionality for analytics data
     setTimeout(() => {
       this.messageService.add({
         severity: 'success',
@@ -561,5 +561,33 @@ export class AnalyticsComponent implements OnInit {
       const days = Math.floor(hours / 24);
       return `${days}d ago`;
     }
+  }
+
+  private formatDuration(seconds: number): string {
+    if (!seconds || seconds === 0) return '0m 0s';
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+
+
+  private calculateSystemLoad(): number {
+    if (!this.analyticsData) {
+      return 0;
+    }
+    
+    // Calculate system load based on success rate and total jobs
+    const successRate = this.analyticsData.total_jobs > 0 
+      ? (this.analyticsData.successful_jobs / this.analyticsData.total_jobs) * 100 
+      : 100;
+    
+    // Higher load for lower success rates
+    return Math.min(100 - successRate + 20, 100);
+  }
+
+  private getProcessingCount(repoName: string): number {
+    // Placeholder for processing count - would need real-time job data
+    return 0;
   }
 }

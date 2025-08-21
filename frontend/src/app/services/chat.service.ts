@@ -153,8 +153,8 @@ export class ChatService {
       
       return [];
     } catch (error) {
-      console.warn('Semantic search not available, falling back to simulation:', error);
-      return [];
+      console.warn('Semantic search service unavailable:', error);
+      throw new Error('Semantic search service is not available');
     }
   }
 

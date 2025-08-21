@@ -18,7 +18,7 @@ import {
   V1SearchService, 
   SearchResponse, 
   SearchResult, 
-  DemoQuestion,
+  // DemoQuestion removed,
   HealthStatus 
 } from '../../services/v1-search.service';
 
@@ -56,7 +56,7 @@ export class V1SearchComponent implements OnInit, OnDestroy {
   searchForm: FormGroup;
   searchResults: SearchResult[] = [];
   searchResponse: SearchResponse | null = null;
-  demoQuestions: DemoQuestion[] = [];
+  // Demo questions removed for production
   healthStatus: HealthStatus | null = null;
   
   isSearching = false;
@@ -65,7 +65,6 @@ export class V1SearchComponent implements OnInit, OnDestroy {
   
   tabs: SearchTab[] = [
     { id: 'hybrid', label: 'Hybrid Search', icon: 'search' },
-    { id: 'golden', label: 'Golden Questions', icon: 'quiz' },
     { id: 'quick', label: 'Quick Search', icon: 'flash_on' }
   ];
 
@@ -96,7 +95,7 @@ export class V1SearchComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.checkSystemHealth();
-    this.loadDemoQuestions();
+    // Demo questions loading removed
     this.setupSearchDebounce();
   }
 
@@ -146,23 +145,7 @@ export class V1SearchComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Load demo questions for golden questions tab
-   */
-  loadDemoQuestions(): void {
-    this.searchService.getDemoQuestions()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.demoQuestions = response.data.demo_questions;
-          }
-        },
-        error: (error) => {
-          console.error('Failed to load demo questions:', error);
-        }
-      });
-  }
+  // Demo questions functionality removed for production
 
   /**
    * Perform hybrid search
