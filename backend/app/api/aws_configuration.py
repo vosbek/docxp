@@ -42,157 +42,207 @@ class AWSStatusResponse(BaseModel):
 @router.get("/status")
 async def get_aws_status():
     """Get current AWS connection status"""
-    try:
-        ai_service = ai_service_instance
-        
-        # Check if we have a working client
-        if not ai_service.client:
-            return AWSStatusResponse(
-                connected=False,
-                error="No AWS credentials configured",
-                region=settings.AWS_REGION,
-                auth_method="none",
-                available_models_count=0
-            )
-        
-        # Test the connection
+    import asyncio
+    
+    # Add detailed logging for debugging
+    logger.info("🔍 AWS Status endpoint called")
+    logger.info(f"   AWS_PROFILE: {settings.AWS_PROFILE}")
+    logger.info(f"   AWS_REGION: {settings.AWS_REGION}")
+    logger.info(f"   Has AWS_ACCESS_KEY_ID: {bool(settings.AWS_ACCESS_KEY_ID)}")
+    
+    async def check_aws_status_with_timeout():
         try:
-            models = ai_service.get_available_models()
+            # Instead of relying on ai_service.client, test connection directly
+            logger.info("Testing AWS connection for status endpoint...")
             
-            # Try to get account info
+            # Test AWS connection using session creation
             import boto3
-            session_kwargs = {}
+            session_kwargs = {'region_name': settings.AWS_REGION}
+            
             if settings.AWS_PROFILE:
                 session_kwargs['profile_name'] = settings.AWS_PROFILE
-            elif settings.AWS_ACCESS_KEY_ID:
+                auth_method = "sso_profile"
+                logger.info(f"Using AWS Profile: {settings.AWS_PROFILE}")
+            elif settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
                 session_kwargs['aws_access_key_id'] = settings.AWS_ACCESS_KEY_ID
                 session_kwargs['aws_secret_access_key'] = settings.AWS_SECRET_ACCESS_KEY
                 if settings.AWS_SESSION_TOKEN:
                     session_kwargs['aws_session_token'] = settings.AWS_SESSION_TOKEN
+                auth_method = "access_keys"
+                logger.info("Using AWS access keys")
+            else:
+                logger.warning("No AWS credentials configured")
+                return AWSStatusResponse(
+                    connected=False,
+                    error="No AWS credentials configured in environment",
+                    region=settings.AWS_REGION,
+                    auth_method="none",
+                    available_models_count=0
+                )
             
-            session_kwargs['region_name'] = settings.AWS_REGION
+            # Test the session and get account info
+            logger.info("Creating AWS session...")
             session = boto3.Session(**session_kwargs)
+            
+            logger.info("Testing STS access...")
             sts = session.client('sts')
             identity = sts.get_caller_identity()
+            account_id = identity.get('Account')
+            logger.info(f"AWS Account verified: {account_id}")
             
-            auth_method = "sso_profile" if settings.AWS_PROFILE else "access_keys"
+            # Test Bedrock access
+            logger.info("Testing Bedrock access...")
+            bedrock = session.client('bedrock')
+            response = bedrock.list_foundation_models()
+            models = response.get('modelSummaries', [])
+            logger.info(f"Bedrock access confirmed: {len(models)} models available")
             
             return AWSStatusResponse(
                 connected=True,
-                account_id=identity.get('Account'),
+                account_id=account_id,
                 region=settings.AWS_REGION,
                 auth_method=auth_method,
                 available_models_count=len(models)
             )
             
         except Exception as e:
+            logger.error(f"AWS status check failed: {e}")
             return AWSStatusResponse(
                 connected=False,
                 error=str(e),
                 region=settings.AWS_REGION,
-                auth_method="unknown",
+                auth_method="error",
                 available_models_count=0
             )
-            
-    except Exception as e:
-        logger.error(f"Error checking AWS status: {e}")
+    
+    try:
+        # Add 15 second timeout for AWS status check
+        return await asyncio.wait_for(check_aws_status_with_timeout(), timeout=15.0)
+    except asyncio.TimeoutError:
+        logger.error("AWS status check timed out after 15 seconds")
         return AWSStatusResponse(
             connected=False,
-            error=f"Internal error: {e}",
+            error="AWS status check timed out after 15 seconds",
+            region=settings.AWS_REGION,
+            auth_method="timeout",
+            available_models_count=0
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during AWS status check: {e}")
+        return AWSStatusResponse(
+            connected=False,
+            error=f"Unexpected error: {e}",
             region=settings.AWS_REGION,
             auth_method="unknown",
             available_models_count=0
-        )
-
-@router.post("/test-credentials")
+        )@router.post("/test-credentials")
 async def test_aws_credentials(request: AWSCredentialsRequest):
     """Test AWS credentials without permanently storing them"""
-    try:
+    import asyncio
+    
+    async def test_credentials_with_timeout():
         # Temporarily set environment variables for testing
         original_env = {}
         
-        if request.auth_method == "access_keys":
-            if not request.aws_access_key_id or not request.aws_secret_access_key:
-                raise HTTPException(status_code=400, detail="Access key and secret key are required")
-            
-            # Store original values
-            for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'AWS_PROFILE']:
-                original_env[key] = os.environ.get(key)
-            
-            # Set test values
-            os.environ['AWS_ACCESS_KEY_ID'] = request.aws_access_key_id
-            os.environ['AWS_SECRET_ACCESS_KEY'] = request.aws_secret_access_key
-            if request.aws_session_token:
-                os.environ['AWS_SESSION_TOKEN'] = request.aws_session_token
+        try:
+            if request.auth_method == "access_keys":
+                if not request.aws_access_key_id or not request.aws_secret_access_key:
+                    raise HTTPException(status_code=400, detail="Access key and secret key are required")
+                
+                # Store original values
+                for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'AWS_PROFILE']:
+                    original_env[key] = os.environ.get(key)
+                
+                # Set test values
+                os.environ['AWS_ACCESS_KEY_ID'] = request.aws_access_key_id
+                os.environ['AWS_SECRET_ACCESS_KEY'] = request.aws_secret_access_key
+                if request.aws_session_token:
+                    os.environ['AWS_SESSION_TOKEN'] = request.aws_session_token
+                else:
+                    os.environ.pop('AWS_SESSION_TOKEN', None)
+                os.environ.pop('AWS_PROFILE', None)
+                
+            elif request.auth_method == "sso_profile":
+                if not request.aws_profile:
+                    raise HTTPException(status_code=400, detail="AWS profile name is required")
+                
+                # Store original values
+                for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'AWS_PROFILE']:
+                    original_env[key] = os.environ.get(key)
+                
+                # Set test values
+                for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']:
+                    os.environ.pop(key, None)
+                os.environ['AWS_PROFILE'] = request.aws_profile
+                
             else:
-                os.environ.pop('AWS_SESSION_TOKEN', None)
-            os.environ.pop('AWS_PROFILE', None)
+                raise HTTPException(status_code=400, detail="Invalid auth_method. Must be 'access_keys' or 'sso_profile'")
             
-        elif request.auth_method == "sso_profile":
-            if not request.aws_profile:
-                raise HTTPException(status_code=400, detail="AWS profile name is required")
+            os.environ['AWS_REGION'] = request.aws_region
             
-            # Store original values
-            for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'AWS_PROFILE']:
-                original_env[key] = os.environ.get(key)
+            # Create a temporary AI service instance for testing
+            test_ai_service = ai_service_instance
             
-            # Set test values
-            for key in ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']:
-                os.environ.pop(key, None)
-            os.environ['AWS_PROFILE'] = request.aws_profile
+            # Test the connection
+            models = test_ai_service.get_available_models()
             
-        else:
-            raise HTTPException(status_code=400, detail="Invalid auth_method. Must be 'access_keys' or 'sso_profile'")
-        
-        os.environ['AWS_REGION'] = request.aws_region
-        
-        # Create a temporary AI service instance for testing
-        test_ai_service = ai_service_instance
-        
-        # Test the connection
-        models = test_ai_service.get_available_models()
-        
-        # Get account information
-        import boto3
-        if request.auth_method == "sso_profile":
-            session = boto3.Session(profile_name=request.aws_profile, region_name=request.aws_region)
-        else:
-            session = boto3.Session(
-                aws_access_key_id=request.aws_access_key_id,
-                aws_secret_access_key=request.aws_secret_access_key,
-                aws_session_token=request.aws_session_token,
-                region_name=request.aws_region
-            )
-        
-        sts = session.client('sts')
-        identity = sts.get_caller_identity()
-        
-        return {
-            "success": True,
-            "message": f"Successfully connected to AWS account {identity.get('Account')}",
-            "account_id": identity.get('Account'),
-            "region": request.aws_region,
-            "available_models_count": len(models),
-            "models": models[:5]  # Return first 5 models as preview
-        }
-        
-    except Exception as e:
-        logger.error(f"AWS credential test failed: {e}")
+            # Get account information
+            import boto3
+            if request.auth_method == "sso_profile":
+                session = boto3.Session(profile_name=request.aws_profile, region_name=request.aws_region)
+            else:
+                session = boto3.Session(
+                    aws_access_key_id=request.aws_access_key_id,
+                    aws_secret_access_key=request.aws_secret_access_key,
+                    aws_session_token=request.aws_session_token,
+                    region_name=request.aws_region
+                )
+            
+            sts = session.client('sts')
+            identity = sts.get_caller_identity()
+            
+            return {
+                "success": True,
+                "message": f"Successfully connected to AWS account {identity.get('Account')}",
+                "account_id": identity.get('Account'),
+                "region": request.aws_region,
+                "available_models_count": len(models),
+                "models": models[:5]  # Return first 5 models as preview
+            }
+            
+        except Exception as e:
+            logger.error(f"AWS credential test failed: {e}")
+            return {
+                "success": False,
+                "message": f"Connection failed: {e}",
+                "error": str(e)
+            }
+            
+        finally:
+            # Restore original environment variables
+            for key, value in original_env.items():
+                if value is not None:
+                    os.environ[key] = value
+                else:
+                    os.environ.pop(key, None)
+    
+    try:
+        # Add 30 second timeout for AWS credential testing
+        return await asyncio.wait_for(test_credentials_with_timeout(), timeout=30.0)
+    except asyncio.TimeoutError:
+        logger.error("AWS credential test timed out after 30 seconds")
         return {
             "success": False,
-            "message": f"Connection failed: {e}",
-            "error": str(e)
+            "message": "Connection test timed out after 30 seconds",
+            "error": "timeout"
         }
-        
-    finally:
-        # Restore original environment variables
-        for key, value in original_env.items():
-            if value is not None:
-                os.environ[key] = value
-            else:
-                os.environ.pop(key, None)
-
-@router.post("/configure")
+    except Exception as e:
+        logger.error(f"Unexpected error during AWS credential test: {e}")
+        return {
+            "success": False,
+            "message": f"Unexpected error: {e}",
+            "error": str(e)
+        }@router.post("/configure")
 async def configure_aws_credentials(request: AWSCredentialsRequest):
     """Configure AWS credentials permanently"""
     try:
