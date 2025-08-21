@@ -92,46 +92,7 @@
     </mat-tab>
 
     <!-- Golden Questions Tab -->
-    <mat-tab label="Golden Questions">
-      <div class="tab-content">
-        <div class="golden-questions-info">
-          <mat-icon>quiz</mat-icon>
-          <p>Test the V1 search engine with predefined demo questions designed to showcase grounded citations.</p>
-        </div>
-
-        <div class="demo-questions" *ngIf="demoQuestions.length > 0">
-          <mat-card *ngFor="let question of demoQuestions" class="question-card">
-            <mat-card-header>
-              <mat-card-title>{{ question.question }}</mat-card-title>
-              <mat-card-subtitle>{{ question.category }}</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <p>{{ question.description }}</p>
-              <div class="expected-files">
-                <strong>Expected files:</strong>
-                <mat-chip-listbox>
-                  <mat-chip *ngFor="let file of question.expected_files">{{ file }}</mat-chip>
-                </mat-chip-listbox>
-              </div>
-            </mat-card-content>
-            <mat-card-actions>
-              <button mat-button 
-                      color="primary" 
-                      [disabled]="isSearching"
-                      (click)="performGoldenQuestionSearch(question.question)">
-                <mat-icon>play_arrow</mat-icon>
-                Test Question
-              </button>
-            </mat-card-actions>
-          </mat-card>
-        </div>
-
-        <div *ngIf="demoQuestions.length === 0" class="no-questions">
-          <mat-icon>help_outline</mat-icon>
-          <p>No demo questions available. Check backend connection.</p>
-        </div>
-      </div>
-    </mat-tab>
+    <!-- Golden Questions tab removed for production -->
 
     <!-- Quick Search Tab -->
     <mat-tab label="Quick Search">

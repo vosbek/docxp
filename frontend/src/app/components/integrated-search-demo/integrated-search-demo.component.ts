@@ -46,30 +46,7 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
   enhancementProgress = 0;
   showEnhancedPanel = false;
   
-  // Demo mode
-  isDemoMode = true;
-  demoSteps = [
-    { 
-      title: 'Perform a Search', 
-      description: 'Use the V1 Search interface to find code',
-      completed: false 
-    },
-    { 
-      title: 'View Enhanced Results', 
-      description: 'See AI-generated questions and code flow analysis',
-      completed: false 
-    },
-    { 
-      title: 'Explore Code Flow', 
-      description: 'Investigate relationships between files',
-      completed: false 
-    },
-    { 
-      title: 'Ask Follow-up Questions', 
-      description: 'Use AI-generated questions for deeper exploration',
-      completed: false 
-    }
-  ];
+  // Production mode - no demo functionality
 
   constructor(
     private searchService: V1SearchService,
@@ -77,7 +54,7 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Initialize demo state
+    // Initialize state
     this.loadSearchHistory();
   }
 
@@ -95,11 +72,6 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
     
     // Update search history
     this.addToSearchHistory(response.data.query, response.data.results.length);
-    
-    // Mark demo step as completed
-    if (this.isDemoMode) {
-      this.demoSteps[0].completed = true;
-    }
     
     // Automatically enhance results
     this.enhanceResults();
@@ -139,11 +111,6 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
   private completeEnhancement(): void {
     this.isEnhancing = false;
     this.showEnhancedPanel = true;
-    
-    // Mark demo step as completed
-    if (this.isDemoMode) {
-      this.demoSteps[1].completed = true;
-    }
   }
 
   /**
@@ -152,21 +119,17 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
   onQuestionSelected(question: string): void {
     // Trigger new search with the AI-generated question
     this.performEnhancedSearch(question);
-    
-    // Mark demo step as completed
-    if (this.isDemoMode) {
-      this.demoSteps[3].completed = true;
-    }
   }
 
   /**
    * Handle citation click for interactive exploration
    */
   onCitationClicked(result: SearchResult): void {
-    // This would open a detailed file view or code explorer
+    // Open a detailed file view or code explorer
     console.log('Opening detailed view for:', result.citation);
     
-    // For demo, just show a notification
+    // TODO: Implement actual file view functionality
+    // Placeholder: show file path info
     alert(`Opening detailed view for ${result.citation.path}:${result.citation.start}-${result.citation.end}`);
   }
 
@@ -174,15 +137,11 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
    * Handle code flow visualization request
    */
   onCodeFlowRequested(result: SearchResult): void {
-    // This would open an interactive code flow diagram
+    // Open an interactive code flow diagram
     console.log('Showing code flow for:', result.citation);
     
-    // Mark demo step as completed
-    if (this.isDemoMode) {
-      this.demoSteps[2].completed = true;
-    }
-    
-    // For demo, just show a notification
+    // TODO: Implement actual code flow visualization
+    // Placeholder: show code flow info
     alert(`Visualizing code flow relationships for ${result.citation.path}`);
   }
 
@@ -243,29 +202,13 @@ export class IntegratedSearchDemoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Restart demo
+   * Reset search interface
    */
-  restartDemo(): void {
-    this.demoSteps.forEach(step => step.completed = false);
+  resetSearch(): void {
     this.currentSearchResponse = null;
     this.showEnhancedPanel = false;
     this.isEnhancing = false;
     this.enhancementProgress = 0;
-  }
-
-  /**
-   * Exit demo mode
-   */
-  exitDemoMode(): void {
-    this.isDemoMode = false;
-  }
-
-  /**
-   * Get demo completion percentage
-   */
-  getDemoProgress(): number {
-    const completedSteps = this.demoSteps.filter(step => step.completed).length;
-    return (completedSteps / this.demoSteps.length) * 100;
   }
 
   /**

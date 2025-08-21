@@ -298,26 +298,37 @@ export class SettingsComponent implements OnInit {
   testApiConnection() {
     this.loading = true;
     
-    // Mock API test - in real implementation, this would test the actual API
-    setTimeout(() => {
-      const isSuccess = Math.random() > 0.2; // 80% success rate for demo
-      
-      if (isSuccess) {
+    // Test actual API connection
+    const testUrl = `${this.apiConfig.baseUrl}/health`;
+    
+    fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(this.apiConfig.timeout)
+    })
+    .then(response => {
+      if (response.ok) {
         this.messageService.add({
           severity: 'success',
           summary: 'Connection Successful',
           detail: `Successfully connected to ${this.apiConfig.baseUrl}`
         });
       } else {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Connection Failed',
-          detail: 'Could not connect to the API. Please check your configuration.'
-        });
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+    })
+    .catch(error => {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Connection Failed',
+        detail: `Could not connect to the API: ${error.message}`
+      });
+    })
+    .finally(() => {
       this.loading = false;
-    }, 2000);
+    });
   }
 
   clearCache() {
@@ -328,15 +339,35 @@ export class SettingsComponent implements OnInit {
       accept: () => {
         this.loading = true;
         
-        // Mock cache clearing
-        setTimeout(() => {
+        // Clear browser caches
+        try {
+          // Clear localStorage items related to DocXP
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('docxp_')) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+          
+          // Clear sessionStorage
+          sessionStorage.clear();
+          
           this.messageService.add({
             severity: 'success',
             summary: 'Cache Cleared',
             detail: 'All cached data has been cleared successfully'
           });
+        } catch (error) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Cache Clear Failed',
+            detail: 'Failed to clear cache data'
+          });
+        } finally {
           this.loading = false;
-        }, 1000);
+        }
       }
     });
   }

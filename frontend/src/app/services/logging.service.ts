@@ -185,7 +185,7 @@ export class LoggingService {
   }
 
   // Chat operations logging
-  logChatInteraction(message: string, responseType: 'real' | 'mock', duration: number): void {
+  logChatInteraction(message: string, responseType: 'success' | 'error', duration: number): void {
     this.info('Chat', `Message processed via ${responseType} service (${duration}ms)`, {
       messageLength: message.length,
       responseType,

@@ -1,265 +1,108 @@
-<div class="integrated-search-demo">
+<div class="integrated-search">
   
-  <!-- Demo Progress Header -->
-  <div class="demo-header" *ngIf="isDemoMode">
-    <mat-card class="demo-progress-card">
+  <!-- Main Search Interface -->
+  <div class="search-section">
+    <mat-card class="search-card">
       <mat-card-header>
         <mat-card-title>
-          <mat-icon>school</mat-icon>
-          Enhanced Search Demo
+          <mat-icon>search</mat-icon>
+          Enhanced Code Search
         </mat-card-title>
-        <mat-card-subtitle>
-          Experience AI-powered code analysis and flow visualization
-        </mat-card-subtitle>
       </mat-card-header>
       
       <mat-card-content>
-        <div class="progress-section">
-          <div class="progress-header">
-            <span>Demo Progress</span>
-            <span class="progress-percentage">{{ getDemoProgress().toFixed(0) }}%</span>
-          </div>
-          <mat-progress-bar [value]="getDemoProgress()" mode="determinate"></mat-progress-bar>
-        </div>
-        
-        <div class="demo-steps">
-          <div 
-            *ngFor="let step of demoSteps; let i = index" 
-            class="demo-step"
-            [ngClass]="{ 'completed': step.completed }">
-            
-            <div class="step-indicator">
-              <mat-icon *ngIf="step.completed">check_circle</mat-icon>
-              <span *ngIf="!step.completed" class="step-number">{{ i + 1 }}</span>
-            </div>
-            
-            <div class="step-content">
-              <h4>{{ step.title }}</h4>
-              <p>{{ step.description }}</p>
-            </div>
-          </div>
-        </div>
+        <app-v1-search 
+          (searchComplete)="onSearchComplete($event)"
+          (searchStart)="onSearchStart()">
+        </app-v1-search>
       </mat-card-content>
-      
-      <mat-card-actions>
-        <button mat-button (click)="restartDemo()">
-          <mat-icon>refresh</mat-icon>
-          Restart Demo
-        </button>
-        <button mat-button (click)="exitDemoMode()">
-          <mat-icon>exit_to_app</mat-icon>
-          Exit Demo
-        </button>
-      </mat-card-actions>
     </mat-card>
   </div>
 
-  <!-- Main Content Tabs -->
-  <mat-tab-group class="main-tabs" (selectedTabChange)="$event.index === 1 && !showEnhancedPanel && (showEnhancedPanel = true)">
-    
-    <!-- V1 Search Tab -->
-    <mat-tab label="V1 Hybrid Search">
-      <div class="tab-content">
-        <app-v1-search 
-          (searchStart)="onSearchStart()"
-          (searchComplete)="onSearchComplete($event)">
-        </app-v1-search>
-      </div>
-    </mat-tab>
-
-    <!-- Enhanced Answer Panel Tab -->
-    <mat-tab label="Enhanced AI Analysis" [disabled]="!currentSearchResponse">
-      <div class="tab-content">
-        
-        <!-- Enhancement Progress -->
-        <div class="enhancement-progress" *ngIf="isEnhancing">
-          <mat-card class="enhancement-card">
-            <mat-card-content>
-              <div class="enhancement-info">
-                <mat-icon>psychology</mat-icon>
-                <div>
-                  <h3>Enhancing Search Results</h3>
-                  <p>AI is analyzing code relationships and generating intelligent follow-up questions...</p>
-                </div>
-              </div>
-              <mat-progress-bar [value]="enhancementProgress" mode="determinate"></mat-progress-bar>
-              <div class="progress-steps">
-                <span [ngClass]="{ 'active': enhancementProgress >= 25 }">Analyzing Code Flow</span>
-                <span [ngClass]="{ 'active': enhancementProgress >= 50 }">Extracting Context</span>
-                <span [ngClass]="{ 'active': enhancementProgress >= 75 }">Generating Questions</span>
-                <span [ngClass]="{ 'active': enhancementProgress >= 100 }">Complete</span>
-              </div>
-            </mat-card-content>
-          </mat-card>
+  <!-- Enhancement Progress -->
+  <div *ngIf="isEnhancing" class="enhancement-progress">
+    <mat-card>
+      <mat-card-content>
+        <div class="progress-info">
+          <span>Enhancing search results with AI analysis...</span>
+          <span>{{ enhancementProgress }}%</span>
         </div>
+        <mat-progress-bar [value]="enhancementProgress" mode="determinate"></mat-progress-bar>
+      </mat-card-content>
+    </mat-card>
+  </div>
 
-        <!-- Enhanced Answer Panel -->
+  <!-- Enhanced Results Panel -->
+  <div *ngIf="showEnhancedPanel && currentSearchResponse" class="enhanced-panel">
+    <mat-card class="enhanced-results-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>psychology</mat-icon>
+          AI-Enhanced Analysis
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
         <app-enhanced-answer-panel
-          *ngIf="showEnhancedPanel && currentSearchResponse"
           [searchResponse]="currentSearchResponse"
-          [isSearching]="isSearching"
           (questionSelected)="onQuestionSelected($event)"
           (citationClicked)="onCitationClicked($event)"
           (codeFlowRequested)="onCodeFlowRequested($event)">
         </app-enhanced-answer-panel>
+      </mat-card-content>
+    </mat-card>
+  </div>
 
-        <!-- No Search Results -->
-        <div class="no-search-state" *ngIf="!currentSearchResponse && !isSearching">
-          <mat-icon>search</mat-icon>
-          <h3>No Search Results</h3>
-          <p>Perform a search in the V1 Hybrid Search tab to see enhanced AI analysis here.</p>
-          <button mat-raised-button color="primary" (click)="mainTabs.selectedIndex = 0">
-            <mat-icon>search</mat-icon>
-            Go to Search
-          </button>
-        </div>
-      </div>
-    </mat-tab>
-
-    <!-- Search Analytics Tab -->
-    <mat-tab label="Search Analytics">
-      <div class="tab-content">
-        
-        <!-- Current Search Summary -->
-        <mat-card class="analytics-card" *ngIf="currentSearchResponse">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>analytics</mat-icon>
-              Current Search Analysis
-            </mat-card-title>
-          </mat-card-header>
-          
-          <mat-card-content>
-            <div class="analytics-grid">
-              <div class="metric-card">
-                <div class="metric-value">{{ currentSearchResponse.data.results.length }}</div>
-                <div class="metric-label">Total Results</div>
-              </div>
-              
-              <div class="metric-card">
-                <div class="metric-value">{{ currentSearchResponse.data.performance.total_time_ms.toFixed(0) }}ms</div>
-                <div class="metric-label">Search Time</div>
-              </div>
-              
-              <div class="metric-card">
-                <div class="metric-value">{{ currentSearchResponse.data.fusion_details.rrf_k }}</div>
-                <div class="metric-label">RRF K-Value</div>
-              </div>
-              
-              <div class="metric-card">
-                <div class="metric-value">
-                  {{ currentSearchResponse.data.performance.meets_slo ? 'YES' : 'NO' }}
-                </div>
-                <div class="metric-label">Meets SLO</div>
-              </div>
-            </div>
-            
-            <div class="search-summary">
-              <h4>Search Summary</h4>
-              <p>{{ getSearchSummary() }}</p>
-              
-              <h4>Performance Details</h4>
-              <p>{{ getPerformanceSummary() }}</p>
-            </div>
-            
-            <!-- Fusion Details -->
-            <div class="fusion-details">
-              <h4>RRF Fusion Analysis</h4>
-              <mat-chip-listbox>
-                <mat-chip class="bm25-chip">
-                  BM25: {{ currentSearchResponse.data.fusion_details.bm25_results }} results
-                </mat-chip>
-                <mat-chip class="knn-chip">
-                  k-NN: {{ currentSearchResponse.data.fusion_details.knn_results }} results
-                </mat-chip>
-                <mat-chip class="weight-chip">
-                  Weights: {{ currentSearchResponse.data.fusion_details.bm25_weight }} / {{ currentSearchResponse.data.fusion_details.knn_weight }}
-                </mat-chip>
-              </mat-chip-listbox>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Search History -->
-        <mat-card class="history-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>history</mat-icon>
-              Search History
-            </mat-card-title>
-            <button mat-icon-button (click)="clearHistory()" [disabled]="searchHistory.length === 0">
-              <mat-icon>clear_all</mat-icon>
-            </button>
-          </mat-card-header>
-          
-          <mat-card-content>
-            <div class="history-list" *ngIf="searchHistory.length > 0">
-              <div 
-                *ngFor="let item of searchHistory" 
-                class="history-item"
-                (click)="repeatSearch(item)">
-                
-                <div class="history-content">
-                  <div class="history-query">{{ item.query }}</div>
-                  <div class="history-meta">
-                    <span class="history-time">{{ formatTime(item.timestamp) }}</span>
-                    <span class="history-results">{{ item.resultCount }} results</span>
-                  </div>
-                </div>
-                
-                <button mat-icon-button (click)="repeatSearch(item); $event.stopPropagation()">
-                  <mat-icon>replay</mat-icon>
-                </button>
-              </div>
-            </div>
-            
-            <div class="no-history" *ngIf="searchHistory.length === 0">
-              <mat-icon>history</mat-icon>
-              <p>No search history yet. Perform some searches to see them here.</p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-    </mat-tab>
-  </mat-tab-group>
-
-  <!-- Help Overlay -->
-  <div class="help-overlay" *ngIf="isDemoMode && getDemoProgress() === 0">
-    <mat-card class="help-card">
+  <!-- Search History -->
+  <div *ngIf="searchHistory.length > 0" class="search-history">
+    <mat-card>
       <mat-card-header>
         <mat-card-title>
-          <mat-icon>lightbulb</mat-icon>
-          Getting Started
+          <mat-icon>history</mat-icon>
+          Recent Searches
         </mat-card-title>
+        <div class="header-actions">
+          <button mat-icon-button (click)="clearHistory()" matTooltip="Clear History">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
       </mat-card-header>
       
       <mat-card-content>
-        <p>Welcome to the Enhanced DocXP Search Demo! Here's how to get started:</p>
-        <ol>
-          <li><strong>Search:</strong> Use the search interface to find code in your repository</li>
-          <li><strong>Analyze:</strong> Switch to the Enhanced AI Analysis tab to see intelligent insights</li>
-          <li><strong>Explore:</strong> Click on AI-generated questions to discover more about your codebase</li>
-          <li><strong>Visualize:</strong> Use code flow analysis to understand component relationships</li>
-        </ol>
-        
-        <div class="demo-features">
-          <h4>Key Features to Try:</h4>
-          <mat-chip-listbox>
-            <mat-chip>AI Question Generation</mat-chip>
-            <mat-chip>Code Flow Analysis</mat-chip>
-            <mat-chip>Interactive Citations</mat-chip>
-            <mat-chip>Cross-Technology Tracing</mat-chip>
-            <mat-chip>Performance Analytics</mat-chip>
-          </mat-chip-listbox>
+        <div class="history-list">
+          <div *ngFor="let item of searchHistory" class="history-item">
+            <div class="query-info">
+              <span class="query">{{ item.query }}</span>
+              <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+            </div>
+            <div class="result-info">
+              <mat-chip>{{ item.resultCount }} results</mat-chip>
+              <button mat-icon-button (click)="repeatSearch(item)" matTooltip="Repeat Search">
+                <mat-icon>replay</mat-icon>
+              </button>
+            </div>
+          </div>
         </div>
       </mat-card-content>
-      
-      <mat-card-actions>
-        <button mat-raised-button color="primary" (click)="exitDemoMode()">
-          <mat-icon>play_arrow</mat-icon>
-          Start Exploring
-        </button>
-      </mat-card-actions>
     </mat-card>
   </div>
+
+  <!-- Search Summary -->
+  <div *ngIf="currentSearchResponse" class="search-summary">
+    <mat-card>
+      <mat-card-content>
+        <div class="summary-stats">
+          <div class="stat">
+            <span class="label">Results:</span>
+            <span class="value">{{ getSearchSummary() }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Performance:</span>
+            <span class="value">{{ getPerformanceSummary() }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
 </div>

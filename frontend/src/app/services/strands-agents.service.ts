@@ -17,7 +17,7 @@ export interface AgentResponse {
 export interface ConversationContext {
   repository_ids?: string[];
   user_preferences?: Record<string, any>;
-  demo_mode?: boolean;
+  // demo_mode removed for production
 }
 
 export interface StartConversationRequest {
@@ -174,12 +174,7 @@ export class StrandsAgentsService {
     return healthCheck;
   }
 
-  /**
-   * Run demo conversations with all agent types
-   */
-  runDemo(): Observable<any> {
-    return this.http.post(`${this.baseUrl}/api/strands/agents/demo`, {});
-  }
+  // Demo functionality removed for production
 
   /**
    * Perform bulk analysis using multiple agents

@@ -5,7 +5,11 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app/app.component';
 
 const routes: Routes = [
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  { path: '', redirectTo: '/aws-configuration', pathMatch: 'full' },
+  { 
+    path: 'aws-configuration', 
+    loadComponent: () => import('./app/components/aws-configuration/aws-configuration.component').then(m => m.AwsConfigurationComponent) 
+  },
   { 
     path: 'dashboard', 
     loadComponent: () => import('./app/components/dashboard/dashboard.component').then(m => m.DashboardComponent) 
