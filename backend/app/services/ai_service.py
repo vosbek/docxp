@@ -186,14 +186,11 @@ class AIService:
             # Create bedrock-runtime client
             self.client = session.client('bedrock-runtime')
             
-            # Test the connection
-            self._test_connection()
-            
             # Update cache info
             self._current_credentials_hash = self._get_credentials_hash()
             self._last_auth_check = time.time()
             
-            logger.debug("AWS Bedrock client initialized and cached")
+            logger.info(f"AWS Bedrock client initialized successfully for region {session.region_name}")
             
         except NoCredentialsError:
             error_msg = "No AWS credentials found. Please configure AWS_PROFILE or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY"
