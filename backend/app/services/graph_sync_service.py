@@ -26,7 +26,7 @@ from app.services.knowledge_graph_service import (
 # from app.services.vector_service import get_vector_service
 from app.models.base import Repository, CodeEntity, BusinessRule
 from app.models.graph_entities import (
-    GraphNodeMetadata, GraphRelationshipMetadata, BusinessRuleTrace,
+    GraphNodeMetadata, GraphRelationshipMetadata, GraphBusinessRuleTrace,
     CodeEntityProperties, BusinessRuleProperties, TechnologyComponentProperties
 )
 
