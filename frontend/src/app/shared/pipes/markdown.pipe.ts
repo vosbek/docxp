@@ -28,9 +28,20 @@ export class MarkdownPipe implements PipeTransform {
     // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-    // Bullet points
-    html = html.replace(/^• (.*$)/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    // Bullet points - handle multiple list items properly
+    html = html.replace(/^[•\-\*] (.*$)/gm, '<li>$1</li>');
+    
+    // Numbered lists
+    html = html.replace(/^\d+\. (.*$)/gm, '<li>$1</li>');
+    
+    // Wrap consecutive list items in proper list tags
+    html = html.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, (match) => {
+      // Check if this looks like a numbered list (contains digits)
+      if (/^\d+\./.test(match.replace(/<[^>]*>/g, ''))) {
+        return `<ol>${match}</ol>`;
+      }
+      return `<ul>${match}</ul>`;
+    });
 
     // Line breaks
     html = html.replace(/\n\n/g, '</p><p>');

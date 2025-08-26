@@ -208,27 +208,6 @@ export class V1SearchComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Perform golden question search
-   */
-  performGoldenQuestionSearch(question: string): void {
-    this.isSearching = true;
-    this.searchError = null;
-
-    this.searchService.goldenQuestionSearch({ question, max_results: 3 })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
-          this.handleSearchResponse(response);
-        },
-        error: (error) => {
-          this.handleSearchError(error);
-        },
-        complete: () => {
-          this.isSearching = false;
-        }
-      });
-  }
 
   /**
    * Handle successful search response

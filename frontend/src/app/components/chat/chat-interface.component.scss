@@ -1,20 +1,5 @@
 // Nationwide Insurance Enterprise Chat Interface
-:root {
-  --nationwide-navy: #003087;
-  --nationwide-blue: #0066CC;
-  --nationwide-blue-dark: #002966;
-  --nationwide-blue-light: #4D9FFF;
-  --nationwide-gray-50: #F8FAFC;
-  --nationwide-gray-100: #F1F5F9;
-  --nationwide-gray-200: #E2E8F0;
-  --nationwide-gray-300: #CBD5E1;
-  --nationwide-gray-400: #94A3B8;
-  --nationwide-gray-500: #64748B;
-  --nationwide-gray-600: #475569;
-  --nationwide-gray-700: #334155;
-  --nationwide-gray-800: #1E293B;
-  --nationwide-gray-900: #0F172A;
-}
+// Colors are now inherited from global :root in styles.scss
 
 .chat-app {
   position: fixed;
@@ -26,8 +11,8 @@
   height: 100vh;
   display: flex;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--nationwide-gray-50);
-  color: var(--nationwide-gray-800);
+  background: var(--gray-50);
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.5;
   overflow: hidden;
@@ -89,9 +74,9 @@
 
         &:focus {
           outline: none;
-          border-color: #003087; // Nationwide Navy
+          border-color: var(--brand-primary);
           background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1); // Nationwide Navy shadow
+          box-shadow: 0 0 0 3px rgba(32, 77, 155, 0.1);
         }
       }
     }
@@ -117,8 +102,8 @@
           padding: 0 24px;
 
           &.selected {
-            background: rgba(0, 48, 135, 0.04); // Light Nationwide tint
-            border-left: 3px solid #003087; // Nationwide Navy
+            background: rgba(32, 77, 155, 0.04);
+            border-left: 3px solid var(--brand-primary);
           }
 
           .repo-checkbox {
@@ -164,8 +149,8 @@
             }
 
             input:checked + .checkmark {
-              background: #003087; // Nationwide Navy
-              border-color: #003087; // Nationwide Navy
+              background: var(--brand-primary);
+              border-color: var(--brand-primary);
 
               &::after {
                 transform: rotate(-45deg) scale(1);
@@ -230,7 +215,7 @@
     gap: 12px;
 
     .ai-icon {
-      color: #003087; // Nationwide Navy
+      color: var(--brand-primary);
       width: 20px;
       height: 20px;
     }
@@ -239,7 +224,7 @@
       margin: 0;
       font-size: 18px;
       font-weight: 600;
-      color: #003087; // Nationwide Navy
+      color: var(--brand-primary);
     }
 
     .subtitle {
@@ -274,8 +259,8 @@
         align-items: flex-end;
 
         .message-content {
-          background: #003087; // Nationwide Navy
-          color: #ffffff;
+          background: var(--brand-primary);
+          color: var(--text-on-primary);
           padding: 12px 16px;
           border-radius: 16px 16px 4px 16px;
           max-width: 70%;
@@ -298,8 +283,8 @@
         .avatar {
           width: 32px;
           height: 32px;
-          background: #e8f2ff; // Light Nationwide blue background
-          border: 2px solid #003087; // Nationwide Navy border
+          background: var(--brand-blue-50);
+          border: 2px solid var(--brand-primary);
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -308,7 +293,7 @@
           margin-top: 4px;
 
           svg {
-            color: #003087; // Nationwide Navy
+            color: var(--brand-primary);
           }
         }
 
@@ -446,8 +431,8 @@
           cursor: pointer;
 
           &:hover {
-            border-color: #003087; // Nationwide Navy
-            background: rgba(0, 48, 135, 0.02); // Light Nationwide tint
+            border-color: var(--brand-primary);
+            background: rgba(32, 77, 155, 0.02);
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
           }
@@ -494,8 +479,8 @@
 
         &:focus {
           outline: none;
-          border-color: #003087; // Nationwide Navy
-          box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1); // Nationwide Navy shadow
+          border-color: var(--brand-primary);
+          box-shadow: 0 0 0 3px rgba(32, 77, 155, 0.1);
         }
 
         &:disabled {
@@ -530,8 +515,8 @@
   justify-content: center;
   gap: 6px;
   padding: 12px 20px;
-  background: #003087; // Nationwide Navy
-  color: #ffffff;
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -541,9 +526,9 @@
   min-height: 44px;
 
   &:hover:not(:disabled) {
-    background: #0066CC; // Lighter Nationwide Blue
+    background: var(--brand-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 48, 135, 0.25); // Nationwide Navy shadow
+    box-shadow: 0 4px 8px rgba(32, 77, 155, 0.25);
   }
 
   &:disabled {
@@ -581,8 +566,8 @@
 
   &:hover {
     background: #f8f9fa;
-    border-color: #003087; // Nationwide Navy
-    color: #003087; // Nationwide Navy
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
   }
 
   svg {

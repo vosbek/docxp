@@ -232,9 +232,30 @@ What would you like to explore today?`,
   }
 
   refreshRepositories() {
-    // Simulate repository refresh
     console.log('Refreshing repositories...');
-    // In a real app, this would fetch fresh repository data
+    
+    // Clear current repositories and reload
+    this.availableRepositories = [];
+    this.selectedRepositories = [];
+    
+    // Update chat service context
+    this.chatService.updateContext({
+      repositoryIds: []
+    });
+    
+    // Reload repositories from API
+    this.loadRepositories();
+    
+    // Show feedback message
+    const refreshMessage: ChatMessage = {
+      id: this.generateId(),
+      content: '🔄 **Repositories refreshed** - Updated repository list from server.',
+      type: 'assistant',
+      timestamp: new Date()
+    };
+    
+    this.messages.push(refreshMessage);
+    this.scrollToBottom();
   }
 
   clearChat() {

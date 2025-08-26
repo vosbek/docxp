@@ -41,12 +41,12 @@
   
   .logo-icon {
     font-size: 24px;
-    color: #003087;
+    color: var(--brand-primary);
   }
   
   .logo-text {
     font-size: 20px;
-    color: #003087;
+    color: var(--brand-primary);
     font-weight: 700;
   }
 }
@@ -80,8 +80,8 @@
     
     &:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 3px rgba(32, 77, 155, 0.1);
       background: #ffffff;
     }
     
@@ -206,7 +206,7 @@
   }
   
   &.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
     
     i {
       color: white;
@@ -241,7 +241,7 @@
       
       .storage-progress {
         height: 100%;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
         transition: width 0.3s ease;
       }
     }

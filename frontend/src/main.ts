@@ -43,6 +43,10 @@ const routes: Routes = [
     loadComponent: () => import('./app/components/settings/settings.component').then(m => m.SettingsComponent) 
   },
   { 
+    path: 'deep-wiki', 
+    loadComponent: () => import('./app/components/deep-wiki/deep-wiki.component').then(m => m.DeepWikiComponent) 
+  },
+  { 
     path: 'jobs/:id', 
     loadComponent: () => import('./app/components/job-details/job-details.component').then(m => m.JobDetailsComponent) 
   },

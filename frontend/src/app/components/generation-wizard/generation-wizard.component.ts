@@ -24,6 +24,7 @@ import { ApiService, DocumentationRequest, RepositoryInfo, JobStatus } from '../
 import { interval, Subscription } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 import { AwsConfigurationComponent } from '../aws-configuration/aws-configuration.component';
+import { environment } from '../../../environments/environment';
 
 interface FocusAreas {
   [key: string]: boolean;
@@ -504,7 +505,7 @@ export class GenerationWizardComponent implements OnInit, OnDestroy {
   downloadDocumentation() {
     if (this.outputPath) {
       // In a real app, this would trigger a download
-      window.open(`http://localhost:8001/output/${this.jobId}/README.md`, '_blank');
+      window.open(`${environment.apiUrl.replace('/api', '')}/output/${this.jobId}/README.md`, '_blank');
     }
   }
   

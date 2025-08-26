@@ -69,6 +69,11 @@ export class AppComponent implements OnInit {
         routerLink: '/chat'
       },
       {
+        label: 'Deep Wiki',
+        icon: 'pi pi-book',
+        routerLink: '/deep-wiki'
+      },
+      {
         label: 'V1 Search',
         icon: 'pi pi-search',
         routerLink: '/v1-search'

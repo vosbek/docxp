@@ -15,19 +15,19 @@
       margin: 0 0 8px 0;
       font-size: 2.5rem;
       font-weight: 300;
-      color: #333;
+      color: var(--text-primary);
 
       mat-icon {
         font-size: 2.5rem;
         width: 2.5rem;
         height: 2.5rem;
-        color: #1976d2;
+        color: var(--brand-primary);
       }
     }
 
     .subtitle {
       font-size: 1.1rem;
-      color: #666;
+      color: var(--text-secondary);
       margin: 0;
     }
   }
@@ -43,7 +43,7 @@
         gap: 8px;
         
         mat-icon {
-          color: #1976d2;
+          color: var(--brand-primary);
         }
       }
     }
@@ -83,7 +83,7 @@
 
       h4 {
         margin: 16px 0 8px 0;
-        color: #333;
+        color: var(--text-primary);
         font-weight: 500;
       }
 
@@ -134,7 +134,7 @@
       transition: all 0.2s ease;
 
       &:hover {
-        border-color: #1976d2;
+        border-color: var(--brand-primary);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
@@ -169,7 +169,7 @@
 
       .job-meta {
         font-size: 0.9rem;
-        color: #666;
+        color: var(--text-secondary);
       }
     }
   }
@@ -197,7 +197,7 @@
         .label {
           display: block;
           font-size: 0.9rem;
-          color: #666;
+          color: var(--text-secondary);
           margin-bottom: 4px;
         }
 
@@ -205,7 +205,7 @@
           display: block;
           font-size: 1.2rem;
           font-weight: 500;
-          color: #1976d2;
+          color: var(--brand-primary);
         }
       }
     }
@@ -223,7 +223,7 @@
 
         .card-actions {
           button {
-            color: #666;
+            color: var(--text-secondary);
           }
         }
       }
@@ -246,7 +246,7 @@
 
           .metric-label {
             font-size: 0.9rem;
-            color: #666;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
@@ -321,7 +321,7 @@
             font-size: 2rem;
             width: 2rem;
             height: 2rem;
-            color: #1976d2;
+            color: var(--brand-primary);
           }
 
           .stat-info {
@@ -329,12 +329,12 @@
               font-size: 2rem;
               font-weight: 300;
               line-height: 1;
-              color: #333;
+              color: var(--text-primary);
             }
 
             .stat-label {
               font-size: 0.9rem;
-              color: #666;
+              color: var(--text-secondary);
               text-transform: uppercase;
               letter-spacing: 0.5px;
             }
@@ -347,7 +347,7 @@
 
         h3 {
           margin-bottom: 16px;
-          color: #333;
+          color: var(--text-primary);
         }
 
         .chart-placeholder {
@@ -357,8 +357,36 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #666;
+          color: var(--text-secondary);
           font-style: italic;
+        }
+
+        .feature-coming-soon {
+          height: 300px;
+          border: 1px solid #e0e0e0;
+          border-radius: 8px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background-color: #fafafa;
+          text-align: center;
+          padding: 32px;
+
+          h4 {
+            margin: 16px 0 8px 0;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 1.2rem;
+          }
+
+          p {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            max-width: 400px;
+          }
         }
       }
 
@@ -388,7 +416,7 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #666;
+          color: var(--text-secondary);
           font-style: italic;
         }
       }
@@ -435,7 +463,7 @@
               border-radius: 4px;
 
               strong {
-                color: #1976d2;
+                color: var(--brand-primary);
               }
 
               p {
@@ -492,7 +520,7 @@
               gap: 8px;
 
               mat-icon {
-                color: #1976d2;
+                color: var(--brand-primary);
               }
             }
 
@@ -546,7 +574,7 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #666;
+          color: var(--text-secondary);
           font-style: italic;
         }
       }
@@ -609,6 +637,19 @@
     .metrics-placeholder {
       color: #999;
       border-color: #424242;
+    }
+
+    .feature-coming-soon {
+      background-color: #303030;
+      border-color: #424242;
+
+      h4 {
+        color: #fff;
+      }
+
+      p {
+        color: #ccc;
+      }
     }
   }
 }

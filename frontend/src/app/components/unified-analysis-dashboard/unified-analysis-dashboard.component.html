@@ -1,0 +1,576 @@
+<div class="unified-analysis-dashboard" #dashboardContainer>
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="dashboard-title">
+          <i class="pi pi-chart-line mr-2"></i>
+          Comprehensive Analysis Dashboard
+        </h1>
+        <p class="dashboard-subtitle" *ngIf="analysisData$ | async as data">
+          {{ data.jobStatus?.repository_path || 'Unknown Repository' }}
+        </p>
+      </div>
+      
+      <!-- Search and Filters -->
+      <div class="header-controls">
+        <div class="search-section">
+          <span class="p-input-icon-left">
+            <i class="pi pi-search"></i>
+            <input 
+              type="text" 
+              pInputText 
+              placeholder="Search across all analysis data..." 
+              [(ngModel)]="searchQuery"
+              (input)="onSearchQueryChange()"
+              class="search-input">
+          </span>
+        </div>
+        
+        <div class="filter-section">
+          <p-multiSelect 
+            [options]="focusAreaOptions" 
+            [(ngModel)]="selectedFocusAreas" 
+            placeholder="Filter by focus area"
+            [showToggleAll]="false"
+            [showClear]="true"
+            styleClass="focus-filter">
+          </p-multiSelect>
+        </div>
+
+        <div class="action-section">
+          <p-button 
+            icon="pi pi-download" 
+            label="Export Report" 
+            [pMenuTriggerFor]="exportMenu"
+            styleClass="p-button-outlined">
+          </p-button>
+          
+          <p-menu #exportMenu [model]="[
+            {label: 'PDF Report', icon: 'pi pi-file-pdf', command: () => exportAnalysisReport('pdf')},
+            {label: 'Excel Data', icon: 'pi pi-file-excel', command: () => exportAnalysisReport('excel')},
+            {label: 'Markdown', icon: 'pi pi-file', command: () => exportAnalysisReport('markdown')}
+          ]"></p-menu>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-content">
+      <i class="pi pi-spin pi-spinner loading-icon"></i>
+      <h3>Loading Comprehensive Analysis</h3>
+      <p>Gathering data from multiple analysis sources...</p>
+      <p-progressBar mode="indeterminate"></p-progressBar>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Content -->
+  <div *ngIf="!loading && (analysisData$ | async) as data" class="dashboard-content">
+    
+    <!-- Contextual Views Navigation -->
+    <div class="contextual-views-nav">
+      <div class="views-container">
+        <div 
+          *ngFor="let view of contextualViews" 
+          class="view-card"
+          [class.active]="selectedView?.id === view.id"
+          (click)="selectContextualView(view)">
+          <div class="view-header">
+            <i class="pi" [ngClass]="{
+              'pi-sitemap': view.focusArea === 'architecture',
+              'pi-briefcase': view.focusArea === 'business',
+              'pi-share-alt': view.focusArea === 'data',
+              'pi-cog': view.focusArea === 'migration',
+              'pi-star': view.focusArea === 'quality'
+            }"></i>
+            <h4>{{ view.name }}</h4>
+          </div>
+          <p class="view-description">{{ view.description }}</p>
+          <div class="view-components">
+            <p-badge 
+              [value]="view.components.length.toString()" 
+              severity="info">
+            </p-badge>
+            <span class="components-label">components</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected View Content -->
+    <div *ngIf="selectedView" class="selected-view-content">
+      
+      <!-- Architecture Overview -->
+      <div *ngIf="selectedView.id === 'architect_overview'" class="architect-overview">
+        <div class="overview-grid">
+          
+          <!-- System Health Score -->
+          <div class="health-score-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-heart mr-2"></i>System Health</h3>
+            </div>
+            <div class="health-content" *ngIf="data.healthScore">
+              <div class="health-score-display">
+                <div class="score-circle" [ngClass]="getHealthScoreColor(data.healthScore.health_score || 0)">
+                  <span class="score-value">{{ data.healthScore.health_score || 0 }}</span>
+                  <span class="score-label">{{ data.healthScore.health_grade || 'N/A' }}</span>
+                </div>
+              </div>
+              <div class="health-factors" *ngIf="data.healthScore.health_factors">
+                <div class="factor" *ngFor="let factor of data.healthScore.health_factors | keyvalue">
+                  <span class="factor-label">{{ factor.key }}:</span>
+                  <p-progressBar [value]="factor.value" [showValue]="false"></p-progressBar>
+                  <span class="factor-value">{{ factor.value }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture Insights -->
+          <div class="insights-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-lightbulb mr-2"></i>Key Insights</h3>
+              <p-badge [value]="data.architecturalInsights.length.toString()" severity="info"></p-badge>
+            </div>
+            <div class="insights-content">
+              <div *ngFor="let insight of data.architecturalInsights.slice(0, 5)" class="insight-item">
+                <div class="insight-header">
+                  <p-tag 
+                    [value]="insight.priority" 
+                    [severity]="getSeverityColor(insight.priority)">
+                  </p-tag>
+                  <span class="insight-category">{{ insight.category }}</span>
+                </div>
+                <h5 class="insight-title">{{ insight.title }}</h5>
+                <p class="insight-description">{{ insight.description }}</p>
+                <div class="insight-impact" *ngIf="insight.business_impact">
+                  <strong>Business Impact:</strong> {{ insight.business_impact }}
+                </div>
+              </div>
+              <div class="view-all-action" *ngIf="data.architecturalInsights.length > 5">
+                <p-button 
+                  label="View All {{ data.architecturalInsights.length }} Insights" 
+                  icon="pi pi-arrow-right"
+                  styleClass="p-button-text"
+                  (click)="navigateToDetailView('architecture_analysis')">
+                </p-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dependency Overview -->
+          <div class="dependencies-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-sitemap mr-2"></i>Dependencies</h3>
+              <p-button 
+                icon="pi pi-external-link" 
+                styleClass="p-button-text p-button-sm"
+                (click)="navigateToDetailView('dependency_graph')">
+              </p-button>
+            </div>
+            <div class="dependencies-content" *ngIf="data.dependencyGraph">
+              <div class="dependency-stats">
+                <div class="stat">
+                  <span class="stat-value">{{ data.dependencyGraph.nodes.length }}</span>
+                  <span class="stat-label">Components</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value">{{ data.dependencyGraph.edges.length }}</span>
+                  <span class="stat-label">Dependencies</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value">{{ (data.dependencyGraph.edges.filter(e => e.is_cyclic) || []).length }}</span>
+                  <span class="stat-label">Cycles</span>
+                </div>
+              </div>
+              <div class="dependency-preview">
+                <app-dependency-graph 
+                  [jobId]="jobId" 
+                  [height]="200" 
+                  [width]="400"
+                  [previewMode]="true">
+                </app-dependency-graph>
+              </div>
+            </div>
+          </div>
+
+          <!-- Violations Summary -->
+          <div class="violations-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-exclamation-triangle mr-2"></i>Architectural Violations</h3>
+              <p-badge [value]="data.violations.length.toString()" severity="danger"></p-badge>
+            </div>
+            <div class="violations-content">
+              <div class="violations-summary">
+                <div class="violation-type" *ngFor="let violationType of getViolationTypes(data.violations)">
+                  <span class="type-label">{{ violationType.type }}:</span>
+                  <p-badge [value]="violationType.count.toString()" [severity]="getSeverityColor(violationType.severity)"></p-badge>
+                </div>
+              </div>
+              <div class="critical-violations" *ngIf="getCriticalViolations(data.violations).length > 0">
+                <h5>Critical Issues:</h5>
+                <div *ngFor="let violation of getCriticalViolations(data.violations).slice(0, 3)" class="violation-item">
+                  <p-tag value="CRITICAL" severity="danger"></p-tag>
+                  <span class="violation-desc">{{ violation.description }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Business Knowledge Tracing -->
+      <div *ngIf="selectedView.id === 'business_knowledge'" class="business-knowledge">
+        <p-splitter [style]="{'height': '600px'}" layout="horizontal">
+          
+          <!-- Business Rules Tree -->
+          <ng-template pTemplate="first">
+            <div class="business-rules-panel">
+              <div class="panel-header">
+                <h3><i class="pi pi-briefcase mr-2"></i>Business Rules</h3>
+                <p-badge [value]="data.businessRuleTraces.length.toString()" severity="info"></p-badge>
+              </div>
+              <div class="rules-tree">
+                <p-tree 
+                  [value]="getBusinessRulesTree(data.businessRuleTraces)"
+                  selectionMode="single"
+                  (onNodeSelect)="onBusinessRuleSelect($event)">
+                </p-tree>
+              </div>
+            </div>
+          </ng-template>
+
+          <!-- Rule Details and Implementation -->
+          <ng-template pTemplate="second">
+            <div class="rule-details-panel" *ngIf="selectedBusinessRule">
+              <div class="rule-header">
+                <h3>{{ selectedBusinessRule.ruleName }}</h3>
+                <p-tag 
+                  [value]="'Confidence: ' + (selectedBusinessRule.confidence * 100) + '%'" 
+                  [severity]="selectedBusinessRule.confidence > 0.8 ? 'success' : 'warning'">
+                </p-tag>
+              </div>
+              
+              <div class="rule-content">
+                <div class="business-description">
+                  <h4>Business Description</h4>
+                  <p>{{ selectedBusinessRule.businessDescription }}</p>
+                </div>
+
+                <div class="technical-implementation">
+                  <h4>Technical Implementation</h4>
+                  <div *ngFor="let impl of selectedBusinessRule.technicalImplementation" class="implementation-item">
+                    <div class="impl-header">
+                      <p-tag [value]="impl.type" severity="info"></p-tag>
+                      <span class="impl-location">{{ impl.location }}</span>
+                    </div>
+                    <p class="impl-description">{{ impl.description }}</p>
+                    <div class="impl-complexity">
+                      Complexity: 
+                      <p-tag 
+                        [value]="impl.complexity" 
+                        [severity]="impl.complexity === 'high' ? 'danger' : impl.complexity === 'medium' ? 'warning' : 'success'">
+                      </p-tag>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="related-processes" *ngIf="selectedBusinessRule.relatedProcesses.length > 0">
+                  <h4>Related Processes</h4>
+                  <div class="process-list">
+                    <p-tag 
+                      *ngFor="let process of selectedBusinessRule.relatedProcesses" 
+                      [value]="process" 
+                      severity="secondary">
+                    </p-tag>
+                  </div>
+                </div>
+
+                <div class="compliance-requirements" *ngIf="selectedBusinessRule.complianceRequirements.length > 0">
+                  <h4>Compliance Requirements</h4>
+                  <div class="compliance-list">
+                    <p-tag 
+                      *ngFor="let req of selectedBusinessRule.complianceRequirements" 
+                      [value]="req" 
+                      severity="warning">
+                    </p-tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </p-splitter>
+      </div>
+
+      <!-- Data Flow Analysis -->
+      <div *ngIf="selectedView.id === 'data_lineage'" class="data-lineage">
+        <div class="data-flows-container">
+          <div class="flows-header">
+            <h3><i class="pi pi-share-alt mr-2"></i>Data Flow Mappings</h3>
+            <p-badge [value]="data.dataFlowMappings.length.toString()" severity="info"></p-badge>
+          </div>
+
+          <div class="flows-grid">
+            <div *ngFor="let flow of data.dataFlowMappings" class="flow-card premium-card">
+              <div class="flow-header">
+                <h4>{{ flow.flowName }}</h4>
+                <p-tag 
+                  [value]="flow.riskLevel" 
+                  [severity]="getSeverityColor(flow.riskLevel)">
+                </p-tag>
+              </div>
+              
+              <div class="flow-path">
+                <div class="system-node source">
+                  <i class="pi pi-database"></i>
+                  <span>{{ flow.sourceSystem }}</span>
+                </div>
+                <div class="flow-arrow">
+                  <i class="pi pi-arrow-right"></i>
+                </div>
+                <div class="system-node target">
+                  <i class="pi pi-cloud"></i>
+                  <span>{{ flow.targetSystem }}</span>
+                </div>
+              </div>
+
+              <div class="flow-details">
+                <p class="business-purpose">{{ flow.businessPurpose }}</p>
+                
+                <div class="data-elements" *ngIf="flow.dataElements.length > 0">
+                  <h5>Data Elements ({{ flow.dataElements.length }})</h5>
+                  <div class="elements-list">
+                    <span 
+                      *ngFor="let element of flow.dataElements.slice(0, 3)" 
+                      class="element-tag">
+                      {{ element.name }}
+                    </span>
+                    <span *ngIf="flow.dataElements.length > 3" class="more-elements">
+                      +{{ flow.dataElements.length - 3 }} more
+                    </span>
+                  </div>
+                </div>
+
+                <div class="transformations" *ngIf="flow.transformations.length > 0">
+                  <h5>Transformations ({{ flow.transformations.length }})</h5>
+                  <p-timeline [value]="flow.transformations" align="left">
+                    <ng-template pTemplate="content" let-transformation>
+                      <div class="transformation-item">
+                        <span class="transformation-desc">{{ transformation.description }}</span>
+                        <p-tag 
+                          [value]="transformation.complexity" 
+                          [severity]="getSeverityColor(transformation.complexity)">
+                        </p-tag>
+                      </div>
+                    </ng-template>
+                  </p-timeline>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Migration Assessment -->
+      <div *ngIf="selectedView.id === 'migration_readiness'" class="migration-readiness">
+        <div class="migration-container" *ngIf="data.migrationReadiness">
+          
+          <!-- Readiness Score -->
+          <div class="readiness-score-card premium-card">
+            <div class="score-header">
+              <h3><i class="pi pi-cog mr-2"></i>Migration Readiness</h3>
+            </div>
+            <div class="score-content">
+              <div class="overall-score">
+                <div class="score-circle" [ngClass]="getHealthScoreColor(data.migrationReadiness.overallScore)">
+                  <span class="score-value">{{ data.migrationReadiness.overallScore }}</span>
+                  <span class="score-grade">Grade {{ data.migrationReadiness.readinessGrade }}</span>
+                </div>
+              </div>
+              
+              <div class="category-scores">
+                <div *ngFor="let category of data.migrationReadiness.categories | keyvalue" class="category-score">
+                  <span class="category-label">{{ category.key }}:</span>
+                  <p-progressBar [value]="category.value" [showValue]="true"></p-progressBar>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Migration Blockers -->
+          <div class="blockers-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-exclamation-triangle mr-2"></i>Migration Blockers</h3>
+              <p-badge [value]="data.migrationReadiness.blockers.length.toString()" severity="danger"></p-badge>
+            </div>
+            <div class="blockers-content">
+              <div *ngFor="let blocker of data.migrationReadiness.blockers" class="blocker-item">
+                <div class="blocker-header">
+                  <p-tag [value]="blocker.severity" [severity]="getSeverityColor(blocker.severity)"></p-tag>
+                  <span class="blocker-category">{{ blocker.category }}</span>
+                </div>
+                <h5 class="blocker-description">{{ blocker.description }}</h5>
+                <p class="blocker-impact"><strong>Impact:</strong> {{ blocker.impact }}</p>
+                <p class="blocker-resolution"><strong>Resolution:</strong> {{ blocker.resolution }}</p>
+                <p class="blocker-effort"><strong>Effort:</strong> {{ blocker.estimatedEffort }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Migration Recommendations -->
+          <div class="recommendations-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-lightbulb mr-2"></i>Recommendations</h3>
+              <p-badge [value]="data.migrationReadiness.recommendations.length.toString()" severity="info"></p-badge>
+            </div>
+            <div class="recommendations-content">
+              <div *ngFor="let recommendation of data.migrationReadiness.recommendations" class="recommendation-item">
+                <div class="recommendation-header">
+                  <p-badge [value]="'Priority ' + recommendation.priority" severity="info"></p-badge>
+                  <span class="recommendation-category">{{ recommendation.category }}</span>
+                </div>
+                <h5 class="recommendation-title">{{ recommendation.recommendation }}</h5>
+                <p class="recommendation-rationale">{{ recommendation.rationale }}</p>
+                <div class="recommendation-benefit">
+                  <strong>Expected Benefit:</strong> {{ recommendation.expectedBenefit }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effort Estimation -->
+          <div class="effort-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-calendar mr-2"></i>Effort Estimation</h3>
+            </div>
+            <div class="effort-content">
+              <div class="effort-timeline">
+                <span class="effort-label">Timeline:</span>
+                <span class="effort-value">{{ data.migrationReadiness.estimatedEffort.timeline }}</span>
+              </div>
+              <div class="effort-resources">
+                <span class="effort-label">Resources:</span>
+                <span class="effort-value">{{ data.migrationReadiness.estimatedEffort.resources }} people</span>
+              </div>
+              <div class="effort-risk">
+                <span class="effort-label">Risk Level:</span>
+                <p-tag 
+                  [value]="data.migrationReadiness.estimatedEffort.risk" 
+                  [severity]="getSeverityColor(data.migrationReadiness.estimatedEffort.risk)">
+                </p-tag>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quality & Technical Debt -->
+      <div *ngIf="selectedView.id === 'quality_insights'" class="quality-insights">
+        <div class="quality-container">
+          
+          <!-- Code Metrics Overview -->
+          <div class="metrics-overview-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-chart-bar mr-2"></i>Code Quality Metrics</h3>
+            </div>
+            <div class="metrics-content" *ngIf="data.architecturalAnalysis">
+              <div class="metrics-grid">
+                <div class="metric-item">
+                  <span class="metric-label">Total Classes:</span>
+                  <span class="metric-value">{{ data.architecturalAnalysis.progress.total_classes }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Total Methods:</span>
+                  <span class="metric-value">{{ data.architecturalAnalysis.progress.total_methods }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Dependencies:</span>
+                  <span class="metric-value">{{ data.architecturalAnalysis.progress.total_dependencies }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Cyclic Dependencies:</span>
+                  <span class="metric-value critical">{{ data.architecturalAnalysis.progress.cyclic_dependencies_count }}</span>
+                </div>
+              </div>
+              
+              <div class="quality-scores">
+                <div class="score-item">
+                  <span class="score-label">Overall Quality:</span>
+                  <p-progressBar 
+                    [value]="data.architecturalAnalysis.quality_scores.overall_quality_score" 
+                    [showValue]="true">
+                  </p-progressBar>
+                </div>
+                <div class="score-item">
+                  <span class="score-label">Layer Compliance:</span>
+                  <p-progressBar 
+                    [value]="data.architecturalAnalysis.quality_scores.layer_compliance_score" 
+                    [showValue]="true">
+                  </p-progressBar>
+                </div>
+                <div class="score-item">
+                  <span class="score-label">Technical Debt:</span>
+                  <p-progressBar 
+                    [value]="100 - data.architecturalAnalysis.quality_scores.architectural_debt_score" 
+                    [showValue]="true"
+                    severity="danger">
+                  </p-progressBar>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical Debt Analysis -->
+          <div class="tech-debt-card premium-card">
+            <div class="card-header">
+              <h3><i class="pi pi-exclamation-circle mr-2"></i>Technical Debt</h3>
+            </div>
+            <div class="debt-content">
+              <div class="debt-categories">
+                <div class="debt-category" *ngFor="let violation of getDebtByCategory(data.violations)">
+                  <div class="category-header">
+                    <h5>{{ violation.category }}</h5>
+                    <p-badge [value]="violation.count.toString()" [severity]="getSeverityColor(violation.severity)"></p-badge>
+                  </div>
+                  <p class="category-description">{{ violation.description }}</p>
+                  <div class="category-impact">
+                    <strong>Impact:</strong> {{ violation.impact }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI-Powered Insights Panel -->
+    <div class="ai-insights-panel premium-card">
+      <div class="panel-header">
+        <h3><i class="pi pi-android mr-2"></i>AI Analysis Assistant</h3>
+        <p-button 
+          icon="pi pi-refresh" 
+          label="Generate Insights" 
+          styleClass="p-button-outlined p-button-sm"
+          (click)="getAIInsights(selectedView?.focusArea || 'overview')">
+        </p-button>
+      </div>
+      <div class="ai-content">
+        <p>Ask the AI assistant to analyze specific aspects of your architecture:</p>
+        <div class="ai-suggestions">
+          <p-button 
+            *ngFor="let suggestion of getAISuggestions(selectedView?.focusArea || 'overview')"
+            [label]="suggestion" 
+            styleClass="p-button-text p-button-sm"
+            (click)="getAIInsights(suggestion)">
+          </p-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Messages -->
+  <p-toast position="top-right" [style]="{'marginTop': '80px'}"></p-toast>
+</div>

@@ -16,6 +16,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 
 import { ApiService, AnalyticsData, JobStatus } from '../../services/api.service';
 import { DiagramViewerComponent, DiagramData } from '../diagram-viewer/diagram-viewer.component';
+import { environment } from '../../../environments/environment';
 
 interface RecentJob {
   id: string;
@@ -347,7 +348,7 @@ DocXP Quick Guide:
    - Check health endpoint for details
 
 For more help, visit the API docs at:
-http://localhost:8001/docs
+${environment.apiUrl.replace('/api', '')}/docs
     `;
     
     // Try to open guide PDF if it exists

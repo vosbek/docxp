@@ -83,11 +83,6 @@ export interface SearchResponse {
   };
 }
 
-export interface GoldenQuestionRequest {
-  question: string;
-  expected_repos?: string[];
-  max_results?: number;
-}
 
 // Demo questions interface removed - production mode only
 
@@ -175,22 +170,6 @@ export class V1SearchService {
       );
   }
 
-  /**
-   * Golden questions search for demo scenarios
-   */
-  goldenQuestionSearch(request: GoldenQuestionRequest): Observable<SearchResponse> {
-    this.logRequest('Golden Question Search', request);
-    
-    return this.http.post<SearchResponse>(`${this.apiUrl}/v1/search/golden-questions`, request)
-      .pipe(
-        retry(1),
-        map(response => {
-          this.logResponse('Golden Question Search', response);
-          return response;
-        }),
-        catchError(error => this.handleError('Golden Question Search', error))
-      );
-  }
 
   /**
    * Quick search for simple queries

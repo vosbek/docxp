@@ -19,6 +19,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DividerModule } from 'primeng/divider';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { trigger, state, style, transition, animate } from '@angular/animations';
+import { environment } from '../../../environments/environment';
 
 interface APIConfiguration {
   baseUrl: string;
@@ -92,7 +93,7 @@ export class SettingsComponent implements OnInit {
 
   // Settings objects
   apiConfig: APIConfiguration = {
-    baseUrl: 'http://localhost:8001',
+    baseUrl: environment.apiUrl.replace('/api', ''),
     timeout: 30000,
     retryAttempts: 3,
     enableDebugLogging: false
