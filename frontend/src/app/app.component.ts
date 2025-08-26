@@ -49,6 +49,11 @@ export class AppComponent implements OnInit {
   initializeMenu() {
     this.menuItems = [
       {
+        label: 'AWS Configuration',
+        icon: 'pi pi-key',
+        routerLink: '/aws-configuration'
+      },
+      {
         label: 'Dashboard',
         icon: 'pi pi-home',
         routerLink: '/dashboard'
@@ -57,6 +62,21 @@ export class AppComponent implements OnInit {
         label: 'Generate',
         icon: 'pi pi-bolt',
         routerLink: '/generate'
+      },
+      {
+        label: 'AI Chat',
+        icon: 'pi pi-comments',
+        routerLink: '/chat'
+      },
+      {
+        label: 'Deep Wiki',
+        icon: 'pi pi-book',
+        routerLink: '/deep-wiki'
+      },
+      {
+        label: 'V1 Search',
+        icon: 'pi pi-search',
+        routerLink: '/v1-search'
       },
       {
         label: 'Repositories',

@@ -1,0 +1,378 @@
+<div class="deep-wiki">
+  <!-- Header -->
+  <header class="wiki-header">
+    <div class="header-content">
+      <div class="title-section">
+        <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" class="wiki-icon">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+        <div>
+          <h1>Deep Wiki</h1>
+          <span class="subtitle">Enterprise Knowledge & Architecture</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <div class="search-container">
+          <div class="search-input">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="search-icon">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Search enterprise knowledge..." 
+              [(ngModel)]="searchQuery"
+              (input)="performSearch()"
+              [disabled]="isSearching">
+            <div class="loading-spinner" *ngIf="isSearching"></div>
+          </div>
+        </div>
+        
+        <button class="btn-secondary" (click)="toggleRelationshipMap()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M1 11a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3zM8 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4zM13 15a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2z"></path>
+            <path d="M6 1a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V1zM1 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V7z"></path>
+          </svg>
+          {{ showRelationshipMap ? 'Hide' : 'Show' }} Relationships
+        </button>
+        
+        <button class="btn-ghost" (click)="exportWikiStructure()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"></path>
+            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"></path>
+          </svg>
+          Export
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wiki-content">
+    <!-- Sidebar Navigation -->
+    <aside class="wiki-sidebar">
+      <!-- Filters -->
+      <div class="sidebar-section">
+        <h3>Filters</h3>
+        
+        <div class="filter-group">
+          <label>Node Types</label>
+          <div class="filter-options">
+            <label class="filter-option" *ngFor="let type of ['system', 'component', 'process', 'data', 'rule', 'document']">
+              <input 
+                type="checkbox" 
+                [checked]="selectedNodeTypes.has(type)"
+                (change)="selectedNodeTypes.has(type) ? selectedNodeTypes.delete(type) : selectedNodeTypes.add(type)">
+              <span class="checkmark"></span>
+              <span class="type-label">{{ type | titlecase }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Criticality</label>
+          <div class="filter-options">
+            <label class="filter-option" *ngFor="let level of ['low', 'medium', 'high', 'critical']">
+              <input 
+                type="checkbox" 
+                [checked]="selectedCriticality.has(level)"
+                (change)="selectedCriticality.has(level) ? selectedCriticality.delete(level) : selectedCriticality.add(level)">
+              <span class="checkmark"></span>
+              <div class="criticality-indicator" [style.background-color]="getCriticalityColor(level)"></div>
+              <span class="level-label">{{ level | titlecase }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Migration Status</label>
+          <div class="filter-options">
+            <label class="filter-option" *ngFor="let status of ['legacy', 'modernizing', 'modern', 'deprecated']">
+              <input 
+                type="checkbox" 
+                [checked]="selectedMigrationStatus.has(status)"
+                (change)="selectedMigrationStatus.has(status) ? selectedMigrationStatus.delete(status) : selectedMigrationStatus.add(status)">
+              <span class="checkmark"></span>
+              <div class="status-indicator" [style.background-color]="getMigrationStatusColor(status)"></div>
+              <span class="status-label">{{ status | titlecase }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tree Navigation -->
+      <div class="sidebar-section">
+        <h3>Knowledge Tree</h3>
+        <div class="wiki-tree">
+          <div class="tree-node" *ngFor="let node of getFilteredNodes()">
+            <div class="node-item" 
+                 [class.active]="currentNode?.id === node.id"
+                 (click)="navigateToNode(node)">
+              <div class="node-content">
+                <button 
+                  class="expand-btn" 
+                  *ngIf="node.children && node.children.length > 0"
+                  (click)="$event.stopPropagation(); toggleNodeExpansion(node.id)">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" 
+                       [class.expanded]="expandedNodes.has(node.id)">
+                    <path d="M6 12.796V3.204L11.481 8 6 12.796z"></path>
+                  </svg>
+                </button>
+                
+                <div class="node-icon" [attr.data-type]="node.type">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" *ngIf="node.type === 'system'"></path>
+                    <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z" *ngIf="node.type === 'component'"></path>
+                    <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 0 12.5v-9z" *ngIf="node.type === 'data'"></path>
+                    <path d="M6 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" *ngIf="node.type === 'document'"></path>
+                    <path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 14.5 0h-13z" *ngIf="node.type === 'process'"></path>
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z" *ngIf="node.type === 'rule'"></path>
+                  </svg>
+                </div>
+                
+                <span class="node-title">{{ node.title }}</span>
+                
+                <div class="node-indicators">
+                  <div class="criticality-dot" [style.background-color]="getCriticalityColor(node.metadata.criticality)"></div>
+                  <div class="migration-dot" [style.background-color]="getMigrationStatusColor(node.metadata.migrationStatus)"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Child nodes -->
+            <div class="child-nodes" *ngIf="node.children && expandedNodes.has(node.id)">
+              <div class="child-node" 
+                   *ngFor="let child of node.children"
+                   [class.active]="currentNode?.id === child.id"
+                   (click)="navigateToNode(child)">
+                <div class="node-icon" [attr.data-type]="child.type">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" *ngIf="child.type === 'system'"></path>
+                    <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z" *ngIf="child.type === 'component'"></path>
+                    <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 0 12.5v-9z" *ngIf="child.type === 'data'"></path>
+                    <path d="M6 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" *ngIf="child.type === 'document'"></path>
+                    <path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 14.5 0h-13z" *ngIf="child.type === 'process'"></path>
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z" *ngIf="child.type === 'rule'"></path>
+                  </svg>
+                </div>
+                <span class="child-title">{{ child.title }}</span>
+                <div class="node-indicators">
+                  <div class="criticality-dot" [style.background-color]="getCriticalityColor(child.metadata.criticality)"></div>
+                  <div class="migration-dot" [style.background-color]="getMigrationStatusColor(child.metadata.migrationStatus)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="wiki-main">
+      <!-- Search Results -->
+      <div class="search-results" *ngIf="searchResults.length > 0">
+        <div class="results-header">
+          <h3>Search Results ({{ searchResults.length }})</h3>
+          <button class="btn-ghost" (click)="clearSearch()">Clear</button>
+        </div>
+        
+        <div class="result-item" *ngFor="let result of searchResults" (click)="navigateToNode(result.node)">
+          <div class="result-header">
+            <div class="node-icon" [attr.data-type]="result.node.type">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" *ngIf="result.node.type === 'system'"></path>
+                <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z" *ngIf="result.node.type === 'component'"></path>
+                <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 0 12.5v-9z" *ngIf="result.node.type === 'data'"></path>
+                <path d="M6 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" *ngIf="result.node.type === 'document'"></path>
+                <path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 14.5 0h-13z" *ngIf="result.node.type === 'process'"></path>
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z" *ngIf="result.node.type === 'rule'"></path>
+              </svg>
+            </div>
+            <h4>{{ result.node.title }}</h4>
+            <span class="match-type">{{ result.matchType | titlecase }} match</span>
+          </div>
+          <div class="result-snippet" [innerHTML]="result.snippet"></div>
+        </div>
+      </div>
+
+      <!-- Breadcrumbs -->
+      <nav class="breadcrumbs" *ngIf="currentNode && breadcrumbs.length > 0">
+        <span class="breadcrumb" 
+              *ngFor="let crumb of breadcrumbs; let last = last"
+              [class.active]="last"
+              (click)="!last && navigateToNode(crumb)">
+          {{ crumb.title }}
+          <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" *ngIf="!last">
+            <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"></path>
+          </svg>
+        </span>
+      </nav>
+
+      <!-- Content Display -->
+      <article class="wiki-article" *ngIf="currentNode">
+        <header class="article-header">
+          <div class="article-title">
+            <div class="node-icon large" [attr.data-type]="currentNode.type">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" *ngIf="currentNode.type === 'system'"></path>
+                <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z" *ngIf="currentNode.type === 'component'"></path>
+                <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 0 12.5v-9z" *ngIf="currentNode.type === 'data'"></path>
+                <path d="M6 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" *ngIf="currentNode.type === 'document'"></path>
+                <path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 14.5 0h-13z" *ngIf="currentNode.type === 'process'"></path>
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z" *ngIf="currentNode.type === 'rule'"></path>
+              </svg>
+            </div>
+            <h1>{{ currentNode.title }}</h1>
+          </div>
+
+          <div class="article-meta">
+            <div class="metadata-item">
+              <span class="label">Type:</span>
+              <span class="value">{{ currentNode.type | titlecase }}</span>
+            </div>
+            <div class="metadata-item">
+              <span class="label">Criticality:</span>
+              <span class="value" [style.color]="getCriticalityColor(currentNode.metadata.criticality)">
+                {{ currentNode.metadata.criticality | titlecase }}
+              </span>
+            </div>
+            <div class="metadata-item">
+              <span class="label">Migration:</span>
+              <span class="value" [style.color]="getMigrationStatusColor(currentNode.metadata.migrationStatus)">
+                {{ currentNode.metadata.migrationStatus | titlecase }}
+              </span>
+            </div>
+            <div class="metadata-item">
+              <span class="label">Modified:</span>
+              <span class="value">{{ currentNode.metadata.lastModified | date:'short' }}</span>
+            </div>
+            <div class="metadata-item">
+              <span class="label">Author:</span>
+              <span class="value">{{ currentNode.metadata.author }}</span>
+            </div>
+          </div>
+
+          <div class="article-actions">
+            <button class="btn-secondary" (click)="startEditing()" *ngIf="!isEditing">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+              </svg>
+              Edit
+            </button>
+          </div>
+        </header>
+
+        <!-- Tags -->
+        <div class="article-tags" *ngIf="currentNode.metadata.tags.length > 0">
+          <span class="tag" *ngFor="let tag of currentNode.metadata.tags">{{ tag }}</span>
+        </div>
+
+        <!-- Content -->
+        <div class="article-content">
+          <div class="content-display" *ngIf="!isEditing" [innerHTML]="currentNode.content | markdown"></div>
+          
+          <div class="content-editor" *ngIf="isEditing">
+            <textarea 
+              [(ngModel)]="editingContent"
+              class="content-textarea"
+              placeholder="Edit content..."
+              rows="20"></textarea>
+            <div class="editor-actions">
+              <button class="btn-primary" (click)="saveContent()">Save Changes</button>
+              <button class="btn-ghost" (click)="cancelEditing()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Relationships -->
+        <section class="relationships-section" *ngIf="currentNode.relationships.length > 0">
+          <h3>Relationships</h3>
+          <div class="relationships">
+            <div class="relationship" *ngFor="let rel of currentNode.relationships">
+              <div class="relationship-type">{{ rel.type.replace('_', ' ') | titlecase }}</div>
+              <div class="relationship-target" (click)="navigateToNode(getRelatedNodes(currentNode)[0])">
+                {{ rel.targetNodeId }}
+              </div>
+              <div class="relationship-strength">
+                <div class="strength-bar">
+                  <div class="strength-fill" [style.width.%]="rel.strength * 100"></div>
+                </div>
+                <span class="strength-value">{{ (rel.strength * 100) | number:'1.0-0' }}%</span>
+              </div>
+              <div class="relationship-description">{{ rel.description }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Child Nodes -->
+        <section class="children-section" *ngIf="currentNode.children && currentNode.children.length > 0">
+          <h3>Sub-Components</h3>
+          <div class="child-grid">
+            <div class="child-card" *ngFor="let child of currentNode.children" (click)="navigateToNode(child)">
+              <div class="card-header">
+                <div class="node-icon" [attr.data-type]="child.type">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" *ngIf="child.type === 'system'"></path>
+                    <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z" *ngIf="child.type === 'component'"></path>
+                    <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 0 12.5v-9z" *ngIf="child.type === 'data'"></path>
+                    <path d="M6 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" *ngIf="child.type === 'document'"></path>
+                    <path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 14.5 0h-13z" *ngIf="child.type === 'process'"></path>
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z" *ngIf="child.type === 'rule'"></path>
+                  </svg>
+                </div>
+                <h4>{{ child.title }}</h4>
+              </div>
+              
+              <div class="card-content">
+                <p>{{ child.content.substring(0, 150) }}...</p>
+              </div>
+              
+              <div class="card-footer">
+                <div class="card-indicators">
+                  <div class="criticality-indicator" [style.background-color]="getCriticalityColor(child.metadata.criticality)">
+                    {{ child.metadata.criticality.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="migration-indicator" [style.background-color]="getMigrationStatusColor(child.metadata.migrationStatus)">
+                    {{ child.metadata.migrationStatus.charAt(0).toUpperCase() }}
+                  </div>
+                </div>
+                <span class="card-type">{{ child.type | titlecase }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </article>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!currentNode && searchResults.length === 0">
+        <div class="empty-content">
+          <svg width="64" height="64" viewBox="0 0 16 16" fill="currentColor" class="empty-icon">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+          </svg>
+          <h2>Welcome to Deep Wiki</h2>
+          <p>Select a knowledge node from the sidebar or use the search to explore your enterprise architecture.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Relationship Map Modal -->
+  <div class="relationship-modal" *ngIf="showRelationshipMap" (click)="toggleRelationshipMap()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h3>Relationship Map</h3>
+        <button class="btn-ghost" (click)="toggleRelationshipMap()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"></path>
+          </svg>
+        </button>
+      </header>
+      
+      <div class="relationship-visualization">
+        <p class="placeholder-text">
+          Interactive relationship visualization would be rendered here using D3.js or similar library.
+          This would show node connections, relationship types, and strength indicators.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

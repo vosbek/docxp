@@ -1,0 +1,293 @@
+version: '3.8'
+
+services:
+  # OpenSearch single-node with proper configuration
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: docxp-opensearch
+    hostname: opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+      - cluster.name=docxp-cluster
+      - node.name=docxp-node
+      - bootstrap.memory_lock=true
+      - indices.query.bool.max_clause_count=2048
+      - cluster.routing.allocation.disk.watermark.low=85%
+      - cluster.routing.allocation.disk.watermark.high=90%
+      - cluster.routing.allocation.disk.watermark.flood_stage=95%
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - docxp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # PostgreSQL for metadata, citations, and structured data
+  postgres:
+    image: postgres:16-alpine
+    container_name: docxp-postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=docxp
+      - POSTGRES_USER=docxp_user
+      - POSTGRES_PASSWORD=docxp_local_dev_2024
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - docxp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docxp_user -d docxp"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Redis for queue management (RQ) and caching
+  redis:
+    image: redis:7-alpine
+    container_name: docxp-redis
+    hostname: redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - docxp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  # Neo4j for knowledge graph
+  neo4j:
+    image: neo4j:5.11
+    container_name: docxp-neo4j
+    hostname: neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/docxp-neo4j-2024
+      - NEO4J_PLUGINS=["graph-data-science"]
+      - NEO4J_server_memory_pagecache_size=1G
+      - NEO4J_server_memory_heap_max__size=1G
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    networks:
+      - docxp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p docxp-neo4j-2024 'RETURN 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MinIO for S3-compatible object storage
+  minio:
+    image: minio/minio:latest
+    container_name: docxp-minio
+    hostname: minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=docxp-root
+      - MINIO_ROOT_PASSWORD=docxp-local-dev-2024
+      - MINIO_DOMAIN=minio
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - docxp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # FastAPI backend application
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.local
+    container_name: docxp-backend
+    hostname: backend
+    environment:
+      # Database configuration
+      - DATABASE_URL=postgresql+asyncpg://docxp_user:docxp_local_dev_2024@postgres:5432/docxp
+      
+      # OpenSearch configuration
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USE_SSL=false
+      - OPENSEARCH_VERIFY_CERTS=false
+      - OPENSEARCH_INDEX_NAME=docxp_chunks
+      
+      # Redis configuration
+      - REDIS_URL=redis://redis:6379/0
+      - RQ_REDIS_URL=redis://redis:6379/1
+      
+      # Neo4j configuration
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=docxp-neo4j-2024
+      - NEO4J_DATABASE=neo4j
+      
+      # MinIO S3-compatible storage
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_ACCESS_KEY_ID=docxp-root
+      - S3_SECRET_ACCESS_KEY=docxp-local-dev-2024
+      - S3_BUCKET_NAME=docxp-artifacts
+      - S3_REGION=us-east-1
+      
+      # Bedrock configuration (from host environment)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - BEDROCK_EMBED_MODEL_ID=${BEDROCK_EMBED_MODEL_ID:-amazon.titan-embed-text-v2:0}
+      
+      # Application configuration
+      - APP_ENV=development
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - ENABLE_CORS=true
+      
+      # Auto-detect embedding dimensions
+      - OPENSEARCH_EMBED_DIM_AUTO_DETECT=true
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    networks:
+      - docxp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # RQ Worker for background job processing
+  worker:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.local
+    container_name: docxp-worker
+    hostname: worker
+    command: python -m rq worker --url redis://redis:6379/1 docxp_jobs
+    environment:
+      # Same environment as backend
+      - DATABASE_URL=postgresql+asyncpg://docxp_user:docxp_local_dev_2024@postgres:5432/docxp
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USE_SSL=false
+      - OPENSEARCH_VERIFY_CERTS=false
+      - OPENSEARCH_INDEX_NAME=docxp_chunks
+      - REDIS_URL=redis://redis:6379/0
+      - RQ_REDIS_URL=redis://redis:6379/1
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=docxp-neo4j-2024
+      - NEO4J_DATABASE=neo4j
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_ACCESS_KEY_ID=docxp-root
+      - S3_SECRET_ACCESS_KEY=docxp-local-dev-2024
+      - S3_BUCKET_NAME=docxp-artifacts
+      - S3_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - BEDROCK_EMBED_MODEL_ID=${BEDROCK_EMBED_MODEL_ID:-amazon.titan-embed-text-v2:0}
+      - APP_ENV=development
+      - LOG_LEVEL=INFO
+      - WORKER_MODE=true
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    networks:
+      - docxp-network
+    restart: unless-stopped
+
+networks:
+  docxp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  opensearch_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  neo4j_import:
+    driver: local
+  neo4j_plugins:
+    driver: local

@@ -40,7 +40,7 @@ class AIService:
     def __init__(self):
         if not self._initialized:
             self.client = None
-            self._initialize_client()
+            # Do NOT initialize client during __init__ - defer until first use
             self._initialized = True
     
     def _get_credentials_hash(self):
@@ -127,8 +127,23 @@ class AIService:
             # Legacy Claude response format
             return response_body.get('completion', '')
     
-    def _create_session(self):
-        """Create AWS session with current credentials"""
+    async def _create_session(self):
+        """Create AWS session with current credentials using token manager"""
+        from app.services.aws_token_manager import aws_token_manager
+        
+        # First try to get credentials from token manager
+        try:
+            credentials = await aws_token_manager.get_valid_credentials()
+            if credentials:
+                return boto3.Session(**credentials)
+        except Exception as e:
+            logger.debug(f"Token manager unavailable, falling back to traditional methods: {e}")
+        
+        # Fallback to traditional session creation
+        return self._create_session_sync()
+    
+    def _create_session_sync(self):
+        """Create AWS session synchronously - safe to call from any context"""
         session_kwargs = {
             'region_name': settings.AWS_REGION
         }
@@ -152,8 +167,18 @@ class AIService:
         """Initialize AWS Bedrock client with multiple auth methods"""
         logger.debug("Initializing AWS Bedrock client...")
         try:
-            # Create session using centralized method
-            session = self._create_session()
+            # Create session using centralized method (async-aware)
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in an async context, use synchronous session creation
+                    session = self._create_session_sync()
+                else:
+                    session = loop.run_until_complete(self._create_session())
+            except RuntimeError:
+                # No event loop running, use synchronous fallback
+                session = self._create_session_sync()
             
             # Log the auth method being used
             if settings.AWS_PROFILE:
@@ -169,30 +194,41 @@ class AIService:
             # Create bedrock-runtime client
             self.client = session.client('bedrock-runtime')
             
-            # Test the connection
-            self._test_connection()
-            
             # Update cache info
             self._current_credentials_hash = self._get_credentials_hash()
             self._last_auth_check = time.time()
             
-            logger.debug("AWS Bedrock client initialized and cached")
+            logger.info(f"AWS Bedrock client initialized successfully for region {session.region_name}")
             
         except NoCredentialsError:
             error_msg = "No AWS credentials found. Please configure AWS_PROFILE or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            logger.warning("AWS credentials unavailable - service will operate in fallback mode")
+            self.client = None
+            # Don't raise error - allow graceful degradation
+            return
                 
         except Exception as e:
             error_msg = f"Failed to initialize Bedrock client: {e}"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            logger.warning("AWS Bedrock unavailable - service will operate in fallback mode")
+            self.client = None
+            # Don't raise error - allow graceful degradation
+            return
     
     def _test_connection(self):
         """Test AWS Bedrock connection"""
         try:
             # Create a separate bedrock client for listing models (not bedrock-runtime)
-            session = self._create_session()
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    session = self._create_session_sync()
+                else:
+                    session = loop.run_until_complete(self._create_session())
+            except RuntimeError:
+                session = self._create_session_sync()
             bedrock_client = session.client('bedrock')
             
             # Try a simple API call to verify credentials
@@ -214,7 +250,15 @@ class AIService:
             # If we can't create the bedrock client, try a simpler credential verification
             try:
                 # Use simple STS call to verify credentials work at all
-                session = self._create_session()
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        session = self._create_session_sync()
+                    else:
+                        session = loop.run_until_complete(self._create_session())
+                except RuntimeError:
+                    session = self._create_session_sync()
                 sts = session.client('sts')
                 identity = sts.get_caller_identity()
                 logger.debug(f"AWS credentials verified for account {identity.get('Account')}, Bedrock client ready")
@@ -260,7 +304,15 @@ class AIService:
             self._ensure_client_ready()
             
             # Create a separate bedrock client for listing models (not bedrock-runtime)
-            session = self._create_session()
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    session = self._create_session_sync()
+                else:
+                    session = loop.run_until_complete(self._create_session())
+            except RuntimeError:
+                session = self._create_session_sync()
             bedrock_client = session.client('bedrock')
             
             # Get foundation models
@@ -1302,5 +1354,27 @@ Now generate comprehensive architecture documentation following these expert spe
         return []
 
 
-# Create shared singleton instance
-ai_service_instance = AIService()
+# Global AI service instance - lazily initialized
+_ai_service_instance = None
+
+def get_ai_service_instance():
+    """Get or create the AI service instance"""
+    global _ai_service_instance
+    if _ai_service_instance is None:
+        try:
+            _ai_service_instance = AIService()
+        except Exception as e:
+            logger.error(f"Failed to initialize AI service: {e}")
+            return None
+    return _ai_service_instance
+
+class _AIServiceProxy:
+    """Proxy class for backward compatibility"""
+    def __getattr__(self, name):
+        service = get_ai_service_instance()
+        if service is None:
+            raise RuntimeError("AI service is not available")
+        return getattr(service, name)
+
+# Backward compatibility - will be removed in future versions
+ai_service_instance = _AIServiceProxy()

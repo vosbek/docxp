@@ -3,6 +3,43 @@ DocXP - AI-Powered Documentation Generation System
 Main FastAPI Application
 """
 
+# CRITICAL: Load environment BEFORE any other imports
+import os
+from pathlib import Path
+
+def _load_env_enterprise_immediately():
+    """Load .env.enterprise file IMMEDIATELY before any other imports"""
+    env_file = Path(__file__).parent / ".env.enterprise"
+    
+    if env_file.exists():
+        print(f"MAIN.PY: Loading environment from {env_file}")
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or line.startswith('REM'):
+                    continue
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    # Handle Windows path variables
+                    if '%USERNAME%' in value:
+                        username = os.getenv('USERNAME', os.getenv('USER', 'hairsm2'))
+                        value = value.replace('%USERNAME%', username)
+                    os.environ[key] = value
+        
+        # Verify critical variables loaded
+        aws_profile = os.getenv('AWS_PROFILE')
+        aws_region = os.getenv('AWS_REGION')
+        database_url = os.getenv('DATABASE_URL')
+        print(f"MAIN.PY: Environment loaded - AWS_PROFILE={aws_profile}, AWS_REGION={aws_region}")
+        print(f"MAIN.PY: DATABASE_URL starts with: {database_url[:50] if database_url else 'None'}...")
+    else:
+        print(f"MAIN.PY: ERROR - .env.enterprise not found at {env_file}")
+
+# Load environment FIRST - before any other imports
+_load_env_enterprise_immediately()
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -12,10 +49,11 @@ from pathlib import Path
 import time
 import uuid
 
-from app.api import documentation, repositories, analytics, configuration, health, aws_configuration
+from app.api import documentation, repositories, analytics, configuration, health, aws_configuration, semantic_search, repository_processing, strands_agents, hybrid_search, v1_indexing
+from app.api.v1 import enhanced_indexing, jqassistant, semgrep
 from app.core.config import settings
-from app.core.database import init_db
-from app.core.logging_config import setup_logging, get_logger, force_sqlalchemy_silence
+from app.core.startup import application_lifespan, get_application_state
+from app.core.logging_config import setup_logging, get_logger
 from app.core.error_handlers import register_exception_handlers
 
 # Setup enhanced logging
@@ -28,22 +66,10 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
-    # Startup
-    logger.info("Starting DocXP Backend...")
-    await init_db()
-    logger.info("Database initialized")
-    
-    # Force SQLAlchemy to be quiet after database initialization
-    force_sqlalchemy_silence()
-    
-    # Create necessary directories
-    Path(settings.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    Path(settings.TEMP_DIR).mkdir(parents=True, exist_ok=True)
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down DocXP Backend...")
+    async with application_lifespan() as app_state:
+        # Store application state in app for access in endpoints
+        app.state.docxp_state = app_state
+        yield
 
 # Create FastAPI application
 app = FastAPI(
@@ -59,7 +85,7 @@ register_exception_handlers(app)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200", "http://localhost:80", "http://localhost"],  # Angular dev server
+    allow_origins=["http://localhost:4200", "http://localhost:4201", "http://localhost:80", "http://localhost"],  # Angular dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -154,6 +180,62 @@ app.include_router(
     aws_configuration.router,
     prefix="/api/configuration/aws",
     tags=["AWS Configuration"]
+)
+
+# Semantic Search API
+app.include_router(
+    semantic_search.router,
+    prefix="/api/semantic",
+    tags=["Semantic Search & AI"]
+)
+
+# Repository Processing API
+app.include_router(
+    repository_processing.router,
+    prefix="/api/repositories",
+    tags=["Repository Processing"]
+)
+
+# Strands Agents API
+app.include_router(
+    strands_agents.router,
+    prefix="/api/strands",
+    tags=["Strands Agents"]
+)
+
+# V1 Hybrid Search API (RRF BM25 + k-NN)
+app.include_router(
+    hybrid_search.router,
+    prefix="/api",
+    tags=["V1 Hybrid Search"]
+)
+
+# V1 Indexing API (Enterprise-Grade Fault-Tolerant)
+app.include_router(
+    v1_indexing.router,
+    prefix="/api",
+    tags=["V1 Indexing"]
+)
+
+# V1 Enhanced Indexing API (with jQAssistant Integration)
+app.include_router(
+    enhanced_indexing.router,
+    prefix="/api/v1",
+    tags=["Enhanced V1 Indexing"]
+)
+
+# V1 jQAssistant Architecture Analysis API
+app.include_router(
+    jqassistant.router,
+    prefix="/api/v1",
+    tags=["Architecture Analysis"]
+)
+
+# V1 Semgrep Static Analysis API
+app.include_router(
+    semgrep.router,
+    prefix="/api/v1",
+    tags=["Static Analysis"]
 )
 
 # Serve static files (generated documentation)

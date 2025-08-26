@@ -118,3 +118,10 @@ class ParserFactory:
         
         # Check extensions
         return file_path.suffix.lower() in self.parsers
+
+# Global factory instance
+_parser_factory = ParserFactory()
+
+def get_parser_for_file(file_path: Path) -> Optional[BaseParser]:
+    """Get appropriate parser for file - convenience function"""
+    return _parser_factory.get_parser(file_path)

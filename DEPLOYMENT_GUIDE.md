@@ -1,475 +1,401 @@
 # DocXP Deployment Guide
-
-## 🚀 Deployment Options
-
-### Option 1: Local Development
-Perfect for testing and single-user scenarios.
-
-```batch
-# Windows
-enhanced-start.bat
-
-# Linux/Mac
-./enhanced-start.sh
-```
-
-### Option 2: Docker Deployment (Recommended for Production)
-```yaml
-# docker-compose.yml
-version: '3.8'
-
-services:
-  backend:
-    build: ./backend
-    container_name: docxp-backend
-    ports:
-      - "8001:8001"
-    environment:
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    volumes:
-      - ./backend/output:/app/output
-      - ./backend/logs:/app/logs
-      - docxp-db:/app/database
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-  frontend:
-    build: ./frontend
-    container_name: docxp-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-volumes:
-  docxp-db:
-```
-
-### Option 3: Kubernetes Deployment
-```yaml
-# kubernetes/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: docxp-backend
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: docxp-backend
-  template:
-    metadata:
-      labels:
-        app: docxp-backend
-    spec:
-      containers:
-      - name: backend
-        image: docxp/backend:latest
-        ports:
-        - containerPort: 8001
-        env:
-        - name: DATABASE_URL
-          value: "postgresql://user:pass@postgres:5432/docxp"
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 8001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 8001
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "2000m"
-```
-
-## 📋 Pre-Deployment Checklist
-
-### System Requirements
-- [ ] Python 3.10+ installed
-- [ ] Node.js 18+ installed
-- [ ] 2GB RAM minimum (4GB recommended)
-- [ ] 10GB disk space
-- [ ] Network access to AWS Bedrock (optional)
-
-### Environment Validation
-```bash
-# Run validation script
-cd backend
-python startup_check.py
-
-# Run diagnostic tool
-python diagnose.py
-
-# Test system
-cd ..
-test-system.bat
-```
-
-### Security Checklist
-- [ ] Change default passwords
-- [ ] Configure HTTPS/TLS
-- [ ] Set up firewall rules
-- [ ] Enable audit logging
-- [ ] Configure CORS properly
-- [ ] Set secure session tokens
-- [ ] Enable rate limiting
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Required
-DATABASE_URL=sqlite:///docxp.db  # or PostgreSQL for production
-LOG_LEVEL=INFO
-SECRET_KEY=your-secret-key-here
-
-# Optional (for AI features)
-AWS_ACCESS_KEY_ID=your-key
-AWS_SECRET_ACCESS_KEY=your-secret
-AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-v2
-
-# Performance
-MAX_WORKERS=4
-REQUEST_TIMEOUT=300
-MAX_FILE_SIZE=10485760
-```
-
-### Production Database (PostgreSQL)
-```python
-# backend/app/core/config.py
-DATABASE_URL = "postgresql://user:password@localhost/docxp"
-```
-
-```sql
--- Create database
-CREATE DATABASE docxp;
-CREATE USER docxp_user WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE docxp TO docxp_user;
-```
-
-### Nginx Configuration
-```nginx
-server {
-    listen 80;
-    server_name docxp.yourdomain.com;
-    
-    # Redirect to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name docxp.yourdomain.com;
-    
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-    
-    # Frontend
-    location / {
-        proxy_pass http://localhost:4200;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    # Backend API
-    location /api {
-        proxy_pass http://localhost:8001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Timeouts for long-running documentation generation
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-    }
-    
-    # Health checks
-    location /health {
-        proxy_pass http://localhost:8001/health;
-        access_log off;
-    }
-}
-```
-
-## 🔍 Monitoring
-
-### Health Check Endpoints
-```bash
-# Kubernetes/Docker health checks
-/health/live    # Liveness probe
-/health/ready   # Readiness probe
-/health         # Basic health
-/health/detailed # Full system status
-```
-
-### Prometheus Metrics (Future)
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'docxp'
-    static_configs:
-      - targets: ['localhost:8001']
-    metrics_path: '/metrics'
-```
-
-### Log Aggregation
-```yaml
-# filebeat.yml
-filebeat.inputs:
-- type: log
-  enabled: true
-  paths:
-    - /app/logs/*.log
-  json.keys_under_root: true
-  json.add_error_key: true
-
-output.elasticsearch:
-  hosts: ["elasticsearch:9200"]
-```
-
-## 🚀 Performance Optimization
-
-### Backend Optimization
-```python
-# Use async processing
-MAX_WORKERS = 4
-ENABLE_CACHE = True
-CACHE_TTL = 3600
-
-# Database connection pooling
-SQLALCHEMY_POOL_SIZE = 20
-SQLALCHEMY_POOL_RECYCLE = 3600
-```
-
-### Frontend Optimization
-```bash
-# Production build
-cd frontend
-npm run build --prod
-
-# Enable compression
-npm install compression
-```
-
-### Caching Strategy
-- **Redis** for session management
-- **CDN** for static assets
-- **Browser caching** for API responses
-- **Database query caching**
-
-## 🔒 Security Hardening
-
-### API Security
-```python
-# Rate limiting
-from slowapi import Limiter
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-
-@app.get("/api/documentation/generate")
-@limiter.limit("10/minute")
-async def generate_documentation():
-    pass
-```
-
-### Authentication (Future)
-```python
-# JWT tokens
-from fastapi_jwt_auth import AuthJWT
-
-@app.post('/login')
-def login(user: UserLogin, Authorize: AuthJWT = Depends()):
-    access_token = Authorize.create_access_token(subject=user.username)
-    return {"access_token": access_token}
-```
-
-## 📊 Scaling Considerations
-
-### Horizontal Scaling
-- Use **load balancer** (nginx, HAProxy)
-- Deploy multiple **backend instances**
-- Use **Redis** for shared session state
-- Implement **message queue** (RabbitMQ, Celery)
-
-### Vertical Scaling
-- Increase **CPU cores** for parallel processing
-- Add **RAM** for larger repositories
-- Use **SSD storage** for faster I/O
-- Optimize **database indexes**
-
-## 🔄 Backup & Recovery
-
-### Database Backup
-```bash
-# SQLite backup
-cp docxp.db docxp_backup_$(date +%Y%m%d).db
-
-# PostgreSQL backup
-pg_dump docxp > docxp_backup_$(date +%Y%m%d).sql
-```
-
-### Documentation Backup
-```bash
-# Backup generated documentation
-tar -czf output_backup_$(date +%Y%m%d).tar.gz output/
-```
-
-### Disaster Recovery Plan
-1. **Daily backups** to cloud storage
-2. **Point-in-time recovery** for database
-3. **Redundant deployments** across regions
-4. **Automated failover** with health checks
-
-## 📈 Monitoring Dashboard
-
-### Grafana Setup
-```json
-{
-  "dashboard": {
-    "title": "DocXP Monitoring",
-    "panels": [
-      {
-        "title": "Request Rate",
-        "targets": [
-          {"expr": "rate(http_requests_total[5m])"}
-        ]
-      },
-      {
-        "title": "Error Rate",
-        "targets": [
-          {"expr": "rate(http_errors_total[5m])"}
-        ]
-      },
-      {
-        "title": "Response Time",
-        "targets": [
-          {"expr": "histogram_quantile(0.95, http_request_duration_seconds)"}
-        ]
-      }
-    ]
-  }
-}
-```
-
-## 🚦 Deployment Steps
-
-### 1. Pre-deployment
-```bash
-# Run tests
-test-system.bat
-
-# Validate environment
-python backend/startup_check.py
-
-# Build frontend
-cd frontend
-npm run build --prod
-```
-
-### 2. Deploy Backend
-```bash
-# Copy files to server
-scp -r backend/ user@server:/app/
-
-# Install dependencies
-ssh user@server
-cd /app/backend
-pip install -r requirements.txt
-
-# Start with systemd
-sudo systemctl start docxp-backend
-```
-
-### 3. Deploy Frontend
-```bash
-# Copy built files
-scp -r frontend/dist/ user@server:/var/www/docxp/
-
-# Configure nginx
-sudo nginx -s reload
-```
-
-### 4. Post-deployment
-```bash
-# Verify health
-curl https://docxp.yourdomain.com/health/detailed
-
-# Check logs
-tail -f /app/backend/logs/docxp.log
-
-# Monitor metrics
-```
-
-## 🔧 Troubleshooting Production Issues
-
-### High Memory Usage
-```bash
-# Check memory
-free -h
-ps aux | grep python
-
-# Restart services
-sudo systemctl restart docxp-backend
-```
-
-### Slow Performance
-```bash
-# Check CPU
-top -n 1
-
-# Check disk I/O
-iostat -x 1
-
-# Analyze slow queries
-tail -f logs/docxp.log | grep "duration"
-```
-
-### Connection Issues
-```bash
-# Check ports
-netstat -tulpn | grep -E "8001|80"
-
-# Test connectivity
-curl -I http://localhost:8001/health
-
-# Check firewall
-sudo iptables -L
-```
-
-## 📞 Support
-
-For production support:
-- 📧 Email: enterprise@docxp.ai
-- 📱 Phone: +1-555-DOCXP-00
-- 💬 Slack: docxp-support.slack.com
-- 📚 Docs: https://docs.docxp.ai
+**Enterprise Conversational Code Decomposition Platform**
 
 ---
 
-**DocXP Enterprise Deployment** - Ready for Production! 🚀
+## 🎯 Quick Start (Minimum Viable Deployment)
+
+### **Prerequisites**
+- Python 3.11+
+- Git access to the DocXP repository
+- Basic file system permissions
+
+### **5-Minute Setup**
+```bash
+# 1. Clone the repository
+git clone <repository-url> docxp
+cd docxp
+
+# 2. Install dependencies
+pip install -r backend/requirements.txt
+
+# 3. Run the simple test to validate core functionality
+cd backend
+python simple_golden_path_test.py
+
+# 4. If test passes, you're ready for basic usage!
+```
+
+---
+
+## 🏗 **Full Production Deployment**
+
+### **Step 1: Environment Setup**
+
+#### **Python Environment**
+```bash
+# Create virtual environment
+python -m venv docxp-env
+source docxp-env/bin/activate  # Linux/Mac
+# or
+docxp-env\Scripts\activate     # Windows
+
+# Install dependencies
+pip install -r backend/requirements.txt
+```
+
+#### **Environment Configuration**
+Create a `.env` file in the `backend` directory:
+
+```env
+# Core Application
+APP_NAME=DocXP
+DEBUG=false
+DATABASE_URL=sqlite+aiosqlite:///./docxp.db
+
+# Neo4j Knowledge Graph (Optional - graceful degradation if not available)
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your-neo4j-password
+NEO4J_DATABASE=neo4j
+NEO4J_ENABLED=true
+
+# Redis (Optional - graceful degradation if not available)
+REDIS_URL=redis://localhost:6379
+RQ_REDIS_URL=redis://localhost:6379
+REDIS_ENABLED=true
+
+# File Processing
+MAX_CONCURRENT_REPOS=4
+BATCH_SIZE=50
+MAX_WORKERS=4
+PROCESSING_TIMEOUT=600
+
+# Vector Database (Optional)
+VECTOR_DB_TYPE=chromadb
+VECTOR_DB_PATH=./data/vector_db
+VECTOR_DB_ENABLED=true
+
+# AWS Bedrock (Optional)
+AWS_REGION=us-east-1
+BEDROCK_MODEL_ID=us.anthropic.claude-3-5-sonnet-20241022-v2:0
+```
+
+### **Step 2: Infrastructure Services (Optional)**
+
+#### **Neo4j Knowledge Graph**
+```bash
+# Using Docker
+docker run -d \
+  --name docxp-neo4j \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/your-password \
+  neo4j:latest
+
+# Or install locally following Neo4j documentation
+```
+
+#### **Redis Cache/Queue**
+```bash
+# Using Docker
+docker run -d \
+  --name docxp-redis \
+  -p 6379:6379 \
+  redis:latest
+
+# Or install locally following Redis documentation
+```
+
+### **Step 3: Application Startup**
+
+#### **Basic Validation**
+```bash
+cd backend
+python simple_golden_path_test.py
+```
+
+#### **Full Application Server**
+```bash
+# Start the FastAPI server (when implemented)
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# Or use the application directly
+python -m app.main
+```
+
+---
+
+## 🔧 **Configuration Options**
+
+### **Deployment Modes**
+
+#### **1. Minimal Mode (No External Dependencies)**
+- SQLite database only
+- No Neo4j or Redis
+- Local file processing
+- Perfect for development and small projects
+
+#### **2. Standard Mode (Recommended)**
+- SQLite or PostgreSQL database
+- Neo4j knowledge graph
+- Redis for caching and queues
+- Full feature set available
+
+#### **3. Enterprise Mode**
+- PostgreSQL database
+- Neo4j cluster
+- Redis cluster
+- AWS Bedrock integration
+- High availability configuration
+
+### **Feature Flags**
+```env
+# Enable/disable major features
+NEO4J_ENABLED=true          # Knowledge graph functionality
+REDIS_ENABLED=true          # Caching and background jobs
+VECTOR_DB_ENABLED=true      # Vector search capabilities
+ENABLE_DB_ANALYSIS=true     # External database analysis
+```
+
+---
+
+## 📊 **Validation & Testing**
+
+### **Core Functionality Test**
+```bash
+cd backend
+python simple_golden_path_test.py
+```
+
+**Expected Output:**
+```
+============================================================
+DOCXP SIMPLE GOLDEN PATH TEST RESULTS
+============================================================
+Overall Status: PASSED
+Tests Passed: 4
+Tests Failed: 0
+
+[SUCCESS] Simple Golden Path Test PASSED!
+```
+
+### **Advanced Integration Test**
+```bash
+# Full integration test (requires all services)
+python golden_path_integration_test.py
+```
+
+### **Service Health Checks**
+```bash
+# Check individual services
+python -c "
+from app.services.knowledge_graph_service import get_knowledge_graph_service
+from app.services.project_coordinator_service import get_project_coordinator_service
+import asyncio
+
+async def health_check():
+    try:
+        kg = await get_knowledge_graph_service()
+        print('✅ Knowledge Graph Service: Ready')
+    except Exception as e:
+        print(f'⚠️ Knowledge Graph Service: {e}')
+    
+    try:
+        pc = await get_project_coordinator_service()
+        print('✅ Project Coordinator Service: Ready')
+    except Exception as e:
+        print(f'⚠️ Project Coordinator Service: {e}')
+
+asyncio.run(health_check())
+"
+```
+
+---
+
+## 🚀 **Usage Examples**
+
+### **Analyze a Repository**
+```python
+from app.workers.repository_analysis_worker import analyze_repository
+import asyncio
+
+async def analyze_my_repo():
+    result = await analyze_repository(
+        repository_id="my-repo-1",
+        project_id="my-project-1",
+        analysis_type="full",
+        local_path="/path/to/my/repository"
+    )
+    print(f"Analysis completed: {result['status']}")
+    print(f"Files analyzed: {result['files_analyzed']}")
+    print(f"Business rules discovered: {result['business_rules_discovered']}")
+
+asyncio.run(analyze_my_repo())
+```
+
+### **Create a Project**
+```python
+from app.services.project_coordinator_service import get_project_coordinator_service
+import asyncio
+
+async def create_project():
+    coordinator = await get_project_coordinator_service()
+    
+    project_id = await coordinator.create_project(
+        name="Legacy System Modernization",
+        description="Modernize legacy Struts application to Spring Boot",
+        repository_ids=["repo1", "repo2", "repo3"],
+        modernization_goals={
+            "target_framework": "Spring Boot",
+            "target_database": "PostgreSQL",
+            "target_ui": "React"
+        },
+        business_sponsor="CTO",
+        technical_lead="Senior Architect"
+    )
+    
+    print(f"Created project: {project_id}")
+
+asyncio.run(create_project())
+```
+
+---
+
+## 🐛 **Troubleshooting**
+
+### **Common Issues**
+
+#### **Import Errors**
+```bash
+# Ensure you're in the backend directory
+cd backend
+
+# Ensure Python path is correct
+export PYTHONPATH=.
+
+# Or on Windows
+set PYTHONPATH=.
+```
+
+#### **Database Errors**
+```bash
+# SQLite permissions
+chmod 755 .
+chmod 664 docxp.db
+
+# PostgreSQL connection
+# Check connection string in .env file
+```
+
+#### **Neo4j Connection Issues**
+```bash
+# Check if Neo4j is running
+curl http://localhost:7474
+
+# Check authentication
+# Verify NEO4J_PASSWORD in .env matches Neo4j setup
+```
+
+#### **Redis Connection Issues**
+```bash
+# Check if Redis is running
+redis-cli ping
+
+# Should return: PONG
+```
+
+### **Graceful Degradation**
+DocXP is designed to work even when external services are unavailable:
+
+- **No Neo4j**: Knowledge graph features disabled, basic analysis continues
+- **No Redis**: Background jobs run synchronously, caching disabled
+- **No AWS**: Local embeddings used instead of Bedrock
+
+### **Log Analysis**
+```bash
+# Enable debug logging
+export LOG_LEVEL=DEBUG
+
+# Or in .env file
+LOG_LEVEL=DEBUG
+
+# Check logs
+tail -f logs/docxp.log
+```
+
+---
+
+## 📈 **Performance Optimization**
+
+### **For Large Repositories**
+```env
+# Increase processing limits
+MAX_CONCURRENT_REPOS=8
+BATCH_SIZE=100
+MAX_WORKERS=8
+PROCESSING_TIMEOUT=1200
+
+# Optimize database
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost/docxp
+```
+
+### **For High Volume**
+```env
+# Enable caching
+REDIS_ENABLED=true
+VECTOR_DB_ENABLED=true
+
+# Use cluster mode for Neo4j and Redis
+NEO4J_URI=neo4j+s://cluster.example.com:7687
+REDIS_URL=redis-cluster://cluster.example.com:6379
+```
+
+---
+
+## 🔒 **Security Considerations**
+
+### **Production Checklist**
+- [ ] Change default passwords for Neo4j and Redis
+- [ ] Use environment variables for all sensitive data
+- [ ] Enable authentication for all services
+- [ ] Configure firewall rules for service ports
+- [ ] Use TLS/SSL for all connections
+- [ ] Regular security updates for all dependencies
+
+### **Environment Variables Security**
+```bash
+# Never commit .env files
+echo ".env" >> .gitignore
+
+# Use system environment variables in production
+export NEO4J_PASSWORD="secure-password"
+export REDIS_PASSWORD="secure-password"
+```
+
+---
+
+## 📞 **Support & Next Steps**
+
+### **Validation Complete**
+If the simple golden path test passes, you have a working DocXP installation ready for:
+- Repository analysis
+- Business rule discovery
+- Architectural insight generation
+- Project coordination
+
+### **Phase 2 Development**
+With a working Phase 1 installation, you're ready to begin Phase 2 development:
+- Business Rule Engine (Week 7)
+- Advanced Query Interface (Week 8)
+- Insight Generation System (Week 9-10)
+
+### **Get Help**
+- Check the troubleshooting section above
+- Review log files for specific error messages
+- Validate your configuration against the examples provided
+
+---
+
+*Last Updated: 2025-08-18*  
+*Version: Phase 1 Complete*

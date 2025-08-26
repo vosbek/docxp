@@ -10,6 +10,9 @@ from pathlib import Path
 class Settings(BaseSettings):
     """Application settings"""
     
+    # Base directory
+    BASE_DIR: Path = Path(__file__).parent.parent
+    
     # Application
     APP_NAME: str = "DocXP"
     APP_VERSION: str = "1.0.0"
@@ -19,8 +22,27 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     API_TIMEOUT: int = 300  # 5 minutes for long operations
     
-    # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./docxp.db"
+    # Database  
+    DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./docxp.db", env="DATABASE_URL")
+    
+    # Vector Database Configuration
+    VECTOR_DB_TYPE: str = Field(default="chromadb", env="VECTOR_DB_TYPE")  # chromadb | postgresql_pgvector
+    VECTOR_DB_PATH: str = "./data/vector_db"  # For ChromaDB
+    VECTOR_DB_ENABLED: bool = True
+    
+    # Embedding Configuration
+    EMBEDDING_PROVIDER: str = Field(default="codebert", env="EMBEDDING_PROVIDER")  # codebert | bedrock
+    EMBEDDING_MODEL: str = "microsoft/codebert-base"  # For local CodeBERT
+    EMBEDDING_DIMENSIONS: int = 768  # CodeBERT: 768, Bedrock Titan: 1024
+    
+    # AWS Bedrock Configuration
+    BEDROCK_EMBED_MODEL_ID: str = Field(default="amazon.titan-embed-text-v2:0", env="BEDROCK_EMBED_MODEL_ID")
+    BEDROCK_EMBEDDING_DIMENSIONS: int = Field(default=1024, env="BEDROCK_EMBEDDING_DIMENSIONS")
+    AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
+    
+    # PostgreSQL Vector Configuration
+    POSTGRESQL_VECTOR_URL: Optional[str] = Field(default=None, env="POSTGRESQL_VECTOR_URL")
+    PGVECTOR_ENABLED: bool = Field(default=False, env="PGVECTOR_ENABLED")
     
     # External Database Analysis (Optional - graceful degradation if not available)
     # Oracle Database
@@ -60,15 +82,66 @@ class Settings(BaseSettings):
     ENABLE_DB_ANALYSIS: bool = Field(default=True, env="ENABLE_DB_ANALYSIS")  # Can disable entirely
     
     # AWS Bedrock - Support multiple authentication methods
-    AWS_REGION: str = Field(default="us-east-1", env="AWS_REGION")
     AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None, env="AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, env="AWS_SECRET_ACCESS_KEY")
     AWS_SESSION_TOKEN: Optional[str] = Field(default=None, env="AWS_SESSION_TOKEN")
     AWS_PROFILE: Optional[str] = Field(default=None, env="AWS_PROFILE")
+    AWS_CONFIG_FILE: Optional[str] = Field(default=None, env="AWS_CONFIG_FILE")
+    AWS_SHARED_CREDENTIALS_FILE: Optional[str] = Field(default=None, env="AWS_SHARED_CREDENTIALS_FILE")
+    AWS_MAX_ATTEMPTS: Optional[int] = Field(default=3, env="AWS_MAX_ATTEMPTS")
+    AWS_RETRY_MODE: Optional[str] = Field(default="adaptive", env="AWS_RETRY_MODE")
     # Bedrock Model Configuration - Choose between Claude 3.5 Sonnet v2 or Claude 3.7 Sonnet
     # us.anthropic.claude-3-5-sonnet-20241022-v2:0 (default)
     # us.anthropic.claude-3-7-sonnet-20250219-v1:0 
     BEDROCK_MODEL_ID: str = Field(default="us.anthropic.claude-3-5-sonnet-20241022-v2:0", env="BEDROCK_MODEL_ID")
+    
+    # Neo4j Knowledge Graph Configuration
+    NEO4J_URI: str = Field(default="bolt://localhost:7687", env="NEO4J_URI")
+    NEO4J_USERNAME: str = Field(default="neo4j", env="NEO4J_USERNAME")
+    NEO4J_PASSWORD: str = Field(default="docxp-neo4j-2024", env="NEO4J_PASSWORD")
+    NEO4J_DATABASE: str = Field(default="neo4j", env="NEO4J_DATABASE")
+    NEO4J_MAX_CONNECTION_LIFETIME: int = Field(default=300, env="NEO4J_MAX_CONNECTION_LIFETIME")  # 5 minutes
+    NEO4J_MAX_CONNECTION_POOL_SIZE: int = Field(default=50, env="NEO4J_MAX_CONNECTION_POOL_SIZE")
+    NEO4J_CONNECTION_ACQUISITION_TIMEOUT: int = Field(default=60, env="NEO4J_CONNECTION_ACQUISITION_TIMEOUT")  # seconds
+    NEO4J_ENABLED: bool = Field(default=True, env="NEO4J_ENABLED")
+    
+    # Redis Configuration (for task queues and caching)
+    REDIS_URL: str = Field(default="redis://localhost:6379", env="REDIS_URL")
+    RQ_REDIS_URL: str = Field(default="redis://localhost:6379", env="RQ_REDIS_URL")
+    REDIS_HOST: str = Field(default="localhost", env="REDIS_HOST")
+    REDIS_PORT: int = Field(default=6379, env="REDIS_PORT")
+    REDIS_DB: int = Field(default=0, env="REDIS_DB")
+    REDIS_PASSWORD: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
+    REDIS_ENABLED: bool = Field(default=True, env="REDIS_ENABLED")
+    
+    # API Configuration
+    API_PORT: int = Field(default=8001, env="API_PORT")
+    AUTH_ENABLED: bool = Field(default=False, env="AUTH_ENABLED")
+    
+    # Application Environment
+    APP_ENV: str = Field(default="development", env="APP_ENV")
+    
+    # Logging
+    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
+    
+    # Chat/LLM Configuration
+    CHAT_MODEL: str = Field(default="anthropic.claude-3-5-sonnet-20241022-v2:0", env="CHAT_MODEL")
+    
+    # OpenSearch Configuration (Optional)
+    OPENSEARCH_HOST: str = Field(default="localhost", env="OPENSEARCH_HOST")
+    OPENSEARCH_PORT: int = Field(default=9200, env="OPENSEARCH_PORT")
+    OPENSEARCH_USE_SSL: bool = Field(default=False, env="OPENSEARCH_USE_SSL")
+    OPENSEARCH_VERIFY_CERTS: bool = Field(default=False, env="OPENSEARCH_VERIFY_CERTS")
+    OPENSEARCH_INDEX_NAME: str = Field(default="docxp-code-index", env="OPENSEARCH_INDEX_NAME")
+    OPENSEARCH_URL: str = Field(default="http://localhost:9200", env="OPENSEARCH_URL")
+    
+    # AWS Configuration (Alternate naming)
+    AWS_DEFAULT_REGION: Optional[str] = Field(default=None, env="AWS_DEFAULT_REGION")
+    AWS_API_TIMEOUT: int = Field(default=30, env="AWS_API_TIMEOUT")
+    
+    # Processing Configuration
+    MAX_CONCURRENT_CHUNKS: int = Field(default=4, env="MAX_CONCURRENT_CHUNKS")
+    MAX_RETRIES: int = Field(default=3, env="MAX_RETRIES")
     
     # Feature flags
     
@@ -82,6 +155,10 @@ class Settings(BaseSettings):
     MAX_WORKERS: int = 4
     CHUNK_SIZE: int = 1000  # Lines per chunk for large files
     PROCESSING_TIMEOUT: int = 600  # 10 minutes
+    
+    # Repository Processing
+    MAX_CONCURRENT_REPOS: int = 4  # Maximum repositories to process in parallel
+    BATCH_SIZE: int = 50  # Files processed per batch
     
     # Documentation Generation
     DEFAULT_DOC_DEPTH: str = "standard"
@@ -98,12 +175,35 @@ class Settings(BaseSettings):
     ]
     
     class Config:
-        env_file = ".env"
+        env_file = [".env.enterprise", ".env"]  # Try .env.enterprise first, then .env
         case_sensitive = True
 
+# Load environment immediately when importing
+import os
+from pathlib import Path
+
+def _load_env_enterprise():
+    """Load .env.enterprise file immediately when config is imported"""
+    env_file = Path(__file__).parent.parent / ".env.enterprise"
+    
+    if env_file.exists():
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or line.startswith('REM'):
+                    continue
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    # Handle Windows path variables
+                    if '%USERNAME%' in value:
+                        username = os.getenv('USERNAME', os.getenv('USER', 'hairsm2'))
+                        value = value.replace('%USERNAME%', username)
+                    os.environ[key] = value
+
+# Load environment before creating settings
+_load_env_enterprise()
 settings = Settings()
 
-# Create directories if they don't exist
-Path(settings.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-Path(settings.TEMP_DIR).mkdir(parents=True, exist_ok=True)
-Path(settings.CONFIGS_DIR).mkdir(parents=True, exist_ok=True)
+# Note: Directory creation moved to application startup to avoid import-time side effects

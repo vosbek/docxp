@@ -1,0 +1,108 @@
+<div class="integrated-search">
+  
+  <!-- Main Search Interface -->
+  <div class="search-section">
+    <mat-card class="search-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>search</mat-icon>
+          Enhanced Code Search
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <app-v1-search 
+          (searchComplete)="onSearchComplete($event)"
+          (searchStart)="onSearchStart()">
+        </app-v1-search>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Enhancement Progress -->
+  <div *ngIf="isEnhancing" class="enhancement-progress">
+    <mat-card>
+      <mat-card-content>
+        <div class="progress-info">
+          <span>Enhancing search results with AI analysis...</span>
+          <span>{{ enhancementProgress }}%</span>
+        </div>
+        <mat-progress-bar [value]="enhancementProgress" mode="determinate"></mat-progress-bar>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Enhanced Results Panel -->
+  <div *ngIf="showEnhancedPanel && currentSearchResponse" class="enhanced-panel">
+    <mat-card class="enhanced-results-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>psychology</mat-icon>
+          AI-Enhanced Analysis
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <app-enhanced-answer-panel
+          [searchResponse]="currentSearchResponse"
+          (questionSelected)="onQuestionSelected($event)"
+          (citationClicked)="onCitationClicked($event)"
+          (codeFlowRequested)="onCodeFlowRequested($event)">
+        </app-enhanced-answer-panel>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Search History -->
+  <div *ngIf="searchHistory.length > 0" class="search-history">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>history</mat-icon>
+          Recent Searches
+        </mat-card-title>
+        <div class="header-actions">
+          <button mat-icon-button (click)="clearHistory()" matTooltip="Clear History">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="history-list">
+          <div *ngFor="let item of searchHistory" class="history-item">
+            <div class="query-info">
+              <span class="query">{{ item.query }}</span>
+              <span class="timestamp">{{ formatTime(item.timestamp) }}</span>
+            </div>
+            <div class="result-info">
+              <mat-chip>{{ item.resultCount }} results</mat-chip>
+              <button mat-icon-button (click)="repeatSearch(item)" matTooltip="Repeat Search">
+                <mat-icon>replay</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Search Summary -->
+  <div *ngIf="currentSearchResponse" class="search-summary">
+    <mat-card>
+      <mat-card-content>
+        <div class="summary-stats">
+          <div class="stat">
+            <span class="label">Results:</span>
+            <span class="value">{{ getSearchSummary() }}</span>
+          </div>
+          <div class="stat">
+            <span class="label">Performance:</span>
+            <span class="value">{{ getPerformanceSummary() }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+</div>

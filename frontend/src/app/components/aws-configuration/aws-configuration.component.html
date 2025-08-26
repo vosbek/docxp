@@ -139,8 +139,12 @@
         <p class="method-description">Configure which Bedrock model to use.</p>
         
         <div class="env-variables">
-          <div class="env-var">
-            <code>BEDROCK_MODEL_ID=anthropic.claude-v2</code>
+          <div class="env-var" *ngIf="currentModel">
+            <code>BEDROCK_MODEL_ID={{currentModel.id}}</code>
+          </div>
+          <div class="env-var" *ngIf="!currentModel">
+            <code>BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0</code>
+            <small class="text-muted">Example model ID - configure based on your requirements</small>
           </div>
         </div>
       </div>

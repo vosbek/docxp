@@ -1,18 +1,99 @@
-/* DocXP Global Styles - Premium Enterprise Theme */
+// Import Angular Material Theme - Must be first for @use rules
+@use '@angular/material' as mat;
+
+/* DocXP Global Styles - Premium Enterprise Theme with DeepWiki-style UX */
+
+// Import Inter from Google Fonts - Professional Typography
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// Define the premium theme
+@include mat.core();
+
+// Define Nationwide Insurance brand palettes
+$nationwide-blue-palette: (
+  50: #E8F2FF,
+  100: #CCE5FF,
+  200: #99CCFF,
+  300: #66B3FF,
+  400: #3399FF,
+  500: #204D9B,
+  600: #1C57A5,
+  700: #1A3F7A,
+  800: #0F2A5C,
+  900: #1D1D1B,
+  A100: #CCE5FF,
+  A200: #99CCFF,
+  A400: #3399FF,
+  A700: #1A3F7A,
+  contrast: (
+    50: #1D1D1B,
+    100: #1D1D1B,
+    200: #1D1D1B,
+    300: #1D1D1B,
+    400: #FFFFFF,
+    500: #FFFFFF,
+    600: #FFFFFF,
+    700: #FFFFFF,
+    800: #FFFFFF,
+    900: #FFFFFF,
+    A100: #1D1D1B,
+    A200: #1D1D1B,
+    A400: #FFFFFF,
+    A700: #FFFFFF,
+  )
+);
+
+$docxp-primary: mat.define-palette($nationwide-blue-palette, 500, 300, 700);
+$docxp-accent: mat.define-palette($nationwide-blue-palette, 600, 400, 800);
+$docxp-warn: mat.define-palette(mat.$red-palette);
+
+// Create the theme object
+$docxp-theme: mat.define-light-theme((
+  color: (
+    primary: $docxp-primary,
+    accent: $docxp-accent,
+    warn: $docxp-warn,
+  ),
+  typography: mat.define-typography-config(
+    $font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  ),
+  density: 0,
+));
+
+// Include theme styles for all components
+@include mat.all-component-themes($docxp-theme);
 
 :root {
-  // Primary Corporate Colors
-  --brand-navy: #1E293B;
-  --brand-blue: #3B82F6;
-  --brand-blue-dark: #2563EB;
-  --brand-blue-light: #60A5FA;
-  --brand-accent: #8B5CF6;
+  // Nationwide Insurance Official Brand Colors
+  --brand-primary: #204D9B;       // Primary Cyan Cobalt Blue
+  --brand-secondary: #1C57A5;     // Secondary Blue
+  --brand-black: #1D1D1B;         // Eerie Black
+  --brand-white: #FFFFFF;         // Pure White
   
-  // Legacy support
-  --primary-color: #3B82F6;
-  --primary-dark: #2563EB;
-  --primary-light: #60A5FA;
-  --secondary-color: #8B5CF6;
+  // Nationwide Extended Palette
+  --brand-blue-50: #E8F2FF;       // Lightest blue
+  --brand-blue-100: #CCE5FF;      // Very light blue
+  --brand-blue-200: #99CCFF;      // Light blue
+  --brand-blue-300: #66B3FF;      // Medium light blue
+  --brand-blue-400: #3399FF;      // Medium blue
+  --brand-blue-500: #204D9B;      // Primary brand blue
+  --brand-blue-600: #1C57A5;      // Secondary brand blue
+  --brand-blue-700: #1A3F7A;      // Dark blue
+  --brand-blue-800: #0F2A5C;      // Darker blue
+  --brand-blue-900: #1D1D1B;      // Darkest (black)
+  
+  // Legacy support - Updated to Nationwide official colors
+  --primary-color: #204D9B;       // Primary Cyan Cobalt Blue
+  --primary-dark: #1A3F7A;        // Dark blue
+  --primary-light: #66B3FF;       // Light blue
+  --secondary-color: #1C57A5;     // Secondary Blue
+  
+  // Legacy aliases for backward compatibility
+  --brand-navy: #204D9B;          // Maps to primary
+  --brand-blue: #1C57A5;          // Maps to secondary
+  --brand-blue-dark: #1A3F7A;     // Dark variant
+  --brand-blue-light: #66B3FF;    // Light variant
+  --brand-accent: #E8F2FF;        // Light accent
   
   // Professional Status Colors
   --success-color: #10B981;
@@ -49,23 +130,33 @@
   --surface-800: #1E293B;
   --surface-900: #0F172A;
   
-  // Text Colors
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
-  --text-tertiary: #94A3B8;
-  --text-inverse: #ffffff;
+  // Text Colors - Using Nationwide Brand Colors
+  --text-primary: #1D1D1B;         // Nationwide Eerie Black
+  --text-secondary: #64748B;       // Professional gray for secondary text
+  --text-tertiary: #94A3B8;        // Lighter gray for tertiary text
+  --text-inverse: #FFFFFF;         // White for text on dark backgrounds
+  --text-on-primary: #FFFFFF;      // White text on Nationwide blue
+  --text-on-secondary: #FFFFFF;    // White text on secondary blue
   
-  // Legacy support
-  --text-color: #0F172A;
-  --text-color-secondary: #64748B;
+  // Legacy support - Updated to Nationwide colors
+  --text-color: #1D1D1B;           // Nationwide Eerie Black
+  --text-color-secondary: #64748B; // Professional gray
   --border-color: #E2E8F0;
   
-  // Design System
+  // Design System - DeepWiki Inspired
   --border-radius: 0.5rem;
   --border-radius-lg: 0.75rem;
   --border-radius-xl: 1rem;
   --transition-duration: 0.2s;
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  // DeepWiki-style spacing
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
   
   // Shadows
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -85,7 +176,7 @@ body {
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-primary);
-  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-accent) 100%);
+  background: #ffffff;
   min-height: 100vh;
   font-weight: 400;
   line-height: 1.6;
@@ -164,16 +255,17 @@ body {
   will-change: box-shadow;
   
   &.p-button-primary {
-    background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
     border: none;
+    color: var(--text-on-primary);
     
     &:hover {
-      background: linear-gradient(135deg, var(--brand-blue-dark) 0%, var(--brand-navy) 100%);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, var(--brand-blue-700) 0%, var(--brand-blue-800) 100%);
+      box-shadow: 0 4px 12px rgba(32, 77, 155, 0.3); // Primary brand color shadow
     }
     
     &:active {
-      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 2px 6px rgba(32, 77, 155, 0.4); // Primary brand color shadow
     }
   }
   
@@ -184,20 +276,20 @@ body {
     
     &:hover {
       background: var(--gray-50);
-      border-color: var(--brand-blue);
-      color: var(--brand-blue);
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
     }
   }
   
   &.p-button-outlined {
     background: transparent;
-    border: 1px solid var(--brand-blue);
-    color: var(--brand-blue);
+    border: 1px solid var(--brand-primary);
+    color: var(--brand-primary);
     
     &:hover {
-      background: var(--brand-blue);
-      color: var(--text-inverse);
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+      background: var(--brand-primary);
+      color: var(--text-on-primary);
+      box-shadow: 0 2px 8px rgba(32, 77, 155, 0.2); // Primary brand color shadow
     }
   }
 }
@@ -266,15 +358,15 @@ body {
   }
   
   &:enabled:hover {
-    border-color: var(--brand-blue) !important;
+    border-color: var(--brand-primary) !important;
     background: var(--gray-50) !important;
   }
   
   &:enabled:focus {
     outline: 0 none !important;
     outline-offset: 0 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-    border-color: var(--brand-blue) !important;
+    box-shadow: 0 0 0 3px rgba(32, 77, 155, 0.15) !important; // Primary brand color shadow
+    border-color: var(--brand-primary) !important;
     background: var(--surface-0) !important;
   }
   
@@ -315,19 +407,19 @@ body {
   }
   
   &:not(.p-disabled):hover {
-    border-color: var(--brand-blue) !important;
+    border-color: var(--brand-primary) !important;
     background: var(--gray-50) !important;
     
     .p-dropdown-trigger-icon {
-      color: var(--brand-blue) !important;
+      color: var(--brand-primary) !important;
     }
   }
   
   &:not(.p-disabled).p-focus {
     outline: 0 none !important;
     outline-offset: 0 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-    border-color: var(--brand-blue) !important;
+    box-shadow: 0 0 0 3px rgba(32, 77, 155, 0.15) !important; // Primary brand color shadow
+    border-color: var(--brand-primary) !important;
     background: var(--surface-0) !important;
   }
   
@@ -353,13 +445,13 @@ body {
       transition: all var(--transition-duration) ease !important;
       
       &.p-highlight {
-        background: var(--brand-blue) !important;
-        color: var(--text-inverse) !important;
+        background: var(--brand-primary) !important;
+        color: var(--text-on-primary) !important;
       }
       
       &:not(.p-highlight):hover {
         background: var(--gray-100) !important;
-        color: var(--brand-blue) !important;
+        color: var(--brand-primary) !important;
       }
     }
     
@@ -396,7 +488,7 @@ body {
         }
         
         &:hover {
-          color: var(--brand-blue) !important;
+          color: var(--brand-primary) !important;
           background: var(--gray-50) !important;
           border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
         }
@@ -404,8 +496,8 @@ body {
       
       &.p-highlight {
         .p-tabview-nav-link {
-          border-bottom-color: var(--brand-blue) !important;
-          color: var(--brand-blue) !important;
+          border-bottom-color: var(--brand-primary) !important;
+          color: var(--brand-primary) !important;
           background: var(--surface-0) !important;
         }
       }
@@ -530,17 +622,17 @@ body {
     transition: all var(--transition-duration) ease !important;
     
     &.p-highlight {
-      border-color: var(--brand-blue) !important;
-      background: var(--brand-blue) !important;
+      border-color: var(--brand-primary) !important;
+      background: var(--brand-primary) !important;
       
       .p-checkbox-icon {
-        color: var(--text-inverse) !important;
+        color: var(--text-on-primary) !important;
         font-size: 0.8rem !important;
       }
     }
     
     &:not(.p-disabled):not(.p-highlight):hover {
-      border-color: var(--brand-blue) !important;
+      border-color: var(--brand-primary) !important;
       background: var(--gray-50) !important;
     }
     
@@ -560,12 +652,12 @@ body {
   
   .p-progressbar-value {
     border-radius: var(--border-radius) !important;
-    background: linear-gradient(90deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%) !important;
+    background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 100%) !important;
     transition: width 0.3s ease !important;
   }
   
   .p-progressbar-label {
-    color: var(--text-inverse) !important;
+    color: var(--text-on-primary) !important;
     font-weight: 600 !important;
     font-size: 0.875rem !important;
   }
@@ -609,8 +701,8 @@ body {
     }
     
     &.p-highlight .p-steps-number {
-      background: var(--brand-blue) !important;
-      color: var(--text-inverse) !important;
+      background: var(--brand-primary) !important;
+      color: var(--text-on-primary) !important;
     }
     
     .p-steps-title {

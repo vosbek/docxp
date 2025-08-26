@@ -1,0 +1,396 @@
+<div class="history-container" [@slideIn]>
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <i class="pi pi-history"></i>
+        Documentation History
+      </h1>
+      <p class="page-description">
+        View and manage your documentation generation history, download results, and track performance
+      </p>
+    </div>
+    <div class="header-actions">
+      <p-button 
+        icon="pi pi-refresh" 
+        label="Refresh"
+        (onClick)="loadJobs()" 
+        [loading]="loading"
+        styleClass="p-button-outlined">
+      </p-button>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon total">
+          <i class="pi pi-file"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ statistics.total }}</span>
+          <span class="stat-label">Total Jobs</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon success">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ statistics.completed }}</span>
+          <span class="stat-label">Completed</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon warning">
+          <i class="pi pi-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ statistics.failed }}</span>
+          <span class="stat-label">Failed</span>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card class="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon info">
+          <i class="pi pi-clock"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ statistics.avgDuration }}</span>
+          <span class="stat-label">Avg Duration</span>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <div class="content-grid">
+    <!-- Left Column: Filters and Table -->
+    <div class="main-content">
+      <!-- Filters Section -->
+      <p-card class="filters-card">
+        <ng-template pTemplate="header">
+          <div class="card-header">
+            <h3>Filters</h3>
+            <p-button 
+              icon="pi pi-filter-slash" 
+              label="Clear"
+              (onClick)="clearFilters()"
+              styleClass="p-button-text p-button-sm">
+            </p-button>
+          </div>
+        </ng-template>
+
+        <div class="filters-grid">
+          <div class="field">
+            <label>Status</label>
+            <p-dropdown 
+              [(ngModel)]="filters.status"
+              [options]="statusOptions"
+              (onChange)="onFilterChange()"
+              optionLabel="label" 
+              optionValue="value"
+              placeholder="Select status">
+            </p-dropdown>
+          </div>
+
+          <div class="field">
+            <label>Repository</label>
+            <p-dropdown 
+              [(ngModel)]="filters.repository"
+              [options]="repositoryOptions"
+              (onChange)="onFilterChange()"
+              optionLabel="label" 
+              optionValue="value"
+              placeholder="Select repository">
+            </p-dropdown>
+          </div>
+
+          <div class="field">
+            <label>From Date</label>
+            <p-calendar 
+              [(ngModel)]="filters.dateFrom"
+              (onSelect)="onFilterChange()"
+              dateFormat="mm/dd/yy"
+              [showIcon]="true">
+            </p-calendar>
+          </div>
+
+          <div class="field">
+            <label>To Date</label>
+            <p-calendar 
+              [(ngModel)]="filters.dateTo"
+              (onSelect)="onFilterChange()"
+              dateFormat="mm/dd/yy"
+              [showIcon]="true">
+            </p-calendar>
+          </div>
+        </div>
+      </p-card>
+
+      <!-- Jobs Table -->
+      <p-card class="jobs-table-card">
+        <ng-template pTemplate="header">
+          <div class="card-header">
+            <h3>Job History ({{ filteredJobs.length }})</h3>
+          </div>
+        </ng-template>
+
+        <p-table 
+          [value]="filteredJobs" 
+          [loading]="loading"
+          styleClass="p-datatable-gridlines"
+          [paginator]="true" 
+          [rows]="rows"
+          [totalRecords]="totalRecords"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} jobs"
+          [rowHover]="true"
+          dataKey="id"
+          [sortField]="'startTime'"
+          [sortOrder]="-1">
+          
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="repository">Repository <p-sortIcon field="repository"></p-sortIcon></th>
+              <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+              <th pSortableColumn="startTime">Started <p-sortIcon field="startTime"></p-sortIcon></th>
+              <th>Duration</th>
+              <th>Entities</th>
+              <th>Rules</th>
+              <th>Files</th>
+              <th>Actions</th>
+            </tr>
+          </ng-template>
+          
+          <ng-template pTemplate="body" let-job>
+            <tr>
+              <td>
+                <div class="repository-info">
+                  <div class="repo-name">{{ job.repository }}</div>
+                  <div class="repo-path">{{ job.repositoryPath }}</div>
+                </div>
+              </td>
+              <td>
+                <p-tag 
+                  [value]="job.status | titlecase" 
+                  [severity]="getStatusSeverity(job.status)"
+                  icon="pi pi-circle-fill">
+                </p-tag>
+              </td>
+              <td>
+                <span pTooltip="{{job.startTime ? (job.startTime | date:'full') : 'Unknown'}}">
+                  {{ getRelativeTime(job.startTime) }}
+                </span>
+              </td>
+              <td>{{ job.duration }}</td>
+              <td>{{ job.entitiesCount | number }}</td>
+              <td>{{ job.businessRulesCount | number }}</td>
+              <td>{{ job.filesProcessed | number }}</td>
+              <td>
+                <div class="action-buttons">
+                  <p-button 
+                    icon="pi pi-eye" 
+                    (onClick)="viewJobDetails(job)"
+                    pTooltip="View details"
+                    styleClass="p-button-text p-button-sm">
+                  </p-button>
+                  
+                  <p-button 
+                    icon="pi pi-download" 
+                    (onClick)="downloadDocumentation(job)"
+                    pTooltip="Download documentation"
+                    styleClass="p-button-text p-button-sm p-button-success"
+                    [disabled]="!job.hasOutput">
+                  </p-button>
+                  
+                  <p-button 
+                    icon="pi pi-refresh" 
+                    (onClick)="rerunJob(job)"
+                    pTooltip="Re-run job"
+                    styleClass="p-button-text p-button-sm p-button-info">
+                  </p-button>
+                  
+                  <p-button 
+                    icon="pi pi-info-circle" 
+                    (onClick)="showJobDetailDialog(job)"
+                    pTooltip="Quick info"
+                    styleClass="p-button-text p-button-sm">
+                  </p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 2rem;">
+                <div class="empty-state">
+                  <i class="pi pi-history" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
+                  <h4>No Jobs Found</h4>
+                  <p>No documentation jobs match your current filters.</p>
+                  <p-button 
+                    label="Clear Filters" 
+                    icon="pi pi-filter-slash" 
+                    (onClick)="clearFilters()">
+                  </p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </div>
+
+    <!-- Right Column: Charts and Activity -->
+    <div class="sidebar-content">
+      <!-- Performance Chart -->
+      <p-card class="chart-card">
+        <ng-template pTemplate="header">
+          <h4>Weekly Performance</h4>
+        </ng-template>
+        <p-chart 
+          type="line" 
+          [data]="chartData" 
+          [options]="chartOptions"
+          height="200px">
+        </p-chart>
+      </p-card>
+
+      <!-- Recent Activity Timeline -->
+      <p-card class="activity-card">
+        <ng-template pTemplate="header">
+          <h4>Recent Activity</h4>
+        </ng-template>
+        
+        <p-timeline 
+          [value]="recentActivity" 
+          layout="vertical" 
+          styleClass="custom-timeline">
+          
+          <ng-template pTemplate="marker" let-event>
+            <span class="custom-marker" [style.background-color]="event.color">
+              <i [class]="'pi ' + event.icon"></i>
+            </span>
+          </ng-template>
+          
+          <ng-template pTemplate="content" let-event>
+            <div class="timeline-event">
+              <div class="event-title">{{ event.title }}</div>
+              <div class="event-subtitle">{{ event.subtitle }}</div>
+              <div class="event-time">{{ event.time }}</div>
+            </div>
+          </ng-template>
+        </p-timeline>
+      </p-card>
+
+      <!-- Quick Stats -->
+      <p-card class="quick-stats-card">
+        <ng-template pTemplate="header">
+          <h4>Quick Stats</h4>
+        </ng-template>
+        
+        <div class="quick-stats">
+          <div class="quick-stat">
+            <span class="label">Total Entities</span>
+            <span class="value">{{ statistics.totalEntities | number }}</span>
+          </div>
+          <div class="quick-stat">
+            <span class="label">Total Rules</span>
+            <span class="value">{{ statistics.totalRules | number }}</span>
+          </div>
+          <div class="quick-stat">
+            <span class="label">Success Rate</span>
+            <span class="value">{{ statistics.total > 0 ? ((statistics.completed / statistics.total) * 100).toFixed(1) : 0 }}%</span>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</div>
+
+<!-- Job Detail Dialog -->
+<p-dialog 
+  header="Job Details" 
+  [(visible)]="showJobDetail" 
+  [modal]="true" 
+  [closable]="true"
+  [dismissableMask]="true"
+  styleClass="job-detail-dialog"
+  *ngIf="selectedJob">
+  
+  <div class="job-detail-content">
+    <div class="detail-grid">
+      <div class="detail-item">
+        <label>Job ID</label>
+        <span class="monospace">{{ selectedJob.id }}</span>
+      </div>
+      
+      <div class="detail-item">
+        <label>Repository</label>
+        <span>{{ selectedJob.repository }}</span>
+      </div>
+      
+      <div class="detail-item">
+        <label>Status</label>
+        <p-tag 
+          [value]="selectedJob.status | titlecase" 
+          [severity]="getStatusSeverity(selectedJob.status)">
+        </p-tag>
+      </div>
+      
+      <div class="detail-item">
+        <label>Duration</label>
+        <span>{{ selectedJob.duration }}</span>
+      </div>
+      
+      <div class="detail-item">
+        <label>Entities Processed</label>
+        <span>{{ selectedJob.entitiesCount | number }}</span>
+      </div>
+      
+      <div class="detail-item">
+        <label>Business Rules</label>
+        <span>{{ selectedJob.businessRulesCount | number }}</span>
+      </div>
+      
+      <div class="detail-item">
+        <label>Files Processed</label>
+        <span>{{ selectedJob.filesProcessed | number }}</span>
+      </div>
+      
+      <div class="detail-item">
+        <label>Output Size</label>
+        <span>{{ selectedJob.outputSize }}</span>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="View Full Details" 
+        icon="pi pi-eye" 
+        (onClick)="viewJobDetails(selectedJob!); showJobDetail = false"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        label="Download" 
+        icon="pi pi-download" 
+        (onClick)="downloadDocumentation(selectedJob!); showJobDetail = false"
+        [disabled]="!selectedJob!.hasOutput">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Toast Messages -->
+<p-toast></p-toast>

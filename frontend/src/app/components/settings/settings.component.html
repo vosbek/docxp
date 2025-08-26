@@ -1,0 +1,572 @@
+<div class="settings-container" [@slideIn]>
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <i class="pi pi-cog"></i>
+        Settings & Configuration
+      </h1>
+      <p class="page-description">
+        Configure your DocXP experience, API connections, and system preferences
+      </p>
+    </div>
+    <div class="header-actions">
+      <p-button 
+        icon="pi pi-download" 
+        label="Export"
+        (onClick)="exportSettings()"
+        styleClass="p-button-outlined"
+        pTooltip="Export current settings">
+      </p-button>
+      
+      <input 
+        type="file" 
+        accept=".json"
+        (change)="importSettings($event)"
+        #fileInput
+        style="display: none;">
+      <p-button 
+        icon="pi pi-upload" 
+        label="Import"
+        (onClick)="fileInput.click()"
+        styleClass="p-button-outlined"
+        pTooltip="Import settings from file">
+      </p-button>
+      
+      <p-button 
+        icon="pi pi-save" 
+        label="Save Settings"
+        (onClick)="saveSettings()"
+        [loading]="loading"
+        [disabled]="!unsavedChanges"
+        styleClass="p-button-primary">
+      </p-button>
+    </div>
+  </div>
+
+  <!-- Unsaved Changes Warning -->
+  <div class="warning-banner" *ngIf="unsavedChanges">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>You have unsaved changes. Don't forget to save your settings!</span>
+    <p-button 
+      icon="pi pi-save" 
+      label="Save Now"
+      (onClick)="saveSettings()"
+      styleClass="p-button-sm">
+    </p-button>
+  </div>
+
+  <!-- Settings Tabs -->
+  <p-tabView class="settings-tabs">
+    <!-- API Configuration Tab -->
+    <p-tabPanel header="API Configuration" leftIcon="pi pi-cloud">
+      <div class="tab-content">
+        <p-card class="settings-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h3>API Connection Settings</h3>
+              <p-button 
+                icon="pi pi-wifi" 
+                label="Test Connection"
+                (onClick)="testApiConnection()"
+                [loading]="loading"
+                styleClass="p-button-outlined p-button-sm">
+              </p-button>
+            </div>
+          </ng-template>
+
+          <div class="settings-grid">
+            <div class="field">
+              <label for="baseUrl">Base URL *</label>
+              <input 
+                pInputText 
+                id="baseUrl"
+                [(ngModel)]="apiConfig.baseUrl"
+                (ngModelChange)="onSettingsChange()"
+                placeholder="http://your-api-server:port"
+                class="w-full">
+              <small>The base URL for the DocXP API service</small>
+            </div>
+
+            <div class="field">
+              <label for="timeout">Request Timeout (ms)</label>
+              <p-inputNumber 
+                id="timeout"
+                [(ngModel)]="apiConfig.timeout"
+                (ngModelChange)="onSettingsChange()"
+                [min]="1000"
+                [max]="300000"
+                [step]="1000"
+                class="w-full">
+              </p-inputNumber>
+              <small>Timeout for API requests in milliseconds</small>
+            </div>
+
+            <div class="field">
+              <label for="retryAttempts">Retry Attempts</label>
+              <p-inputNumber 
+                id="retryAttempts"
+                [(ngModel)]="apiConfig.retryAttempts"
+                (ngModelChange)="onSettingsChange()"
+                [min]="0"
+                [max]="10"
+                class="w-full">
+              </p-inputNumber>
+              <small>Number of retry attempts for failed requests</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="apiConfig.enableDebugLogging"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="debugLogging">
+              </p-checkbox>
+              <label for="debugLogging">Enable Debug Logging</label>
+              <small>Enable detailed logging for API requests and responses</small>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+
+    <!-- Generation Settings Tab -->
+    <p-tabPanel header="Generation Settings" leftIcon="pi pi-bolt">
+      <div class="tab-content">
+        <p-card class="settings-card">
+          <ng-template pTemplate="header">
+            <h3>Documentation Generation Preferences</h3>
+          </ng-template>
+
+          <div class="settings-grid">
+            <div class="field">
+              <label for="outputFormat">Default Output Format</label>
+              <p-dropdown 
+                id="outputFormat"
+                [(ngModel)]="generationSettings.defaultOutputFormat"
+                (ngModelChange)="onSettingsChange()"
+                [options]="outputFormatOptions"
+                optionLabel="label" 
+                optionValue="value"
+                class="w-full">
+              </p-dropdown>
+              <small>The default format for generated documentation</small>
+            </div>
+
+            <div class="field">
+              <label for="templateStyle">Template Style</label>
+              <p-dropdown 
+                id="templateStyle"
+                [(ngModel)]="generationSettings.templateStyle"
+                (ngModelChange)="onSettingsChange()"
+                [options]="templateStyleOptions"
+                optionLabel="label" 
+                optionValue="value"
+                class="w-full">
+              </p-dropdown>
+              <small>The visual style and structure of generated documentation</small>
+            </div>
+
+            <div class="field">
+              <label for="maxFileSize">Max File Size (MB)</label>
+              <p-inputNumber 
+                id="maxFileSize"
+                [(ngModel)]="generationSettings.maxFileSize"
+                (ngModelChange)="onSettingsChange()"
+                [min]="1"
+                [max]="1000"
+                class="w-full">
+              </p-inputNumber>
+              <small>Maximum file size to process during documentation generation</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="generationSettings.includeBusinessRules"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="includeBusinessRules">
+              </p-checkbox>
+              <label for="includeBusinessRules">Include Business Rules</label>
+              <small>Extract and include business rules in the documentation</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="generationSettings.includeDiagrams"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="includeDiagrams">
+              </p-checkbox>
+              <label for="includeDiagrams">Include Diagrams</label>
+              <small>Generate and include architectural diagrams</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="generationSettings.includeArchitecture"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="includeArchitecture">
+              </p-checkbox>
+              <label for="includeArchitecture">Include Architecture Analysis</label>
+              <small>Perform and include detailed architecture analysis</small>
+            </div>
+          </div>
+
+          <p-divider></p-divider>
+
+          <!-- Exclude Patterns Section -->
+          <div class="exclude-patterns-section">
+            <div class="section-header">
+              <h4>File Exclusion Patterns</h4>
+              <p-button 
+                icon="pi pi-plus" 
+                label="Add Pattern"
+                (onClick)="addExcludePattern()"
+                styleClass="p-button-outlined p-button-sm">
+              </p-button>
+            </div>
+            <small class="section-description">
+              Specify file patterns to exclude from documentation generation (glob patterns supported)
+            </small>
+
+            <div class="exclude-patterns-list">
+              <div 
+                *ngFor="let pattern of generationSettings.excludePatterns; let i = index"
+                class="pattern-item">
+                <input 
+                  pInputText 
+                  [(ngModel)]="generationSettings.excludePatterns[i]"
+                  (ngModelChange)="onSettingsChange()"
+                  placeholder="e.g., *.log, node_modules/*, .git/*"
+                  class="pattern-input">
+                <p-button 
+                  icon="pi pi-trash" 
+                  (onClick)="removeExcludePattern(i)"
+                  styleClass="p-button-text p-button-sm p-button-danger">
+                </p-button>
+              </div>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+
+    <!-- System Preferences Tab -->
+    <p-tabPanel header="System Preferences" leftIcon="pi pi-desktop">
+      <div class="tab-content">
+        <p-card class="settings-card">
+          <ng-template pTemplate="header">
+            <h3>User Interface & System Settings</h3>
+          </ng-template>
+
+          <div class="settings-grid">
+            <div class="field">
+              <label for="theme">Theme</label>
+              <p-dropdown 
+                id="theme"
+                [(ngModel)]="systemPreferences.theme"
+                (ngModelChange)="onSettingsChange()"
+                [options]="themeOptions"
+                optionLabel="label" 
+                optionValue="value"
+                class="w-full">
+              </p-dropdown>
+              <small>Choose your preferred theme (auto follows system preference)</small>
+            </div>
+
+            <div class="field">
+              <label for="language">Language</label>
+              <p-dropdown 
+                id="language"
+                [(ngModel)]="systemPreferences.language"
+                (ngModelChange)="onSettingsChange()"
+                [options]="languageOptions"
+                optionLabel="label" 
+                optionValue="value"
+                class="w-full">
+              </p-dropdown>
+              <small>Interface language preference</small>
+            </div>
+
+            <div class="field">
+              <label for="timezone">Timezone</label>
+              <p-dropdown 
+                id="timezone"
+                [(ngModel)]="systemPreferences.timezone"
+                (ngModelChange)="onSettingsChange()"
+                [options]="timezoneOptions"
+                optionLabel="label" 
+                optionValue="value"
+                class="w-full">
+              </p-dropdown>
+              <small>Timezone for displaying dates and times</small>
+            </div>
+
+            <div class="field">
+              <label for="refreshInterval">Auto-refresh Interval (seconds)</label>
+              <p-slider 
+                id="refreshInterval"
+                [(ngModel)]="systemPreferences.refreshInterval"
+                (ngModelChange)="onSettingsChange()"
+                [min]="10"
+                [max]="300"
+                [step]="10"
+                class="w-full">
+              </p-slider>
+              <div class="slider-value">{{ systemPreferences.refreshInterval }} seconds</div>
+              <small>How often to automatically refresh data</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="systemPreferences.autoRefresh"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="autoRefresh">
+              </p-checkbox>
+              <label for="autoRefresh">Enable Auto-refresh</label>
+              <small>Automatically refresh data at specified intervals</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="systemPreferences.enableNotifications"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="enableNotifications">
+              </p-checkbox>
+              <label for="enableNotifications">Enable Notifications</label>
+              <small>Show browser notifications for job completions and alerts</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="systemPreferences.notificationSound"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="notificationSound"
+                [disabled]="!systemPreferences.enableNotifications">
+              </p-checkbox>
+              <label for="notificationSound">Notification Sound</label>
+              <small>Play sound with notifications</small>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+
+    <!-- Cache Settings Tab -->
+    <p-tabPanel header="Cache & Performance" leftIcon="pi pi-database">
+      <div class="tab-content">
+        <p-card class="settings-card">
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h3>Cache Configuration</h3>
+              <p-button 
+                icon="pi pi-trash" 
+                label="Clear Cache"
+                (onClick)="clearCache()"
+                styleClass="p-button-outlined p-button-warning p-button-sm">
+              </p-button>
+            </div>
+          </ng-template>
+
+          <div class="settings-grid">
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="cacheSettings.enableCaching"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="enableCaching">
+              </p-checkbox>
+              <label for="enableCaching">Enable Caching</label>
+              <small>Cache API responses to improve performance</small>
+            </div>
+
+            <div class="field">
+              <label for="cacheExpiration">Cache Expiration (seconds)</label>
+              <p-inputNumber 
+                id="cacheExpiration"
+                [(ngModel)]="cacheSettings.cacheExpiration"
+                (ngModelChange)="onSettingsChange()"
+                [min]="60"
+                [max]="86400"
+                [disabled]="!cacheSettings.enableCaching"
+                class="w-full">
+              </p-inputNumber>
+              <small>How long to keep cached data before it expires</small>
+            </div>
+
+            <div class="field">
+              <label for="maxCacheSize">Max Cache Size (MB)</label>
+              <p-inputNumber 
+                id="maxCacheSize"
+                [(ngModel)]="cacheSettings.maxCacheSize"
+                (ngModelChange)="onSettingsChange()"
+                [min]="10"
+                [max]="5000"
+                [disabled]="!cacheSettings.enableCaching"
+                class="w-full">
+              </p-inputNumber>
+              <small>Maximum amount of storage to use for caching</small>
+            </div>
+
+            <div class="field checkbox-field">
+              <p-checkbox 
+                [(ngModel)]="cacheSettings.autoClearCache"
+                (ngModelChange)="onSettingsChange()"
+                binary="true"
+                inputId="autoClearCache"
+                [disabled]="!cacheSettings.enableCaching">
+              </p-checkbox>
+              <label for="autoClearCache">Auto-clear Cache</label>
+              <small>Automatically clear old cache entries when storage limit is reached</small>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Performance Information -->
+        <p-card class="info-card">
+          <ng-template pTemplate="header">
+            <h4>Performance Information</h4>
+          </ng-template>
+          
+          <div class="info-content">
+            <div class="info-item">
+              <i class="pi pi-info-circle"></i>
+              <div>
+                <strong>Cache Status:</strong>
+                <span [class]="cacheSettings.enableCaching ? 'status-enabled' : 'status-disabled'">
+                  {{ cacheSettings.enableCaching ? 'Enabled' : 'Disabled' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <i class="pi pi-clock"></i>
+              <div>
+                <strong>Auto-refresh:</strong>
+                <span [class]="systemPreferences.autoRefresh ? 'status-enabled' : 'status-disabled'">
+                  {{ systemPreferences.autoRefresh ? 'Every ' + systemPreferences.refreshInterval + 's' : 'Disabled' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <i class="pi pi-desktop"></i>
+              <div>
+                <strong>System Info:</strong>
+                <p-button 
+                  label="View Details" 
+                  (onClick)="showSystemInfo()"
+                  styleClass="p-button-text p-button-sm">
+                </p-button>
+              </div>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+
+    <!-- Advanced Settings Tab -->
+    <p-tabPanel header="Advanced" leftIcon="pi pi-sliders-h">
+      <div class="tab-content">
+        <p-card class="settings-card">
+          <ng-template pTemplate="header">
+            <h3>Advanced Configuration</h3>
+          </ng-template>
+
+          <div class="advanced-settings">
+            <!-- AWS Configuration Link -->
+            <div class="advanced-item">
+              <div class="advanced-content">
+                <h4>AWS Configuration</h4>
+                <p>Configure AWS services for enhanced search and AI capabilities</p>
+              </div>
+              <p-button 
+                icon="pi pi-arrow-right" 
+                label="Configure AWS"
+                (onClick)="navigateToAWSConfig()"
+                styleClass="p-button-outlined">
+              </p-button>
+            </div>
+
+            <p-divider></p-divider>
+
+            <!-- Reset Settings -->
+            <div class="advanced-item">
+              <div class="advanced-content">
+                <h4>Reset Settings</h4>
+                <p>Reset all settings to their default values</p>
+              </div>
+              <p-button 
+                icon="pi pi-refresh" 
+                label="Reset to Defaults"
+                (onClick)="resetSettings()"
+                styleClass="p-button-outlined p-button-danger">
+              </p-button>
+            </div>
+
+            <p-divider></p-divider>
+
+            <!-- Export/Import Settings -->
+            <div class="advanced-item">
+              <div class="advanced-content">
+                <h4>Backup & Restore</h4>
+                <p>Export or import your configuration settings</p>
+              </div>
+              <div class="backup-actions">
+                <p-button 
+                  icon="pi pi-download" 
+                  label="Export"
+                  (onClick)="exportSettings()"
+                  styleClass="p-button-outlined">
+                </p-button>
+                <p-button 
+                  icon="pi pi-upload" 
+                  label="Import"
+                  (onClick)="fileInput.click()"
+                  styleClass="p-button-outlined">
+                </p-button>
+              </div>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Developer Information -->
+        <p-card class="info-card">
+          <ng-template pTemplate="header">
+            <h4>Developer Information</h4>
+          </ng-template>
+          
+          <div class="dev-info">
+            <div class="dev-item">
+              <span class="dev-label">Version:</span>
+              <span class="dev-value">1.0.0</span>
+            </div>
+            <div class="dev-item">
+              <span class="dev-label">Build:</span>
+              <span class="dev-value">{{ getCurrentDate() }}</span>
+            </div>
+            <div class="dev-item">
+              <span class="dev-label">Environment:</span>
+              <span class="dev-value">Development</span>
+            </div>
+            <div class="dev-item">
+              <span class="dev-label">API Base:</span>
+              <span class="dev-value">{{ apiConfig.baseUrl }}</span>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </p-tabPanel>
+  </p-tabView>
+</div>
+
+<!-- Toast Messages -->
+<p-toast></p-toast>
+
+<!-- Confirmation Dialog -->
+<p-confirmDialog></p-confirmDialog>

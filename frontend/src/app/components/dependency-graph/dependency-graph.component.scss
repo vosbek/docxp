@@ -1,0 +1,544 @@
+.dependency-graph-wrapper {
+  padding: 16px;
+  height: 100vh;
+  overflow: hidden;
+
+  // Controls Card
+  .controls-card {
+    margin-bottom: 16px;
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      align-items: start;
+
+      .control-group {
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #666;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        mat-form-field {
+          width: 100%;
+          margin-bottom: 8px;
+        }
+
+        .filter-field {
+          min-width: 200px;
+        }
+
+        mat-checkbox {
+          margin-bottom: 8px;
+          display: block;
+        }
+
+        .action-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          button {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.9rem;
+          }
+        }
+      }
+    }
+  }
+
+  // Main Graph Container
+  .graph-main-container {
+    display: flex;
+    gap: 16px;
+    height: calc(100vh - 200px);
+
+    .graph-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+
+      mat-card-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .graph-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+
+        h3 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0;
+          font-size: 1.2rem;
+          color: #333;
+
+          mat-icon {
+            color: #1976d2;
+          }
+        }
+
+        .zoom-info {
+          font-size: 0.9rem;
+          color: #666;
+          background-color: #f5f5f5;
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+      }
+
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        gap: 16px;
+
+        p {
+          color: #666;
+          margin: 0;
+        }
+      }
+
+      .graph-container {
+        flex: 1;
+        position: relative;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+
+        .graph-svg-container {
+          width: 100%;
+          height: 100%;
+        }
+
+        .minimap-container {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          width: 150px;
+          height: 100px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background-color: rgba(255, 255, 255, 0.9);
+          
+          .minimap {
+            width: 100%;
+            height: 100%;
+          }
+        }
+      }
+
+      .no-data-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: #666;
+
+        mat-icon {
+          font-size: 3rem;
+          width: 3rem;
+          height: 3rem;
+          margin-bottom: 16px;
+          opacity: 0.5;
+        }
+
+        p {
+          margin: 0;
+          font-size: 1.1rem;
+        }
+      }
+    }
+
+    // Sidebar
+    .sidebar {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+
+      .stats-card,
+      .legend-card,
+      .selection-card,
+      .layer-analysis-card {
+        mat-card-header {
+          mat-card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+
+            mat-icon {
+              color: #1976d2;
+            }
+          }
+        }
+      }
+
+      // Statistics Card
+      .stats-card {
+        .stat-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #f0f0f0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .stat-label {
+            font-weight: 500;
+            color: #666;
+          }
+
+          .stat-value {
+            font-weight: 600;
+            color: #333;
+
+            &.cyclic {
+              color: #f44336;
+            }
+          }
+        }
+      }
+
+      // Legend Card
+      .legend-card {
+        .legend-section {
+          margin-bottom: 16px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #666;
+          }
+
+          .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+
+            .legend-color,
+            .legend-node {
+              width: 16px;
+              height: 16px;
+              border-radius: 50%;
+              border: 2px solid #fff;
+              box-shadow: 0 0 0 1px #ccc;
+            }
+
+            .legend-node {
+              &.normal {
+                background-color: #2196f3;
+              }
+
+              &.selected {
+                background-color: #ff9800;
+                box-shadow: 0 0 0 2px #ff9800;
+              }
+
+              &.highlighted {
+                background-color: #4caf50;
+                box-shadow: 0 0 0 2px #4caf50;
+              }
+            }
+
+            .legend-line {
+              width: 20px;
+              height: 2px;
+
+              &.normal {
+                background-color: #666;
+              }
+
+              &.cyclic {
+                background-color: #f44336;
+              }
+            }
+
+            .legend-label {
+              font-size: 0.85rem;
+              color: #333;
+            }
+          }
+        }
+      }
+
+      // Selection Card
+      .selection-card {
+        .selection-details {
+          h4 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+            color: #333;
+            word-break: break-all;
+          }
+
+          .detail-item {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+
+            strong {
+              color: #666;
+              margin-right: 8px;
+            }
+
+            .cyclic-icon {
+              color: #f44336;
+              font-size: 1rem;
+              width: 1rem;
+              height: 1rem;
+              margin-left: 4px;
+            }
+          }
+
+          .connected-nodes {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+
+            h5 {
+              margin: 0 0 8px 0;
+              font-size: 0.9rem;
+              color: #666;
+            }
+
+            .connected-list {
+              max-height: 150px;
+              overflow-y: auto;
+
+              .connected-item {
+                padding: 4px 8px;
+                margin-bottom: 2px;
+                background-color: #f5f5f5;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.8rem;
+                transition: background-color 0.2s ease;
+                word-break: break-all;
+
+                &:hover {
+                  background-color: #e3f2fd;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Layer Analysis Card
+      .layer-analysis-card {
+        .layer-item {
+          margin-bottom: 12px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #f0f0f0;
+
+          &:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+          }
+
+          .layer-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+
+            .layer-color {
+              width: 12px;
+              height: 12px;
+              border-radius: 50%;
+            }
+
+            .layer-name {
+              font-weight: 500;
+              color: #333;
+            }
+
+            .layer-count {
+              font-size: 0.85rem;
+              color: #666;
+            }
+          }
+
+          .layer-metrics {
+            display: flex;
+            gap: 16px;
+            margin-left: 20px;
+
+            .metric {
+              font-size: 0.8rem;
+
+              .metric-label {
+                color: #666;
+                margin-right: 4px;
+              }
+
+              .metric-value {
+                font-weight: 500;
+                color: #333;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Graph SVG Styles (global styles that need to be applied to D3 elements)
+:host ::ng-deep {
+  .edge {
+    cursor: pointer;
+    transition: stroke-width 0.2s ease, opacity 0.2s ease;
+
+    &:hover {
+      stroke-width: 3px !important;
+    }
+  }
+
+  .edge-label {
+    font-family: 'Roboto', sans-serif;
+    font-size: 10px;
+    fill: #333;
+    pointer-events: none;
+    text-anchor: middle;
+  }
+
+  .node {
+    transition: stroke-width 0.2s ease, r 0.2s ease;
+
+    &:hover {
+      stroke-width: 3px !important;
+    }
+  }
+
+  .label {
+    font-family: 'Roboto', sans-serif;
+    font-size: 10px;
+    fill: #333;
+    pointer-events: none;
+    text-anchor: middle;
+  }
+
+  // Tooltip styles (if implemented)
+  .graph-tooltip {
+    position: absolute;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 200px;
+    word-wrap: break-word;
+  }
+}
+
+// Responsive Design
+@media (max-width: 1200px) {
+  .dependency-graph-wrapper {
+    .graph-main-container {
+      flex-direction: column;
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .dependency-graph-wrapper {
+    padding: 8px;
+
+    .controls-card .controls-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .graph-main-container {
+      height: auto;
+
+      .graph-card .graph-container {
+        height: 400px;
+      }
+
+      .sidebar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+      }
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .dependency-graph-wrapper {
+    .graph-header h3,
+    .sidebar .stat-value,
+    .sidebar .legend-label,
+    .selection-details h4,
+    .layer-name {
+      color: #fff;
+    }
+
+    .sidebar .stat-label,
+    .sidebar .detail-item strong,
+    .sidebar .metric-label {
+      color: #ccc;
+    }
+
+    .graph-container {
+      border-color: #424242;
+    }
+
+    .layer-analysis-card .layer-item {
+      border-bottom-color: #424242;
+    }
+  }
+
+  :host ::ng-deep {
+    .edge {
+      stroke: #ccc;
+    }
+
+    .edge-label,
+    .label {
+      fill: #ccc;
+    }
+
+    .graph-tooltip {
+      background-color: rgba(50, 50, 50, 0.9);
+    }
+  }
+}

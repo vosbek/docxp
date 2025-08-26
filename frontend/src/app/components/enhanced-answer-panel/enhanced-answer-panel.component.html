@@ -1,0 +1,298 @@
+<div class="enhanced-answer-panel">
+  
+  <!-- AI-Generated Questions Section -->
+  <div class="ai-questions-section" *ngIf="generatedQuestions.length > 0 || isGeneratingQuestions">
+    <div class="section-header">
+      <mat-icon>psychology</mat-icon>
+      <h3>AI-Generated Follow-Up Questions</h3>
+      <mat-spinner *ngIf="isGeneratingQuestions" diameter="20"></mat-spinner>
+    </div>
+
+    <div class="questions-grid" *ngIf="!isGeneratingQuestions">
+      <mat-card 
+        *ngFor="let question of generatedQuestions; trackBy: trackByQuestionText"
+        class="question-card"
+        [ngClass]="getQuestionCategoryClass(question.category)"
+        (click)="selectGeneratedQuestion(question)">
+        
+        <mat-card-header>
+          <mat-card-title>{{ question.question }}</mat-card-title>
+          <mat-card-subtitle>
+            <mat-chip [ngClass]="getQuestionCategoryClass(question.category)">
+              {{ question.category }}
+            </mat-chip>
+            <div class="confidence-indicator" [ngClass]="getConfidenceClass(question.confidence)">
+              {{ (question.confidence * 100).toFixed(0) }}% confidence
+            </div>
+          </mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <p class="reasoning">{{ question.reasoning }}</p>
+        </mat-card-content>
+        
+        <mat-card-actions>
+          <button mat-icon-button matTooltip="Search this question">
+            <mat-icon>search</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Custom Question Input -->
+    <div class="custom-question">
+      <form [formGroup]="questionForm" (ngSubmit)="submitCustomQuestion()">
+        <mat-form-field appearance="outline" class="custom-question-input">
+          <mat-label>Ask a custom question about these results...</mat-label>
+          <input matInput 
+                 formControlName="customQuestion" 
+                 placeholder="e.g., How do these components interact?"
+                 autocomplete="off">
+          <button mat-icon-button matSuffix type="submit" [disabled]="!questionForm.get('customQuestion')?.value?.trim()">
+            <mat-icon>send</mat-icon>
+          </button>
+        </mat-form-field>
+      </form>
+    </div>
+  </div>
+
+  <mat-divider *ngIf="generatedQuestions.length > 0"></mat-divider>
+
+  <!-- Enhanced Search Results -->
+  <div class="enhanced-results" *ngIf="enhancedResults.length > 0">
+    <div class="section-header">
+      <mat-icon>code</mat-icon>
+      <h3>Enhanced Search Results</h3>
+      <span class="result-count">{{ enhancedResults.length }} results</span>
+    </div>
+
+    <div class="results-list">
+      <mat-card 
+        *ngFor="let result of enhancedResults; trackBy: trackByResultId" 
+        class="enhanced-result-card">
+        
+        <!-- Result Header with Interactive Citation -->
+        <mat-card-header>
+          <mat-card-title>
+            <div class="result-title">
+              <mat-icon>{{ getFileIcon(result.citation.path) }}</mat-icon>
+              <span 
+                class="citation-text"
+                [ngClass]="{ 'interactive-citation': result.citationInteractive }"
+                (click)="onCitationClick(result)">
+                {{ formatEnhancedCitation(result) }}
+              </span>
+              
+              <!-- Action buttons -->
+              <div class="title-actions">
+                <button mat-icon-button 
+                        [color]="isBookmarked(result.id) ? 'accent' : ''"
+                        matTooltip="Bookmark this result"
+                        (click)="toggleBookmark(result.id)">
+                  <mat-icon>{{ isBookmarked(result.id) ? 'bookmark' : 'bookmark_border' }}</mat-icon>
+                </button>
+                
+                <button mat-icon-button 
+                        matTooltip="Show code flow relationships"
+                        (click)="requestCodeFlow(result)"
+                        *ngIf="result.codeFlow && result.codeFlow.length > 0">
+                  <mat-icon matBadge="{{ result.codeFlow.length }}" matBadgeSize="small">account_tree</mat-icon>
+                </button>
+                
+                <button mat-icon-button 
+                        matTooltip="Toggle detailed view"
+                        (click)="toggleResultExpansion(result.id)">
+                  <mat-icon>{{ isResultExpanded(result.id) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </button>
+              </div>
+            </div>
+          </mat-card-title>
+          
+          <mat-card-subtitle>
+            <div class="result-metadata">
+              <span class="language">{{ result.metadata.language }}</span>
+              <span class="kind">{{ result.metadata.kind }}</span>
+              <span class="repo" *ngIf="result.metadata.repo_id">{{ result.metadata.repo_id }}</span>
+              
+              <!-- Code flow indicators -->
+              <div class="flow-indicators" *ngIf="result.codeFlow && result.codeFlow.length > 0">
+                <mat-chip-listbox>
+                  <mat-chip 
+                    *ngFor="let flow of result.codeFlow.slice(0, 3)" 
+                    [matTooltip]="flow.source + ' ' + flow.type + ' ' + flow.target"
+                    class="flow-chip">
+                    <mat-icon>{{ getFlowIcon(flow.type) }}</mat-icon>
+                    {{ flow.type }}
+                  </mat-chip>
+                  <mat-chip *ngIf="result.codeFlow.length > 3" class="more-chip">
+                    +{{ result.codeFlow.length - 3 }} more
+                  </mat-chip>
+                </mat-chip-listbox>
+              </div>
+            </div>
+          </mat-card-subtitle>
+        </mat-card-header>
+
+        <!-- Code Content -->
+        <mat-card-content>
+          <div class="code-snippet">
+            <pre><code>{{ searchService.getCodeSnippet(result) }}</code></pre>
+          </div>
+          
+          <!-- Highlights -->
+          <div class="highlights" *ngIf="result.highlight?.content">
+            <strong>Matches:</strong>
+            <div [innerHTML]="result.highlight.content[0]"></div>
+          </div>
+
+          <!-- Expanded Details -->
+          <div class="expanded-details" *ngIf="isResultExpanded(result.id)">
+            
+            <!-- Code Context -->
+            <mat-expansion-panel *ngIf="result.codeContext">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>code</mat-icon>
+                  Code Context
+                </mat-panel-title>
+                <mat-panel-description>
+                  Surrounding code and related files
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              
+              <div class="code-context">
+                <div class="context-section" *ngIf="result.codeContext.beforeLines?.length">
+                  <h4>Before:</h4>
+                  <pre><code>{{ result.codeContext.beforeLines.join('\n') }}</code></pre>
+                </div>
+                
+                <div class="context-section" *ngIf="result.codeContext.afterLines?.length">
+                  <h4>After:</h4>
+                  <pre><code>{{ result.codeContext.afterLines.join('\n') }}</code></pre>
+                </div>
+                
+                <div class="related-files" *ngIf="result.codeContext.relatedFiles?.length">
+                  <h4>Related Files:</h4>
+                  <mat-chip-listbox>
+                    <mat-chip *ngFor="let file of result.codeContext.relatedFiles" class="related-file-chip">
+                      <mat-icon>{{ getFileIcon(file) }}</mat-icon>
+                      {{ file }}
+                    </mat-chip>
+                  </mat-chip-listbox>
+                </div>
+              </div>
+            </mat-expansion-panel>
+
+            <!-- Code Flow Details -->
+            <mat-expansion-panel *ngIf="result.codeFlow && result.codeFlow.length > 0">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>account_tree</mat-icon>
+                  Code Flow Analysis
+                </mat-panel-title>
+                <mat-panel-description>
+                  {{ result.codeFlow.length }} relationships found
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              
+              <div class="code-flow-details">
+                <div 
+                  *ngFor="let flow of result.codeFlow" 
+                  class="flow-relationship"
+                  [ngClass]="getConfidenceClass(flow.confidence)">
+                  
+                  <div class="flow-connection">
+                    <mat-icon class="flow-icon">{{ getFlowIcon(flow.type) }}</mat-icon>
+                    <div class="flow-description">
+                      <strong>{{ flow.source }}</strong>
+                      <span class="flow-type">{{ flow.type }}</span>
+                      <strong>{{ flow.target }}</strong>
+                    </div>
+                    <div class="flow-confidence">
+                      {{ (flow.confidence * 100).toFixed(0) }}%
+                    </div>
+                  </div>
+                  
+                  <div class="flow-location">
+                    Line {{ flow.line_number }}
+                  </div>
+                </div>
+              </div>
+            </mat-expansion-panel>
+          </div>
+        </mat-card-content>
+
+        <!-- Result Footer with Enhanced Scores -->
+        <mat-card-actions>
+          <div class="result-scores">
+            <mat-chip-listbox>
+              <mat-chip [ngClass]="'score-' + result.citation.search_type">
+                {{ result.citation.search_type.toUpperCase() }}
+              </mat-chip>
+              <mat-chip>RRF: {{ result.scores.rrf_score.toFixed(3) }}</mat-chip>
+              <mat-chip *ngIf="result.scores.bm25_rank">BM25: #{{ result.scores.bm25_rank }}</mat-chip>
+              <mat-chip *ngIf="result.scores.knn_rank">k-NN: #{{ result.scores.knn_rank }}</mat-chip>
+              <mat-chip *ngIf="result.citation.confidence" class="confidence-chip">
+                Confidence: {{ (result.citation.confidence * 100).toFixed(0) }}%
+              </mat-chip>
+            </mat-chip-listbox>
+          </div>
+          
+          <div class="action-buttons">
+            <button mat-icon-button 
+                    matTooltip="Copy citation" 
+                    (click)="searchService.formatCitation(result.citation)">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+            
+            <button mat-icon-button 
+                    matTooltip="Open in full view"
+                    *ngIf="result.citationInteractive"
+                    (click)="onCitationClick(result)">
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Code Flow Visualization -->
+  <div class="code-flow-visualization" *ngIf="showCodeFlow && selectedResult">
+    <mat-card class="flow-visualization-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>account_tree</mat-icon>
+          Code Flow Visualization
+        </mat-card-title>
+        <button mat-icon-button (click)="showCodeFlow = false">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="flow-diagram">
+          <!-- This would integrate with a flow visualization library -->
+          <div class="flow-placeholder">
+            <mat-icon>construction</mat-icon>
+            <p>Interactive code flow diagram would be rendered here</p>
+            <p>Showing relationships for: {{ selectedResult.citation.path }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="enhancedResults.length === 0 && !isSearching">
+    <mat-icon>search_off</mat-icon>
+    <h3>No results to enhance</h3>
+    <p>Perform a search to see enhanced results with AI-generated questions and code flow analysis.</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isSearching">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Enhancing search results with AI analysis...</p>
+  </div>
+</div>

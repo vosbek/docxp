@@ -13,11 +13,11 @@
 
 // Welcome Section - Professional Design
 .welcome-section {
-  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-accent) 100%);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-blue-200) 100%);
   border-radius: var(--border-radius-xl);
   padding: 40px;
   margin-bottom: 32px;
-  color: var(--text-inverse);
+  color: var(--text-on-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -44,13 +44,13 @@
       font-size: 32px;
       font-weight: 700;
       margin-bottom: 8px;
-      color: var(--text-inverse);
+      color: var(--text-on-primary);
     }
     
     .welcome-subtitle {
       font-size: 16px;
       opacity: 0.9;
-      color: var(--text-inverse);
+      color: var(--text-on-primary);
     }
   }
   
@@ -66,8 +66,8 @@
       transition: all 0.2s ease;
       
       &.p-button-outlined {
-        border-color: var(--text-inverse);
-        color: var(--text-inverse);
+        border-color: var(--text-on-primary);
+        color: var(--text-on-primary);
         background: transparent;
         
         &:hover {
@@ -100,7 +100,7 @@
   
   &:hover {
     box-shadow: var(--shadow-lg);
-    border-color: var(--brand-blue);
+    border-color: var(--brand-primary);
   }
   
   &::before {
@@ -134,8 +134,8 @@
     font-size: 24px;
     
     &.icon-primary {
-      background: rgba(59, 130, 246, 0.1);
-      color: var(--brand-blue);
+      background: rgba(32, 77, 155, 0.1);
+      color: var(--brand-primary);
     }
     
     &.icon-success {
@@ -340,7 +340,7 @@
   
   .action-icon {
     font-size: 32px;
-    color: var(--brand-blue);
+    color: var(--brand-primary);
     transition: color 0.2s ease;
   }
   
@@ -353,16 +353,16 @@
   }
   
   &:hover {
-    border-color: var(--brand-blue);
+    border-color: var(--brand-primary);
     background: var(--gray-50);
     box-shadow: var(--shadow-md);
     
     .action-icon {
-      color: var(--brand-blue-dark);
+      color: var(--brand-blue-700);
     }
     
     .action-label {
-      color: var(--brand-blue-dark);
+      color: var(--brand-blue-700);
     }
   }
   
